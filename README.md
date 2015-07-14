@@ -330,4 +330,20 @@ Contributors
     <td>@akaptur</td>
     <td>allison.kaptur@gmail.com</td>
   </tr>
+  <tr>
+    <td>Daniel Rocco</td>
+    <td>BrightLink Technology</td>
+    <td>contingent</td>
+    <td>@drocco007</td>
+    <td>drocco007</td>
+    <td>drocco@gmail.com</td>
+  </tr>
+  <tr>
+    <td>Brandon Rhodes</td>
+    <td>Dropbox</td>
+    <td>contingent</td>
+    <td>@brandon_rhodes</td>
+    <td>brandon-rhodes</td>
+    <td>brandon@rhodesmill.org</td>
+  </tr>
 </table>
