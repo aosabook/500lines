@@ -1,7 +1,5 @@
-<!-- English spelling: "behaviour" line 46 -->
-A Simple Object Model
-======================
-
+title: A Simple Object Model
+author: Carl Friedrich Bolz
 
 ## Introduction
 
@@ -74,7 +72,6 @@ code defining and using a few classes, and making use of increasingly advanced
 features of the Python object model. Second, the
 corresponding test using the object model we will implement in this chapter,
 instead of normal Python classes. 
-<!-- FIXME: Note for @mikedebo: in the final version these will maybe be typeset side by side.-->
 
 The mapping between using normal Python classes and using our object model will
 be done manually in the tests. For example, instead of writing ``obj.attribute`` in
@@ -90,7 +87,7 @@ different programming languages.
 
 Let us start with a simple test for reading and writing object fields.
 
-````python
+```python
 def test_read_write_field():
     # Python code
     class A(object):
@@ -120,7 +117,7 @@ def test_read_write_field():
     obj.write_attr("a", 2)
     assert obj.read_attr("a") == 2
     assert obj.read_attr("b") == 5
-````
+```
 
 The test uses three things that we have to implement. 
 The classes ``Class`` and ``Instance`` represent classes and
@@ -134,7 +131,7 @@ To do anything with instances of ``Class`` and ``Instance``, they implement a
 shared interface by inheriting from a shared base class ``Base``
 that exposes a number of methods:
 
-````python
+```python
 class Base(object):
     """ The base class that all of the object model classes inherit from. """
 
@@ -170,7 +167,7 @@ class Base(object):
 
 MISSING = object()
 
-````
+```
 
 The ``Base`` class implements storing the class of an object, and a dictionary
 containing the field values of the object.
@@ -187,7 +184,7 @@ passed into the constructor by the user of the object model. The class
 constructor also takes a base class, which the tests so far don't need but
 which we will make use of in the next section.
 
-````python
+```python
 class Instance(Base):
     """Instance of a user-defined class. """
 
@@ -203,7 +200,7 @@ class Class(Base):
         Base.__init__(self, metaclass, fields)
         self.name = name
         self.base_class = base_class
-````
+```
 
 Since classes are also a kind of
 object, they (indirectly) inherit from ``Base``. Thus, the class needs to be an instance of
@@ -212,9 +209,10 @@ another class: its metaclass.
 Now our first test almost passes. The only missing bit is the definition
 of the base classes ``TYPE`` and ``OBJECT``, which are both instances of
 ``Class``. For these we will make a major departure from the Smalltalk model,
-which has a fairly complex metaclass system. Instead we will use the model introduced in ObjVlisp, which 
-Python adopted (FIXME footnote: P. Cointe, “Metaclasses are first
-class: The ObjVlisp Model,” SIGPLAN Not, vol. 22, no. 12, pp. 156–162, 1987.)
+which has a fairly complex metaclass system. Instead we will use the model introduced in ObjVlisp[^objvlisp], which 
+Python adopted. 
+
+[^objvlisp]: P. Cointe, “Metaclasses are first class: The ObjVlisp Model,” SIGPLAN Not, vol. 22, no. 12, pp. 156–162, 1987.
 
 In the ObjVlisp model, ``OBJECT`` and ``TYPE`` are intertwined. ``OBJECT`` is the base
 class of all classes, meaning it has no base class. ``TYPE`` is a subclass of
@@ -223,7 +221,7 @@ By default, every class is an instance of ``TYPE``. In particular, both
 ``TYPE`` and ``OBJECT`` are instances of ``TYPE``. However, the programmer can
 also subclass ``TYPE`` to make a new metaclass:
 
-````python
+```python
 # set up the base hierarchy as in Python (the ObjVLisp model)
 # the ultimate base class is OBJECT
 OBJECT = Class(name="object", base_class=None, fields={}, metaclass=None)
@@ -233,17 +231,17 @@ TYPE = Class(name="type", base_class=OBJECT, fields={}, metaclass=None)
 TYPE.cls = TYPE
 # OBJECT is an instance of TYPE
 OBJECT.cls = TYPE
-````
+```
 
 To define new metaclasses, it is enough to subclass ``TYPE``. However, in the
 rest of this chapter we won't do that; we'll simply always use ``TYPE`` as the
 metaclass of every class.
 
-![](figures/inheritance.png)
+\aosafigure[240pt]{objmodel-images/inheritance.png}{Inheritance}{500l.objmodel.inheritance}
 
 Now the first test passes. The second test checks that reading and writing attributes works on classes as well. It's easy to write, and passes immediately. 
 
-````python
+```python
 def test_read_write_field_class():
     # classes are objects too
     # Python code
@@ -259,7 +257,7 @@ def test_read_write_field_class():
     assert A.read_attr("a") == 1
     A.write_attr("a", 5)
     assert A.read_attr("a") == 5
-````
+```
 
 ### `isinstance` Checking
 
@@ -267,7 +265,7 @@ def test_read_write_field_class():
 So far we haven't taken advantage of the fact that objects have classes. The next
 test implements the ``isinstance`` machinery:
 
-````python
+```python
 def test_isinstance():
     # Python code
     class A(object):
@@ -288,7 +286,7 @@ def test_isinstance():
     assert b.isinstance(A)
     assert b.isinstance(OBJECT)
     assert not b.isinstance(TYPE)
-````
+```
 
 To check whether an object ``obj`` is an instance of a certain class ``cls``, it
 is enough to check whether ``cls`` is a superclass of the class of ``obj``, or
@@ -301,7 +299,7 @@ called the "method resolution order" of that class. It can easily be
 computed recursively:
 
 
-````python
+```python
 class Class(Base):
     ...
 
@@ -315,7 +313,7 @@ class Class(Base):
     def issubclass(self, cls):
         """ is self a subclass of cls? """
         return cls in self.method_resolution_order()
-````
+```
 
 With that code, the test passes.
 
@@ -326,7 +324,7 @@ The remaining missing feature for this first version of the object model is the
 ability to call methods on objects. In this chapter we will implement a simple
 single inheritance model.
 
-````python
+```python
 def test_callmethod_simple():
     # Python code
     class A(object):
@@ -354,14 +352,14 @@ def test_callmethod_simple():
     obj = Instance(B)
     obj.write_attr("x", 2)
     assert obj.callmethod("f") == 3
-````
+```
 
 To find the correct implementation of a method that is sent to an object, we walk
 the method resolution order of the class of the object. The first method 
 found in the dictionary of one of the classes in the method resolution order is
 called:
 
-````python
+```python
 class Class(Base):
     ...
 
@@ -371,7 +369,7 @@ class Class(Base):
                 return cls._fields[methname]
         return MISSING
 
-````
+```
 
 Together with the code for ``callmethod`` in the ``Base`` implementation, this passes
 the test.
@@ -380,7 +378,7 @@ To make sure that methods with arguments work as well, and that overriding of
 methods is implemented correctly, we can use the following slightly more complex
 test, which already passes:
 
-````python
+```python
 def test_callmethod_subclassing_and_arguments():
     # Python code
     class A(object):
@@ -411,7 +409,7 @@ def test_callmethod_subclassing_and_arguments():
     obj = Instance(B)
     obj.write_attr("x", 4)
     assert obj.callmethod("g", 4) == 12
-````
+```
 
 
 
@@ -428,22 +426,22 @@ and Python and Lua on the other hand.
 The method-based model has the calling of
 methods as the primitive operation of program execution:
 
-````python
+```python
 result = obj.f(arg1, arg2)
-````
+```
 
 The attribute-based
 model splits up method calling into two steps: looking up an attribute
 and calling the result:
 
-````python
+```python
 method = obj.f
 result = method(arg1, arg2)
-````
+```
 
 This difference can be shown in the following test:
 
-````python
+```python
 def test_bound_method():
     # Python code
     class A(object):
@@ -475,18 +473,20 @@ def test_bound_method():
     obj.write_attr("x", 1)
     m = obj.read_attr("f")
     assert m(10) == 12
-````
+```
 
 While the setup of the classes is the same as the corresponding test for
 method calls, the way that the methods are called is different. First, the
 attribute with the name of the method is looked up on the object. The result of
 that lookup operation is a *bound method*, an object that encapsulates both the
 object as well as the function found in the class. Next, that bound method is
-called with a call operation. (FIXME footnote: It seems that the attribute-based
-model is conceptually more complex, because it needs both method lookup and
-call. In practice, calling something is defined by looking up and calling a
-special attribute ``__call__``, so conceptual simplicity is regained. This won't
-be implemented in this chapter, however.)
+called with a call operation[^attributenote]. 
+
+[^attributenote]: It seems that the attribute-based model is conceptually more
+complex, because it needs both method lookup and call. In practice, calling
+something is defined by looking up and calling a special attribute
+``__call__``, so conceptual simplicity is regained. This won't be implemented
+in this chapter, however.)
 
 To implement this behaviour, we need to change the ``Base.read_attr``
 implementation. If the attribute is not found in the dictionary, it is looked
@@ -496,7 +496,7 @@ use a closure. In addition to changing ``Base.read_attr`` we can also change
 ``Base.callmethod`` to use the new approach to calling methods to make sure the
 previous tests still pass.
 
-````python
+```python
 class Base(object):
     ...
     def read_attr(self, fieldname):
@@ -524,7 +524,7 @@ def _make_boundmethod(meth, self):
         return meth(self, *args)
     return bound
 
-````
+```
 
 The rest of the code does not need to be changed at all.
 
@@ -538,14 +538,14 @@ special methods usually have names that start and end with two underscores; e.g.
 ``__init__``. Special methods can be used to override primitive operations and
 provide custom behaviour for them instead. Thus, they are hooks that tell the
 object model machinery exactly how to do certain things. Python's object model
-has dozens of special methods
-(FIXME footnote: https://docs.python.org/2/reference/datamodel.html#special-method-names ).
+has [dozens of special methods](https://docs.python.org/2/reference/datamodel.html#special-method-names).
 
 Meta-object protocols were introduced by Smalltalk, but were used even
 more by the object systems for Common Lisp, such as CLOS. That is also
 where the name *meta-object protocol*, for collections of special methods, was
-coined (FIXME footnote: G. Kiczales, J. des Rivieres, and D. G. Bobrow, The Art of
-the Metaobject Protocol. Cambridge, Mass: The MIT Press, 1991.).
+coined[^kiczales].
+
+[^kiczales]: G. Kiczales, J. des Rivieres, and D. G. Bobrow, The Art of the Metaobject Protocol. Cambridge, Mass: The MIT Press, 1991.
 
 In this chapter we will add three such meta-hooks to our object model. They are
 used to fine-tune what exactly happens when reading and writing attributes. The
@@ -559,9 +559,9 @@ The method ``__getattr__`` is called by the object model when the attribute that
 is being looked up is not found by normal means; i.e., neither on the
 instance nor on the class. It gets the name of the attribute being looked up as
 an argument. An equivalent of the ``__getattr__`` special method was part of
-early Smalltalk systems under the name ``doesNotUnderstand:`` (FIXME footnote: A.
-Goldberg, Smalltalk-80: The Language and its Implementation. Addison-Wesley,
-1983, page 61.).
+early Smalltalk[^smalltalk] systems under the name ``doesNotUnderstand:``.
+
+[^smalltalk]: A. Goldberg, Smalltalk-80: The Language and its Implementation. Addison-Wesley, 1983, page 61.
 
 The case of ``__setattr__`` is a bit different. Since setting an attribute
 always creates it, ``__setattr__`` is always called when setting an attribute.
@@ -573,7 +573,7 @@ delegate to the base ``OBJECT.__setattr__`` in some cases.
 
 A test for these two special methods is the following:
 
-````python
+```python
 def test_getattr():
     # Python code
     class A(object):
@@ -621,12 +621,12 @@ def test_getattr():
     obj.write_attr("fahrenheit", 86) # test __setattr__
     assert obj.read_attr("celsius") == 30
     assert obj.read_attr("fahrenheit") == 86
-````
+```
 
 To pass these tests, the ``Base.read_attr`` and ``Base.write_attr`` methods
 need to be changed as follows:
 
-```` python
+``` python
 class Base(object):
     ...
 
@@ -649,7 +649,7 @@ class Base(object):
         """ write field 'fieldname' into the object """
         meth = self.cls._read_from_class("__setattr__")
         return meth(self, fieldname, value)
-````
+```
 
 The procedure for reading an attribute is changed to call the ``__getattr__`` method with the
 fieldname as an argument, if the method exists, instead of raising an error. Note
@@ -663,11 +663,11 @@ Writing of attributes is fully deferred to the ``__setattr__`` method. To make
 this work, ``OBJECT`` needs to have a ``__setattr__`` method that calls the
 default behaviour, as follows:
 
-````python
+```python
 def OBJECT__setattr__(self, fieldname, value):
     self._write_dict(fieldname, value)
 OBJECT = Class("object", None, {"__setattr__": OBJECT__setattr__}, None)
-````
+```
 
 The behaviour of ``OBJECT__setattr__`` is like the previous behaviour of
 ``write_attr``. With these modifications, the new test passes.
@@ -693,7 +693,7 @@ implementation of ``staticmethod``, ``classmethod`` and ``property``.
 In this subsection we will introduce the subset of the descriptor protocol which deals with binding objects. This is done using the special method ``__get__``,
 and is best explained with an example as a test:
 
-````python
+```python
 def test_get():
     # Python code
     class FahrenheitGetter(object):
@@ -717,23 +717,25 @@ def test_get():
     obj = Instance(A)
     obj.write_attr("celsius", 30)
     assert obj.read_attr("fahrenheit") == 86
-````
+```
 
 The ``__get__`` method is called on the ``FahrenheitGetter`` instance after that
 has been looked up in the class of ``obj``. The arguments to ``__get__`` are the
-instance where the lookup was done. (FIXME footnote: In Python the second argument is
-the class where the attribute was found, though we will ignore that here.)
+instance where the lookup was done[^secondarg]. 
+
+[^secondarg] In Python the second argument is the class where the attribute was
+found, though we will ignore that here.
 
 Implementing this behaviour is easy. We simply need to change ``_is_bindable``
 and ``_make_boundmethod``:
 
-````python
+```python
 def _is_bindable(meth):
     return hasattr(meth, "__get__")
 
 def _make_boundmethod(meth, self):
     return meth.__get__(self, None)
-````
+```
 
 This makes the test pass. The previous tests about bound methods also still
 pass, as Python's functions have a ``__get__`` method that returns a bound
@@ -754,12 +756,14 @@ object model would have to solve this problem.
 While the first three variants of the object model were concerned with
 behavioural variation, in this last section we will look at an optimization
 without any behavioural impact. This optimization is called *maps* and was
-pioneered in the VM for the Self programming language (FIXME footnote:
-C. Chambers, D. Ungar, and E. Lee, “An efficient implementation of SELF, a
-dynamically-typed object-oriented language based on prototypes,” in OOPSLA,
-1989, vol. 24.). It is still one of the most important object model
-optimizations: it's used in PyPy and all modern JavaScript VMs, such as V8
-(where the optimization is called *hidden classes*).
+pioneered in the VM for the Self programming language[^self]. It is still one
+of the most important object model optimizations: it's used in PyPy and all
+modern JavaScript VMs, such as V8 (where the optimization is called *hidden
+classes*).
+
+[^self]: C. Chambers, D. Ungar, and E. Lee, “An efficient implementation of
+SELF, a dynamically-typed object-oriented language based on prototypes,” in
+OOPSLA, 1989, vol. 24.
 
 The optimization starts from the following observation: In the object model as
 implemented so far all instances use a full dictionary to store their
@@ -779,7 +783,7 @@ attribute names to indexes into that list.
 
 A simple test of that behaviour looks like this:
 
-````python
+```python
 def test_maps():
     # white box test inspecting the implementation
     Point = Class(name="Point", base_class=OBJECT, fields={}, metaclass=TYPE)
@@ -805,7 +809,7 @@ def test_maps():
     p3.write_attr("z", -343)
     assert p3.map is not p1.map
     assert p3.map.attrs == {"x": 0, "z": 1}
-````
+```
 
 Note that this is a different flavour of test than the ones we've written
 before. All previous tests just tested the behaviour of the classes via the
@@ -822,7 +826,7 @@ of course not be shared.
 
 The ``Map`` class looks like this:
 
-````python
+```python
 class Map(object):
     def __init__(self, attrs):
         self.attrs = attrs
@@ -841,7 +845,7 @@ class Map(object):
         return result
 
 EMPTY_MAP = Map({})
-````
+```
 
 Maps have two methods, ``get_index`` and ``next_map``. The former is used to
 find the index of an attribute name in the object's storage. The latter is used
@@ -850,11 +854,11 @@ a different map, which ``next_map`` computes. The method uses the ``next_maps``
 dictionary to cache already created maps. That way, objects that have the same
 layout also end up using the same ``Map`` object.
 
-![](figures/maptransition.png)
+\aosafigure[240pt]{objmodel-images/maptransition.png}{Map transitions}{500l.objmodel.maptransition}
 
 The ``Instance`` implementation that uses maps looks like this:
 
-````python
+```python
 class Instance(Base):
     """Instance of a user-defined class. """
 
@@ -878,7 +882,7 @@ class Instance(Base):
             new_map = self.map.next_map(fieldname)
             self.storage.append(value)
             self.map = new_map
-````
+```
 
 The class now passes ``None`` as the fields dictionary to ``Base``, as ``Instance``
 will store the content of the dictionary in another way. Therefore it needs
@@ -893,11 +897,11 @@ instance's map is asked for the index of the attribute name. Then the
 corresponding entry of the storage list is returned.
 
 Writing into the fields dictionary has two cases. On the one hand the value of
-an existing
-attribute can be changed. This is done by simply changing the storage at the
-corresponding index. On the other hand, if the attribute does not exist yet, a *map transition* is
-needed using the ``next_map`` method. The value of the new attribute is appended
-to the storage list.
+an existing attribute can be changed. This is done by simply changing the
+storage at the corresponding index. On the other hand, if the attribute does
+not exist yet, a *map transition* (\aosafigref{500l.objmodel.maptransition}) is
+needed using the ``next_map`` method. The value of the new attribute is
+appended to the storage list.
 
 
 What does this optimization achieve? It optimizes use of memory in the common
@@ -915,15 +919,16 @@ Another interesting aspect of maps is that, while here they only
 optimize for memory use, in actual VMs that use a just-in-time (JIT) compiler they also
 improve the performance of the program. To achieve that, the JIT uses the maps
 to compile attribute lookups to a lookup in the objects' storage
-at a fixed offset, getting rid of all dictionary lookups completely (FIXME footnote:
-How that works is beyond the scope of this chapter. I tried to
-give a reasonably readable account of it in a paper I wrote
-a few years ago. It uses an object model that is basically a variant of the one
-in this chapter: C. F. Bolz, A. Cuni, M. Fijałkowski, M. Leuschel, S. Pedroni,
-and A. Rigo, “Runtime feedback in a meta-tracing JIT for efficient dynamic
-languages,” in Proceedings of the 6th Workshop on Implementation, Compilation,
-Optimization of Object-Oriented Languages, Programs and Systems, New York, NY,
-USA, 2011, pp. 9:1–9:8.).
+at a fixed offset, getting rid of all dictionary lookups completely[^lookups]. 
+
+[^lookups]: How that works is beyond the scope of this chapter. I tried to give
+a reasonably readable account of it in a paper I wrote a few years ago. It uses
+an object model that is basically a variant of the one in this chapter: C. F.
+Bolz, A. Cuni, M. Fijałkowski, M. Leuschel, S. Pedroni, and A. Rigo, “Runtime
+feedback in a meta-tracing JIT for efficient dynamic languages,” in Proceedings
+of the 6th Workshop on Implementation, Compilation, Optimization of
+Object-Oriented Languages, Programs and Systems, New York, NY, USA, 2011, pp.
+9:1–9:8.
 
 ## Potential Extensions
 
@@ -937,8 +942,8 @@ experiment with various language design choices. Here are some possibilities:
   this, every class would get a list of base classes. Then the ``Class.method_resolution_order``
   method would need to be changed to support looking up methods. A simple method
   resolution order could be computed using a depth-first search with removal of
-  duplicates. A more complicated but better one is the C3 algorithm (FIXME footnote:
-  https://www.python.org/download/releases/2.3/mro/ ), which adds
+  duplicates. A more complicated but better one is the 
+  [C3 algorithm](https://www.python.org/download/releases/2.3/mro/), which adds
   better handling in the base of diamond-shaped multiple inheritance
   hierarchies and rejects insensible inheritance patterns.
 

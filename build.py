@@ -15,6 +15,7 @@ def main(chapters=[], epub=False, pdf=False, html=False, mobi=False, pandoc_epub
 
     chapter_dirs = [
         'sample',
+        'objmodel',
         'ci',
         'crawler',
         'template-engine',
@@ -55,6 +56,7 @@ def main(chapters=[], epub=False, pdf=False, html=False, mobi=False, pandoc_epub
 
     image_paths = [
         './sample/sample-images',
+        './objmodel/objmodel-images',
         './ci/ci-images',
         './crawler/crawler-images',
         './modeller/modeller-images',
