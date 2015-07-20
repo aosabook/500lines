@@ -14,6 +14,7 @@ def main(chapters=[], epub=False, pdf=False, html=False, mobi=False, pandoc_epub
             run('rm {}'.format(f))
 
     chapter_dirs = [
+        'data-store',
         'sample',
         'objmodel',
         'ci',
@@ -55,6 +56,7 @@ def main(chapters=[], epub=False, pdf=False, html=False, mobi=False, pandoc_epub
     ]
 
     image_paths = [
+        './data-store/data-store-images',
         './sample/sample-images',
         './objmodel/objmodel-images',
         './ci/ci-images',

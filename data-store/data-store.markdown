@@ -1,6 +1,5 @@
-<!-- British spelling -->
-
-# DBDB: Dog Bed Database
+title: DBDB: Dog Bed Database
+author: Taavi Burns
 
 DBDB (Dog Bed Database) is a Python library that implements a simple key/value database.
 It lets you associate a key with a value,
@@ -53,8 +52,8 @@ things were getting. The number of edge cases and trying to reason about how
 changes in one part of the tree affected others was making my head hurt. I had
 no idea how I was going to explain all of this.
 
-Remembering lessons learned, I took a peek at a [recursive algorithm for
-updating immutable binary trees](http://en.wikipedia.org/w/index.php?title=Binary_search_tree&oldid=628341612#Insertion),
+Remembering lessons learned, I took a peek at a recursive algorithm for
+updating immutable binary trees
 and it turned out to be relatively straightforward.
 
 I learned, once again, that it's easier to reason about things that don't change.
@@ -86,8 +85,7 @@ when faced with failure.
 Speaking of failure...
 
 
-Characterizing Failure
----------------
+## Characterizing Failure
 
 Databases are often characterized by how closely they adhere to
 the ACID properties:
@@ -101,8 +99,8 @@ Isolation is likewise not implemented.
 
 Application code can, of course, impose its own consistency guarantees, but
 proper isolation requires a transaction manager. We won't attempt that here;
-however, you can learn more about transaction management in the Datamic
-chapter. <!-- FIXME: Not sure what chapter this refers to. --ARB -->
+however, you can learn more about transaction management in the CircleDB
+chapter (\aosachapref{s:functionaldb}). 
 
 We also have other system-maintenance problems to think about. 
 Stale data is not reclaimed in this implementation,
@@ -116,10 +114,10 @@ and [CouchDB](http://couchdb.apache.org/) calls it "compaction"
 and atomically moving it over the old one).
 
 DBDB could be enhanced to add a compaction feature,
-but it is left as an exercise for the reader. 
-[Footnote]: Bonus feature:
-Can you guarantee that the compacted tree structure is balanced?
-This helps maintain performance over time.
+but it is left as an exercise for the reader[^bonus]. 
+
+[^bonus]: Bonus feature: Can you guarantee that the compacted tree structure is
+balanced?  This helps maintain performance over time.
 
 
 ## The Architecture of DBDB
@@ -304,10 +302,9 @@ direct access to our `Storage` instance: so it can enforce preconditions.
 (Do you agree with this design? Can you think of a different way that we could
 do this?)
 
-DBDB then retrieves the value associated with ``key``
-on the internal ``_tree`` by calling ``_tree.get()``. 
+DBDB then retrieves the value associated with ``key`` on the internal ``_tree``
+by calling ``_tree.get()``, which is provided by ``LogicalBase``:
 
-``_tree.get()`` is provided by ``LogicalBase``:
 ```python
 # dbdb/logical.py
 class LogicalBase(object):
@@ -709,9 +706,7 @@ The algorithm used to update the data store
 can be completely changed out
 by replacing the string ``BinaryTree`` in ``interface.py``.
 Data stores tend to use more complex types of search trees
-such as [B-trees](http://en.wikipedia.org/wiki/B-tree),
-[B+ trees](http://en.wikipedia.org/wiki/B%2B_tree),
-[and others](http://en.wikipedia.org/w/index.php?title=Template:CS_trees)
+such as B-trees, B+ trees, and others
 to improve the performance.
 While a balanced binary tree
 (and this one isn't)
