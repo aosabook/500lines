@@ -490,13 +490,13 @@ Instead of updating a node to point to a new subtree,
 we make a new node which shares the unchanged subtree.
 This is what makes this binary tree an immutable data structure.
 
-This is where we notice something strange: we haven't made any changes to
+You may have noticed something strange here: we haven't made any changes to
 anything on disk yet. All we've done is manipulate our view of the on-disk data
 by moving tree nodes around.
 
-This requires an
-explicit call to `commit()`, which we saw as the second part of our `set`
-operation in `tool.py` at the beginning of this section. 
+In order to actually write these changes to disk, we need an explicit call to
+`commit()`, which we saw as the second part of our `set` operation in `tool.py`
+at the beginning of this section. 
 
 Committing involves writing out all of the dirty state in memory,
 and then saving the disk address of the tree's new root node. 
