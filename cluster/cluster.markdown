@@ -134,7 +134,7 @@ Otherwise, it sends the value from the highest-numbered promise.
 Unless it would violate a promise, each acceptor records the value from the ``Accept`` message as accepted and replies with an ``Accepted`` message.
 The ballot is complete and the value decided when the proposer has heard its ballot number from a majority of acceptors.
 
-Returning to the example, initially no other value has been accepted, so the acceptors all send back a ``Promise`` with no value, and the proposer sends an ``Accept`` containing its value, say ``operation(name='deposit', amount=100.00, destination_account='Michael DiBernardo')``.
+Returning to the example, initially no other value has been accepted, so the acceptors all send back a ``Promise`` with no value, and the proposer sends an ``Accept`` containing its value, say ``operation(name='deposit', amount=100.00, destination_account='Mike DiBernardo')``.
 
 If another proposer later initiates a ballot with a lower ballot number and a different operation (say, a transfer to acount ``'Dustin J. Mitchell'``), the acceptors will simply not accept it.
 If that ballot has a larger ballot number, then the ``Promise`` from the acceptors will inform the proposer about Michael's $100.00 deposit operation, and the proposer will send that value in the ``Accept`` message instead of the transfer to Dustin.
@@ -214,7 +214,7 @@ Let's get started.
 
 ### Types and Constants
 
-Cluster's protocol uses fifteen different message types, each defined as a Python ``namedtuple``.
+Cluster's protocol uses fifteen different message types, each defined as a Python [``namedtuple``](https://docs.python.org/3/library/collections.html).
 
 ```python
 
@@ -317,7 +317,8 @@ The ``Node`` class also provides a ``send`` method as a convenience, using ``fun
         def __init__(self, network, address):
             self.network = network
             self.address = address or 'N%d' % self.unique_ids.next()
-            self.logger = SimTimeLogger(logging.getLogger(self.address), {'network': self.network})
+            self.logger = SimTimeLogger(
+                logging.getLogger(self.address), {'network': self.network})
             self.logger.info('starting')
             self.roles = []
             self.send = functools.partial(self.network.send, self)
@@ -353,32 +354,33 @@ The method uses a simple synchronized `Queue` to wait for the result from the pr
 
 ```python
 
-    class Member(object):
-    
-        def __init__(self, state_machine, network, peers, seed=None,
-                     seed_cls=Seed, bootstrap_cls=Bootstrap):
-            self.network = network
-            self.node = network.new_node()
-            if seed is not None:
-                self.startup_role = seed_cls(self.node, initial_state=seed, peers=peers,
-                                          execute_fn=state_machine)
-            else:
-                self.startup_role = bootstrap_cls(self.node, execute_fn=state_machine, peers=peers)
-            self.requester = None
-    
-        def start(self):
-            self.startup_role.start()
-            self.thread = threading.Thread(target=self.network.run)
-            self.thread.start()
-    
-        def invoke(self, input_value, request_cls=Requester):
-            assert self.requester is None
-            q = Queue.Queue()
-            self.requester = request_cls(self.node, input_value, q.put)
-            self.requester.start()
-            output = q.get()
-            self.requester = None
-            return output
+class Member(object):
+
+    def __init__(self, state_machine, network, peers, seed=None,
+                 seed_cls=Seed, bootstrap_cls=Bootstrap):
+        self.network = network
+        self.node = network.new_node()
+        if seed is not None:
+            self.startup_role = seed_cls(self.node, initial_state=seed, peers=peers,
+                                      execute_fn=state_machine)
+        else:
+            self.startup_role = bootstrap_cls(self.node,
+                                      execute_fn=state_machine, peers=peers)
+        self.requester = None
+
+    def start(self):
+        self.startup_role.start()
+        self.thread = threading.Thread(target=self.network.run)
+        self.thread.start()
+
+    def invoke(self, input_value, request_cls=Requester):
+        assert self.requester is None
+        q = Queue.Queue()
+        self.requester = request_cls(self.node, input_value, q.put)
+        self.requester.start()
+        output = q.get()
+        self.requester = None
+        return output
     
 ```
 
@@ -396,31 +398,34 @@ For acceptors, Multi-Paxos looks a lot like Simple Paxos, with the addition of s
 
 ```python
 
-    class Acceptor(Role):
-    
-        def __init__(self, node):
-            super(Acceptor, self).__init__(node)
-            self.ballot_num = NULL_BALLOT
-            self.accepted_proposals = {}  # {slot: (ballot_num, proposal)}
-    
-        def do_Prepare(self, sender, ballot_num):
-            if ballot_num > self.ballot_num:
-                self.ballot_num = ballot_num
-                # we've heard from a scout, so it might be the next leader
-                self.node.send([self.node.address], Accepting(leader=sender))
-    
-            self.node.send([sender], Promise(ballot_num=self.ballot_num, accepted_proposals=self.accepted_proposals))
-    
-        def do_Accept(self, sender, ballot_num, slot, proposal):
-            if ballot_num >= self.ballot_num:
-                self.ballot_num = ballot_num
-                acc = self.accepted_proposals
-                if slot not in acc or acc[slot][0] < ballot_num:
-                    acc[slot] = (ballot_num, proposal)
-    
-            self.node.send([sender], Accepted(
-                slot=slot, ballot_num=self.ballot_num))
-    
+class Acceptor(Role):
+
+    def __init__(self, node):
+        super(Acceptor, self).__init__(node)
+        self.ballot_num = NULL_BALLOT
+        self.accepted_proposals = {}  # {slot: (ballot_num, proposal)}
+
+    def do_Prepare(self, sender, ballot_num):
+        if ballot_num > self.ballot_num:
+            self.ballot_num = ballot_num
+            # we've heard from a scout, so it might be the next leader
+            self.node.send([self.node.address], Accepting(leader=sender))
+
+        self.node.send([sender], Promise(
+            ballot_num=self.ballot_num, 
+            accepted_proposals=self.accepted_proposals
+        ))
+
+    def do_Accept(self, sender, ballot_num, slot, proposal):
+        if ballot_num >= self.ballot_num:
+            self.ballot_num = ballot_num
+            acc = self.accepted_proposals
+            if slot not in acc or acc[slot][0] < ballot_num:
+                acc[slot] = (ballot_num, proposal)
+
+        self.node.send([sender], Accepted(
+            slot=slot, ballot_num=self.ballot_num))
+
 ```
 
 #### Replica
@@ -468,166 +473,168 @@ The replica skips invoking the state machine for any such duplicate proposals, p
 
 Replicas need to know which node is the active leader in order to send ``Propose`` messages to it.
 There is a surprising amount of subtlety required to get this right, as we'll see later.
-Each replica tracks the active leader using three sources of information:
+Each replica tracks the active leader using three sources of information.
 
-* When the leader role becomes active, it sends an ``Adopted`` message to the replica on the same node.
-
-  ```
-
-                                  Local 
-      Leader      ----------     Replica
-        *--->>---/ Adopted /--------+
-                 ----------
-  ```
-
-* When the acceptor role sends a ``Promise`` to a new leader, it sends an ``Accepting`` message to its local replica.
-
-  ```
-
-                                    Local 
-      Acceptor     ------------    Replica
-          *--->>--/ Accepting /-------+
-                  ------------
-  ```
-
-* The active leader sends ``Active`` messages as a heartbeat.
-  If no such message arrives before the ``LEADER_TIMEOUT`` expires, the replica assumes the leader is dead and moves on to the next leader.
-  In this case, it's important that all replicas choose the *same* new leader, which we accomplish by sorting the members and selecting the next one in the list.
-
-  ```
-
-      Leader      ---------    Replica   Replica   Replica
-         *--->>--/ Active /-------+---------+---------+
-                 ---------
-
-  ```
-
-Finally, when a node joins the network, the bootstrap role sends a ``Join`` message.
-The replica responds with a ``Welcome`` message containing its most recent state, allowing the new node to come up to speed quickly.
+When the leader role becomes active, it sends an ``Adopted`` message to the replica on the same node.
 
 ```
 
-    Bootstrap   -------    Replica   Replica   Replica
-        *-->>--/ Join /-------+---------+---------+
-        :      -------        :         :         :
-        :     ----------      :         :         :
-        +----/ Welcome /--<<--*         :         :
-             ----------                 :         :
-                   ----------           :         :
-        +---------/ Welcome /----<<-----*         :
-                  ----------                      :
-                        ----------                :
-        +--------------/ Welcome /------<<--------*
-                       ----------
+                              Local 
+  Leader      ----------     Replica
+    *--->>---/ Adopted /--------+
+             ----------
+```
+
+When the acceptor role sends a ``Promise`` to a new leader, it sends an ``Accepting`` message to its local replica.
+
+```
+
+                                Local 
+  Acceptor     ------------    Replica
+      *--->>--/ Accepting /-------+
+              ------------
+```
+
+The active leader sends ``Active`` messages as a heartbeat.  If no such message arrives before the ``LEADER_TIMEOUT`` expires, the replica assumes the leader is dead and moves on to the next leader.  In this case, it's important that all replicas choose the *same* new leader, which we accomplish by sorting the members and selecting the next one in the list.
+
+```
+
+  Leader      ---------    Replica   Replica   Replica
+     *--->>--/ Active /-------+---------+---------+
+             ---------
+
+```
+
+Finally, when a node joins the network, the bootstrap role sends a ``Join``
+message. The replica responds with a ``Welcome`` message containing its most
+recent state, allowing the new node to come up to speed quickly.
+
+```
+
+  Bootstrap   -------    Replica   Replica   Replica
+      *-->>--/ Join /-------+---------+---------+
+      :      -------        :         :         :
+      :     ----------      :         :         :
+      +----/ Welcome /--<<--*         :         :
+           ----------                 :         :
+                 ----------           :         :
+      +---------/ Welcome /----<<-----*         :
+                ----------                      :
+                      ----------                :
+      +--------------/ Welcome /------<<--------*
+                     ----------
 
 ```
 
 ```python
 
-    class Replica(Role):
-    
-        def __init__(self, node, execute_fn, state, slot, decisions, peers):
-            super(Replica, self).__init__(node)
-            self.execute_fn = execute_fn
-            self.state = state
-            self.slot = slot
-            self.decisions = decisions.copy()
-            self.peers = peers
-            self.proposals = {}
-            # next slot num for a proposal (may lead slot)
-            self.next_slot = slot
-            self.latest_leader = None
-            self.latest_leader_timeout = None
-    
-        # making proposals
-    
-        def do_Invoke(self, sender, caller, client_id, input_value):
-            proposal = Proposal(caller, client_id, input_value)
-            slot = next((s for s, p in self.proposals.iteritems() if p == proposal), None)
-            # propose, or re-propose if this proposal already has a slot
-            self.propose(proposal, slot)
-    
-        def propose(self, proposal, slot=None):
-            """Send (or resend, if slot is specified) a proposal to the leader"""
-            if not slot:
-                slot, self.next_slot = self.next_slot, self.next_slot + 1
-            self.proposals[slot] = proposal
-            # find a leader we think is working - either the latest we know of, or
-            # ourselves (which may trigger a scout to make us the leader)
-            leader = self.latest_leader or self.node.address
-            self.logger.info("proposing %s at slot %d to leader %s" % (proposal, slot, leader))
-            self.node.send([leader], Propose(slot=slot, proposal=proposal))
-    
-        # handling decided proposals
-    
-        def do_Decision(self, sender, slot, proposal):
-            assert not self.decisions.get(self.slot, None), \
-                    "next slot to commit is already decided"
-            if slot in self.decisions:
-                assert self.decisions[slot] == proposal, \
-                    "slot %d already decided with %r!" % (slot, self.decisions[slot])
-                return
-            self.decisions[slot] = proposal
-            self.next_slot = max(self.next_slot, slot + 1)
-    
-            # re-propose our proposal in a new slot if it lost its slot and wasn't a no-op
-            our_proposal = self.proposals.get(slot)
-            if our_proposal is not None and our_proposal != proposal and our_proposal.caller:
-                self.propose(our_proposal)
-    
-            # execute any pending, decided proposals
-            while True:
-                commit_proposal = self.decisions.get(self.slot)
-                if not commit_proposal:
-                    break  # not decided yet
-                commit_slot, self.slot = self.slot, self.slot + 1
-    
-                self.commit(commit_slot, commit_proposal)
-    
-        def commit(self, slot, proposal):
-            """Actually commit a proposal that is decided and in sequence"""
-            decided_proposals = [p for s, p in self.decisions.iteritems() if s < slot]
-            if proposal in decided_proposals:
-                self.logger.info("not committing duplicate proposal %r at slot %d", proposal, slot)
-                return  # duplicate
-    
-            self.logger.info("committing %r at slot %d" % (proposal, slot))
-            if proposal.caller is not None:
-                # perform a client operation
-                self.state, output = self.execute_fn(self.state, proposal.input)
-                self.node.send([proposal.caller], Invoked(client_id=proposal.client_id, output=output))
-    
-        # tracking the leader
-    
-        def do_Adopted(self, sender, ballot_num, accepted_proposals):
-            self.latest_leader = self.node.address
-            self.leader_alive()
-    
-        def do_Accepting(self, sender, leader):
-            self.latest_leader = leader
-            self.leader_alive()
-    
-        def do_Active(self, sender):
-            if sender != self.latest_leader:
-                return
-            self.leader_alive()
-    
-        def leader_alive(self):
-            if self.latest_leader_timeout:
-                self.latest_leader_timeout.cancel()
-    
-            def reset_leader():
-                idx = self.peers.index(self.latest_leader)
-                self.latest_leader = self.peers[(idx + 1) % len(self.peers)]
-                self.logger.debug("leader timed out; tring the next one, %s", self.latest_leader)
-            self.latest_leader_timeout = self.set_timer(LEADER_TIMEOUT, reset_leader)
-    
-        # adding new cluster members
-    
-        def do_Join(self, sender):
-            if sender in self.peers:
-                self.node.send([sender], Welcome(
-                    state=self.state, slot=self.slot, decisions=self.decisions))
+class Replica(Role):
+
+    def __init__(self, node, execute_fn, state, slot, decisions, peers):
+        super(Replica, self).__init__(node)
+        self.execute_fn = execute_fn
+        self.state = state
+        self.slot = slot
+        self.decisions = decisions.copy()
+        self.peers = peers
+        self.proposals = {}
+        # next slot num for a proposal (may lead slot)
+        self.next_slot = slot
+        self.latest_leader = None
+        self.latest_leader_timeout = None
+
+    # making proposals
+
+    def do_Invoke(self, sender, caller, client_id, input_value):
+        proposal = Proposal(caller, client_id, input_value)
+        slot = next((s for s, p in self.proposals.iteritems() if p == proposal), None)
+        # propose, or re-propose if this proposal already has a slot
+        self.propose(proposal, slot)
+
+    def propose(self, proposal, slot=None):
+        """Send (or resend, if slot is specified) a proposal to the leader"""
+        if not slot:
+            slot, self.next_slot = self.next_slot, self.next_slot + 1
+        self.proposals[slot] = proposal
+        # find a leader we think is working - either the latest we know of, or
+        # ourselves (which may trigger a scout to make us the leader)
+        leader = self.latest_leader or self.node.address
+        self.logger.info("proposing %s at slot %d to leader %s" % (proposal, slot, leader))
+        self.node.send([leader], Propose(slot=slot, proposal=proposal))
+
+    # handling decided proposals
+
+    def do_Decision(self, sender, slot, proposal):
+        assert not self.decisions.get(self.slot, None), \
+                "next slot to commit is already decided"
+        if slot in self.decisions:
+            assert self.decisions[slot] == proposal, \
+                "slot %d already decided with %r!" % (slot, self.decisions[slot])
+            return
+        self.decisions[slot] = proposal
+        self.next_slot = max(self.next_slot, slot + 1)
+
+        # re-propose our proposal in a new slot if it lost its slot and wasn't a no-op
+        our_proposal = self.proposals.get(slot)
+        if our_proposal is not None and our_proposal != proposal and our_proposal.caller:
+            self.propose(our_proposal)
+
+        # execute any pending, decided proposals
+        while True:
+            commit_proposal = self.decisions.get(self.slot)
+            if not commit_proposal:
+                break  # not decided yet
+            commit_slot, self.slot = self.slot, self.slot + 1
+
+            self.commit(commit_slot, commit_proposal)
+
+    def commit(self, slot, proposal):
+        """Actually commit a proposal that is decided and in sequence"""
+        decided_proposals = [p for s, p in self.decisions.iteritems() if s < slot]
+        if proposal in decided_proposals:
+            self.logger.info(
+                "not committing duplicate proposal %r, slot %d", proposal, slot)
+            return  # duplicate
+
+        self.logger.info("committing %r at slot %d" % (proposal, slot))
+        if proposal.caller is not None:
+            # perform a client operation
+            self.state, output = self.execute_fn(self.state, proposal.input)
+            self.node.send([proposal.caller], 
+                Invoked(client_id=proposal.client_id, output=output))
+
+    # tracking the leader
+
+    def do_Adopted(self, sender, ballot_num, accepted_proposals):
+        self.latest_leader = self.node.address
+        self.leader_alive()
+
+    def do_Accepting(self, sender, leader):
+        self.latest_leader = leader
+        self.leader_alive()
+
+    def do_Active(self, sender):
+        if sender != self.latest_leader:
+            return
+        self.leader_alive()
+
+    def leader_alive(self):
+        if self.latest_leader_timeout:
+            self.latest_leader_timeout.cancel()
+
+        def reset_leader():
+            idx = self.peers.index(self.latest_leader)
+            self.latest_leader = self.peers[(idx + 1) % len(self.peers)]
+            self.logger.debug("leader timed out; tring the next one, %s", 
+                self.latest_leader)
+        self.latest_leader_timeout = self.set_timer(LEADER_TIMEOUT, reset_leader)
+
+    # adding new cluster members
+
+    def do_Join(self, sender):
+        if sender in self.peers:
+            self.node.send([sender], Welcome(
+                state=self.state, slot=self.slot, decisions=self.decisions))
     
 ```
 
@@ -639,66 +646,68 @@ An active leader can immediately send an ``Accept`` message in response to a ``P
 
 In keeping with the class-per-role model, the leader delegates to the scout and commander roles to carry out each portion of the protocol.
 
+*DEBO RESUME HERE*
+
 ```python
 
-    class Leader(Role):
-    
-        def __init__(self, node, peers, commander_cls=Commander, scout_cls=Scout):
-            super(Leader, self).__init__(node)
-            self.ballot_num = Ballot(0, node.address)
-            self.active = False
-            self.proposals = {}
-            self.commander_cls = commander_cls
-            self.scout_cls = scout_cls
+class Leader(Role):
+
+    def __init__(self, node, peers, commander_cls=Commander, scout_cls=Scout):
+        super(Leader, self).__init__(node)
+        self.ballot_num = Ballot(0, node.address)
+        self.active = False
+        self.proposals = {}
+        self.commander_cls = commander_cls
+        self.scout_cls = scout_cls
+        self.scouting = False
+        self.peers = peers
+
+    def start(self):
+        # reminder others we're active before LEADER_TIMEOUT expires
+        def active():
+            if self.active:
+                self.node.send(self.peers, Active())
+            self.set_timer(LEADER_TIMEOUT / 2.0, active)
+        active()
+
+    def spawn_scout(self):
+        assert not self.scouting
+        self.scouting = True
+        self.scout_cls(self.node, self.ballot_num, self.peers).start()
+
+    def do_Adopted(self, sender, ballot_num, accepted_proposals):
+        self.scouting = False
+        self.proposals.update(accepted_proposals)
+        # note that we don't re-spawn commanders here; if there are undecided
+        # proposals, the replicas will re-propose
+        self.logger.info("leader becoming active")
+        self.active = True
+
+    def spawn_commander(self, ballot_num, slot):
+        proposal = self.proposals[slot]
+        self.commander_cls(self.node, ballot_num, slot, proposal, self.peers).start()
+
+    def do_Preempted(self, sender, slot, preempted_by):
+        if not slot:  # from the scout
             self.scouting = False
-            self.peers = peers
-    
-        def start(self):
-            # reminder others we're active before LEADER_TIMEOUT expires
-            def active():
-                if self.active:
-                    self.node.send(self.peers, Active())
-                self.set_timer(LEADER_TIMEOUT / 2.0, active)
-            active()
-    
-        def spawn_scout(self):
-            assert not self.scouting
-            self.scouting = True
-            self.scout_cls(self.node, self.ballot_num, self.peers).start()
-    
-        def do_Adopted(self, sender, ballot_num, accepted_proposals):
-            self.scouting = False
-            self.proposals.update(accepted_proposals)
-            # note that we don't re-spawn commanders here; if there are undecided
-            # proposals, the replicas will re-propose
-            self.logger.info("leader becoming active")
-            self.active = True
-    
-        def spawn_commander(self, ballot_num, slot):
-            proposal = self.proposals[slot]
-            self.commander_cls(self.node, ballot_num, slot, proposal, self.peers).start()
-    
-        def do_Preempted(self, sender, slot, preempted_by):
-            if not slot:  # from the scout
-                self.scouting = False
-            self.logger.info("leader preempted by %s", preempted_by.leader)
-            self.active = False
-            self.ballot_num = Ballot((preempted_by or self.ballot_num).n + 1, self.ballot_num.leader)
-    
-        def do_Propose(self, sender, slot, proposal):
-            if slot not in self.proposals:
-                if self.active:
-                    self.proposals[slot] = proposal
-                    self.logger.info("spawning commander for slot %d" % (slot,))
-                    self.spawn_commander(self.ballot_num, slot)
-                else:
-                    if not self.scouting:
-                        self.logger.info("got PROPOSE when not active - scouting")
-                        self.spawn_scout()
-                    else:
-                        self.logger.info("got PROPOSE while scouting; ignored")
+        self.logger.info("leader preempted by %s", preempted_by.leader)
+        self.active = False
+        self.ballot_num = Ballot((preempted_by or self.ballot_num).n + 1, self.ballot_num.leader)
+
+    def do_Propose(self, sender, slot, proposal):
+        if slot not in self.proposals:
+            if self.active:
+                self.proposals[slot] = proposal
+                self.logger.info("spawning commander for slot %d" % (slot,))
+                self.spawn_commander(self.ballot_num, slot)
             else:
-                self.logger.info("got PROPOSE for a slot already being proposed")
+                if not self.scouting:
+                    self.logger.info("got PROPOSE when not active - scouting")
+                    self.spawn_scout()
+                else:
+                    self.logger.info("got PROPOSE while scouting; ignored")
+        else:
+            self.logger.info("got PROPOSE for a slot already being proposed")
     
 ```
 
@@ -1327,8 +1336,6 @@ This seemingly simple change introduced a great deal of complexity:
 The result was far too large for this book!
 
 ## References
-
-<!-- (I'm not sure what the book's citation style is, but these are unambiguous enough for the review) -->
 
 * Lamport - "The Part-Time Parliament"
 * Lamport - "Paxos Made Simple"
