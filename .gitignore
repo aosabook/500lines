@@ -34,6 +34,7 @@ tex/objmodel.markdown
 tex/objmodel-images
 tex/data-store.markdown
 tex/data-store-images
+tex/cluster.markdown
 html/content
 html/cache
 *.pid

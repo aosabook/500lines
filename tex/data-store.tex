@@ -294,9 +294,8 @@ instance: so it can enforce preconditions. (Do you agree with this
 design? Can you think of a different way that we could do this?)
 
 DBDB then retrieves the value associated with \texttt{key} on the
-internal \texttt{\_tree} by calling \texttt{\_tree.get()}.
-
-\texttt{\_tree.get()} is provided by \texttt{LogicalBase}:
+internal \texttt{\_tree} by calling \texttt{\_tree.get()}, which is
+provided by \texttt{LogicalBase}:
 
 \begin{verbatim}
 # dbdb/logical.py
