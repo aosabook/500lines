@@ -414,21 +414,21 @@ down into a handful of classes corresponding to the roles described in
 the protocol. Each is a subclass of \texttt{Role}.
 
 \begin{verbatim}
-    class Role(object):
-    
-        def __init__(self, node):
-            self.node = node
-            self.node.register(self)
-            self.running = True
-            self.logger = node.logger.getChild(type(self).__name__)
-    
-        def set_timer(self, seconds, callback):
-            return self.node.network.set_timer(self.node.address, seconds,
-                                               lambda: self.running and callback())
-    
-        def stop(self):
-            self.running = False
-            self.node.unregister(self)
+class Role(object):
+
+    def __init__(self, node):
+        self.node = node
+        self.node.register(self)
+        self.running = True
+        self.logger = node.logger.getChild(type(self).__name__)
+
+    def set_timer(self, seconds, callback):
+        return self.node.network.set_timer(self.node.address, seconds,
+                                           lambda: self.running and callback())
+
+    def stop(self):
+        self.running = False
+        self.node.unregister(self)
 \end{verbatim}
 
 The roles that a cluster node has are glued together by the
@@ -444,33 +444,33 @@ of the \texttt{Network} class.
 
 \begin{verbatim}
 
-    class Node(object):
-        unique_ids = itertools.count()
-    
-        def __init__(self, network, address):
-            self.network = network
-            self.address = address or 'N%d' % self.unique_ids.next()
-            self.logger = SimTimeLogger(
-                logging.getLogger(self.address), {'network': self.network})
-            self.logger.info('starting')
-            self.roles = []
-            self.send = functools.partial(self.network.send, self)
-    
-        def register(self, roles):
-            self.roles.append(roles)
-    
-        def unregister(self, roles):
-            self.roles.remove(roles)
-    
-        def receive(self, sender, message):
-            handler_name = 'do_%s' % type(message).__name__
-    
-            for comp in self.roles[:]:
-                if not hasattr(comp, handler_name):
-                    continue
-                comp.logger.debug("received %s from %s", message, sender)
-                fn = getattr(comp, handler_name)
-                fn(sender=sender, **message._asdict())
+class Node(object):
+    unique_ids = itertools.count()
+
+    def __init__(self, network, address):
+        self.network = network
+        self.address = address or 'N%d' % self.unique_ids.next()
+        self.logger = SimTimeLogger(
+            logging.getLogger(self.address), {'network': self.network})
+        self.logger.info('starting')
+        self.roles = []
+        self.send = functools.partial(self.network.send, self)
+
+    def register(self, roles):
+        self.roles.append(roles)
+
+    def unregister(self, roles):
+        self.roles.remove(roles)
+
+    def receive(self, sender, message):
+        handler_name = 'do_%s' % type(message).__name__
+
+        for comp in self.roles[:]:
+            if not hasattr(comp, handler_name):
+                continue
+            comp.logger.debug("received %s from %s", message, sender)
+            fn = getattr(comp, handler_name)
+            fn(sender=sender, **message._asdict())
     
 \end{verbatim}
 
@@ -907,49 +907,53 @@ message, respectively.
 
 \begin{verbatim}
 
-    class Scout(Role):
-    
-        def __init__(self, node, ballot_num, peers):
-            super(Scout, self).__init__(node)
-            self.ballot_num = ballot_num
-            self.accepted_proposals = {}
-            self.acceptors = set([])
-            self.peers = peers
-            self.quorum = len(peers) / 2 + 1
-            self.retransmit_timer = None
-    
-        def start(self):
-            self.logger.info("scout starting")
-            self.send_prepare()
-    
-        def send_prepare(self):
-            self.node.send(self.peers, Prepare(ballot_num=self.ballot_num))
-            self.retransmit_timer = self.set_timer(PREPARE_RETRANSMIT, self.send_prepare)
-    
-        def update_accepted(self, accepted_proposals):
-            acc = self.accepted_proposals
-            for slot, (ballot_num, proposal) in accepted_proposals.iteritems():
-                if slot not in acc or acc[slot][0] < ballot_num:
-                    acc[slot] = (ballot_num, proposal)
-    
-        def do_Promise(self, sender, ballot_num, accepted_proposals):
-            if ballot_num == self.ballot_num:
-                self.logger.info("got matching promise; need %d" % self.quorum)
-                self.update_accepted(accepted_proposals)
-                self.acceptors.add(sender)
-                if len(self.acceptors) >= self.quorum:
-                    # strip the ballot numbers from self.accepted_proposals, now that it
-                    # represents a majority
-                    accepted_proposals = dict((s, p) for s, (b, p) in self.accepted_proposals.iteritems())
-                    # We're adopted; note that this does *not* mean that no other leader is active.
-                    # Any such conflicts will be handled by the commanders.
-                    self.node.send([self.node.address],
-                                   Adopted(ballot_num=ballot_num, accepted_proposals=accepted_proposals))
-                    self.stop()
-            else:
-                # this acceptor has promised another leader a higher ballot number, so we've lost
-                self.node.send([self.node.address], Preempted(slot=None, preempted_by=ballot_num))
+class Scout(Role):
+
+    def __init__(self, node, ballot_num, peers):
+        super(Scout, self).__init__(node)
+        self.ballot_num = ballot_num
+        self.accepted_proposals = {}
+        self.acceptors = set([])
+        self.peers = peers
+        self.quorum = len(peers) / 2 + 1
+        self.retransmit_timer = None
+
+    def start(self):
+        self.logger.info("scout starting")
+        self.send_prepare()
+
+    def send_prepare(self):
+        self.node.send(self.peers, Prepare(ballot_num=self.ballot_num))
+        self.retransmit_timer = self.set_timer(PREPARE_RETRANSMIT, self.send_prepare)
+
+    def update_accepted(self, accepted_proposals):
+        acc = self.accepted_proposals
+        for slot, (ballot_num, proposal) in accepted_proposals.iteritems():
+            if slot not in acc or acc[slot][0] < ballot_num:
+                acc[slot] = (ballot_num, proposal)
+
+    def do_Promise(self, sender, ballot_num, accepted_proposals):
+        if ballot_num == self.ballot_num:
+            self.logger.info("got matching promise; need %d" % self.quorum)
+            self.update_accepted(accepted_proposals)
+            self.acceptors.add(sender)
+            if len(self.acceptors) >= self.quorum:
+                # strip the ballot numbers from self.accepted_proposals, now that it
+                # represents a majority
+                accepted_proposals = \ 
+                    dict((s, p) for s, (b, p) in self.accepted_proposals.iteritems())
+                # We're adopted; note that this does *not* mean that no other
+                # leader is active.  # Any such conflicts will be handled by the
+                # commanders.
+                self.node.send([self.node.address],
+                    Adopted(ballot_num=ballot_num, accepted_proposals=accepted_proposals))
                 self.stop()
+        else:
+            # this acceptor has promised another leader a higher ballot number,
+            # so we've lost
+            self.node.send([self.node.address], 
+                Preempted(slot=None, preempted_by=ballot_num))
+            self.stop()
     
 \end{verbatim}
 
@@ -980,40 +984,43 @@ nodes. It responds to the leader with either \texttt{Decided} or
 
 \begin{verbatim}
 
-    class Commander(Role):
-    
-        def __init__(self, node, ballot_num, slot, proposal, peers):
-            super(Commander, self).__init__(node)
-            self.ballot_num = ballot_num
-            self.slot = slot
-            self.proposal = proposal
-            self.acceptors = set([])
-            self.peers = peers
-            self.quorum = len(peers) / 2 + 1
-    
-        def start(self):
-            self.node.send(set(self.peers) - self.acceptors, Accept(
-                                slot=self.slot, ballot_num=self.ballot_num, proposal=self.proposal))
-            self.set_timer(ACCEPT_RETRANSMIT, self.start)
-    
-        def finished(self, ballot_num, preempted):
-            if preempted:
-                self.node.send([self.node.address], Preempted(slot=self.slot, preempted_by=ballot_num))
-            else:
-                self.node.send([self.node.address], Decided(slot=self.slot))
-            self.stop()
-    
-        def do_Accepted(self, sender, slot, ballot_num):
-            if slot != self.slot:
+class Commander(Role):
+
+    def __init__(self, node, ballot_num, slot, proposal, peers):
+        super(Commander, self).__init__(node)
+        self.ballot_num = ballot_num
+        self.slot = slot
+        self.proposal = proposal
+        self.acceptors = set([])
+        self.peers = peers
+        self.quorum = len(peers) / 2 + 1
+
+    def start(self):
+        self.node.send(set(self.peers) - self.acceptors, Accept(
+            slot=self.slot, ballot_num=self.ballot_num, proposal=self.proposal))
+        self.set_timer(ACCEPT_RETRANSMIT, self.start)
+
+    def finished(self, ballot_num, preempted):
+        if preempted:
+            self.node.send([self.node.address], 
+                           Preempted(slot=self.slot, preempted_by=ballot_num))
+        else:
+            self.node.send([self.node.address], 
+                           Decided(slot=self.slot))
+        self.stop()
+
+    def do_Accepted(self, sender, slot, ballot_num):
+        if slot != self.slot:
+            return
+        if ballot_num == self.ballot_num:
+            self.acceptors.add(sender)
+            if len(self.acceptors) < self.quorum:
                 return
-            if ballot_num == self.ballot_num:
-                self.acceptors.add(sender)
-                if len(self.acceptors) < self.quorum:
-                    return
-                self.node.send(self.peers, Decision(slot=self.slot, proposal=self.proposal))
-                self.finished(ballot_num, False)
-            else:
-                self.finished(ballot_num, True)
+            self.node.send(self.peers, Decision(
+                           slot=self.slot, proposal=self.proposal))
+            self.finished(ballot_num, False)
+        else:
+            self.finished(ballot_num, True)
     
 \end{verbatim}
 
@@ -1045,35 +1052,35 @@ is complete, passing the initial state to their constructors.
 
 \begin{verbatim}
 
-    class Bootstrap(Role):
-    
-        def __init__(self, node, peers, execute_fn,
-                     replica_cls=Replica, acceptor_cls=Acceptor, leader_cls=Leader,
-                     commander_cls=Commander, scout_cls=Scout):
-            super(Bootstrap, self).__init__(node)
-            self.execute_fn = execute_fn
-            self.peers = peers
-            self.peers_cycle = itertools.cycle(peers)
-            self.replica_cls = replica_cls
-            self.acceptor_cls = acceptor_cls
-            self.leader_cls = leader_cls
-            self.commander_cls = commander_cls
-            self.scout_cls = scout_cls
-    
-        def start(self):
-            self.join()
-    
-        def join(self):
-            self.node.send([next(self.peers_cycle)], Join())
-            self.set_timer(JOIN_RETRANSMIT, self.join)
-    
-        def do_Welcome(self, sender, state, slot, decisions):
-            self.acceptor_cls(self.node)
-            self.replica_cls(self.node, execute_fn=self.execute_fn, peers=self.peers,
-                             state=state, slot=slot, decisions=decisions)
-            self.leader_cls(self.node, peers=self.peers, commander_cls=self.commander_cls,
-                            scout_cls=self.scout_cls).start()
-            self.stop()
+class Bootstrap(Role):
+
+    def __init__(self, node, peers, execute_fn,
+                 replica_cls=Replica, acceptor_cls=Acceptor, leader_cls=Leader,
+                 commander_cls=Commander, scout_cls=Scout):
+        super(Bootstrap, self).__init__(node)
+        self.execute_fn = execute_fn
+        self.peers = peers
+        self.peers_cycle = itertools.cycle(peers)
+        self.replica_cls = replica_cls
+        self.acceptor_cls = acceptor_cls
+        self.leader_cls = leader_cls
+        self.commander_cls = commander_cls
+        self.scout_cls = scout_cls
+
+    def start(self):
+        self.join()
+
+    def join(self):
+        self.node.send([next(self.peers_cycle)], Join())
+        self.set_timer(JOIN_RETRANSMIT, self.join)
+
+    def do_Welcome(self, sender, state, slot, decisions):
+        self.acceptor_cls(self.node)
+        self.replica_cls(self.node, execute_fn=self.execute_fn, peers=self.peers,
+                         state=state, slot=slot, decisions=decisions)
+        self.leader_cls(self.node, peers=self.peers, commander_cls=self.commander_cls,
+                        scout_cls=self.scout_cls).start()
+        self.stop()
     
 \end{verbatim}
 
@@ -1113,37 +1120,37 @@ as for the replica role.
 
 \begin{verbatim}
 
-    class Seed(Role):
-    
-        def __init__(self, node, initial_state, execute_fn, peers, bootstrap_cls=Bootstrap):
-            super(Seed, self).__init__(node)
-            self.initial_state = initial_state
-            self.execute_fn = execute_fn
-            self.peers = peers
-            self.bootstrap_cls = bootstrap_cls
-            self.seen_peers = set([])
-            self.exit_timer = None
-    
-        def do_Join(self, sender):
-            self.seen_peers.add(sender)
-            if len(self.seen_peers) <= len(self.peers) / 2:
-                return
-    
-            # cluster is ready - welcome everyone
-            self.node.send(list(self.seen_peers), Welcome(
-                state=self.initial_state, slot=1, decisions={}))
-    
-            # stick around for long enough that we don't hear any new JOINs from
-            # the newly formed cluster
-            if self.exit_timer:
-                self.exit_timer.cancel()
-            self.exit_timer = self.set_timer(JOIN_RETRANSMIT * 2, self.finish)
-    
-        def finish(self):
-            # bootstrap this node into the cluster we just seeded
-            bs = self.bootstrap_cls(self.node, peers=self.peers, execute_fn=self.execute_fn)
-            bs.start()
-            self.stop()
+class Seed(Role):
+
+    def __init__(self, node, initial_state, execute_fn, peers, bootstrap_cls=Bootstrap):
+        super(Seed, self).__init__(node)
+        self.initial_state = initial_state
+        self.execute_fn = execute_fn
+        self.peers = peers
+        self.bootstrap_cls = bootstrap_cls
+        self.seen_peers = set([])
+        self.exit_timer = None
+
+    def do_Join(self, sender):
+        self.seen_peers.add(sender)
+        if len(self.seen_peers) <= len(self.peers) / 2:
+            return
+
+        # cluster is ready - welcome everyone
+        self.node.send(list(self.seen_peers), Welcome(
+            state=self.initial_state, slot=1, decisions={}))
+
+        # stick around for long enough that we don't hear any new JOINs from
+        # the newly formed cluster
+        if self.exit_timer:
+            self.exit_timer.cancel()
+        self.exit_timer = self.set_timer(JOIN_RETRANSMIT * 2, self.finish)
+
+    def finish(self):
+        # bootstrap this node into the cluster we just seeded
+        bs = self.bootstrap_cls(self.node, peers=self.peers, execute_fn=self.execute_fn)
+        bs.start()
+        self.stop()
     
 \end{verbatim}
 
@@ -1156,29 +1163,30 @@ replica until it receives a corresponding \texttt{Invoked}. See the
 
 \begin{verbatim}
 
-    class Requester(Role):
-    
-        client_ids = itertools.count(start=100000)
-    
-        def __init__(self, node, n, callback):
-            super(Requester, self).__init__(node)
-            self.client_id = self.client_ids.next()
-            self.n = n
-            self.output = None
-            self.callback = callback
-    
-        def start(self):
-            self.node.send([self.node.address], Invoke(caller=self.node.address,
-                                                       client_id=self.client_id, input_value=self.n))
-            self.invoke_timer = self.set_timer(INVOKE_RETRANSMIT, self.start)
-    
-        def do_Invoked(self, sender, client_id, output):
-            if client_id != self.client_id:
-                return
-            self.logger.debug("received output %r" % (output,))
-            self.invoke_timer.cancel()
-            self.callback(output)
-            self.stop()
+class Requester(Role):
+
+    client_ids = itertools.count(start=100000)
+
+    def __init__(self, node, n, callback):
+        super(Requester, self).__init__(node)
+        self.client_id = self.client_ids.next()
+        self.n = n
+        self.output = None
+        self.callback = callback
+
+    def start(self):
+        self.node.send([self.node.address], 
+                       Invoke(caller=self.node.address, 
+                              client_id=self.client_id, input_value=self.n))
+        self.invoke_timer = self.set_timer(INVOKE_RETRANSMIT, self.start)
+
+    def do_Invoked(self, sender, client_id, output):
+        if client_id != self.client_id:
+            return
+        self.logger.debug("received output %r" % (output,))
+        self.invoke_timer.cancel()
+        self.callback(output)
+        self.stop()
     
 \end{verbatim}
 
@@ -1238,69 +1246,72 @@ node is still active.
 
 \begin{verbatim}
 
-    class Timer(object):
-    
-        def __init__(self, expires, address, callback):
-            self.expires = expires
-            self.address = address
-            self.callback = callback
-            self.cancelled = False
-    
-        def __cmp__(self, other):
-            return cmp(self.expires, other.expires)
-    
-        def cancel(self):
-            self.cancelled = True
+class Timer(object):
+
+    def __init__(self, expires, address, callback):
+        self.expires = expires
+        self.address = address
+        self.callback = callback
+        self.cancelled = False
+
+    def __cmp__(self, other):
+        return cmp(self.expires, other.expires)
+
+    def cancel(self):
+        self.cancelled = True
     
 \end{verbatim}
 
 \begin{verbatim}
 
-    class Network(object):
-        PROP_DELAY = 0.03
-        PROP_JITTER = 0.02
-        DROP_PROB = 0.05
-    
-        def __init__(self, seed):
-            self.nodes = {}
-            self.rnd = random.Random(seed)
-            self.timers = []
-            self.now = 1000.0
-    
-        def new_node(self, address=None):
-            node = Node(self, address=address)
-            self.nodes[node.address] = node
-            return node
-    
-        def run(self):
-            while self.timers:
-                next_timer = self.timers[0]
-                if next_timer.expires > self.now:
-                    self.now = next_timer.expires
-                heapq.heappop(self.timers)
-                if next_timer.cancelled:
-                    continue
-                if not next_timer.address or next_timer.address in self.nodes:
-                    next_timer.callback()
-    
-        def stop(self):
-            self.timers = []
-    
-        def set_timer(self, address, seconds, callback):
-            timer = Timer(self.now + seconds, address, callback)
-            heapq.heappush(self.timers, timer)
-            return timer
-    
-        def send(self, sender, destinations, message):
-            sender.logger.debug("sending %s to %s", message, destinations)
-            for dest in (d for d in destinations if d in self.nodes):
-                if dest == sender.address:
-                    # reliably deliver local messages with no delay
-                    self.set_timer(sender.address, 0, lambda: sender.receive(sender.address, message))
-                elif self.rnd.uniform(0, 1.0) > self.DROP_PROB:
-                    delay = self.PROP_DELAY + self.rnd.uniform(-self.PROP_JITTER, self.PROP_JITTER)
-                    self.set_timer(dest, delay, functools.partial(self.nodes[dest].receive,
-                                                                  sender.address, message))
+class Network(object):
+    PROP_DELAY = 0.03
+    PROP_JITTER = 0.02
+    DROP_PROB = 0.05
+
+    def __init__(self, seed):
+        self.nodes = {}
+        self.rnd = random.Random(seed)
+        self.timers = []
+        self.now = 1000.0
+
+    def new_node(self, address=None):
+        node = Node(self, address=address)
+        self.nodes[node.address] = node
+        return node
+
+    def run(self):
+        while self.timers:
+            next_timer = self.timers[0]
+            if next_timer.expires > self.now:
+                self.now = next_timer.expires
+            heapq.heappop(self.timers)
+            if next_timer.cancelled:
+                continue
+            if not next_timer.address or next_timer.address in self.nodes:
+                next_timer.callback()
+
+    def stop(self):
+        self.timers = []
+
+    def set_timer(self, address, seconds, callback):
+        timer = Timer(self.now + seconds, address, callback)
+        heapq.heappush(self.timers, timer)
+        return timer
+
+    def send(self, sender, destinations, message):
+        sender.logger.debug("sending %s to %s", message, destinations)
+        for dest in (d for d in destinations if d in self.nodes):
+            if dest == sender.address:
+                # reliably deliver local messages with no delay
+                self.set_timer(sender.address, 0,  
+                               lambda: sender.receive(sender.address, message))
+            elif self.rnd.uniform(0, 1.0) > self.DROP_PROB:
+                delay = self.PROP_DELAY + self.rnd.uniform(-self.PROP_JITTER, 
+                                                           self.PROP_JITTER)
+                self.set_timer(dest, delay, 
+                               functools.partial(self.nodes[dest].receive, 
+                                                 sender.address, message))
     
 \end{verbatim}
 
@@ -1335,14 +1346,14 @@ the \texttt{SimTimeLogger} class.
 
 \begin{verbatim}
 
-    class SimTimeLogger(logging.LoggerAdapter):
-    
-        def process(self, msg, kwargs):
-            return "T=%.3f %s" % (self.extra['network'].now, msg), kwargs
-    
-        def getChild(self, name):
-            return self.__class__(self.logger.getChild(name),
-                                  {'network': self.extra['network']})
+class SimTimeLogger(logging.LoggerAdapter):
+
+    def process(self, msg, kwargs):
+        return "T=%.3f %s" % (self.extra['network'].now, msg), kwargs
+
+    def getChild(self, name):
+        return self.__class__(self.logger.getChild(name),
+                              {'network': self.extra['network']})
     
 \end{verbatim}
 
@@ -1409,12 +1420,12 @@ Github repository) are simple and short:
 
 \begin{verbatim}
 
-    class Tests(utils.ComponentTestCase):
-        def test_propose_active(self):
-            """A PROPOSE received while active spawns a commander."""
-            self.activate_leader()
-            self.node.fake_message(Propose(slot=10, proposal=PROPOSAL1))
-            self.assertCommanderStarted(Ballot(0, 'F999'), 10, PROPOSAL1)
+class Tests(utils.ComponentTestCase):
+    def test_propose_active(self):
+        """A PROPOSE received while active spawns a commander."""
+        self.activate_leader()
+        self.node.fake_message(Propose(slot=10, proposal=PROPOSAL1))
+        self.assertCommanderStarted(Ballot(0, 'F999'), 10, PROPOSAL1)
     
 \end{verbatim}
 
@@ -1433,16 +1444,16 @@ this:
 
 \begin{verbatim}
 
-    class Leader(Role):
-        def __init__(self, node, peers, commander_cls=Commander, scout_cls=Scout):
-            super(Leader, self).__init__(node)
-            self.ballot_num = Ballot(0, node.address)
-            self.active = False
-            self.proposals = {}
-            self.commander_cls = commander_cls
-            self.scout_cls = scout_cls
-            self.scouting = False
-            self.peers = peers
+class Leader(Role):
+    def __init__(self, node, peers, commander_cls=Commander, scout_cls=Scout):
+        super(Leader, self).__init__(node)
+        self.ballot_num = Ballot(0, node.address)
+        self.active = False
+        self.proposals = {}
+        self.commander_cls = commander_cls
+        self.scout_cls = scout_cls
+        self.scouting = False
+        self.peers = peers
     
 \end{verbatim}
 
@@ -1452,12 +1463,11 @@ The \texttt{spawn\_scout} method (and similarly,
 
 \begin{verbatim}
 
-    class Leader(Role):
-        def spawn_scout(self):
-            assert not self.scouting
-            self.scouting = True
-            self.scout_cls(self.node, self.ballot_num, self.peers).start()
-    
+class Leader(Role):
+    def spawn_scout(self):
+        assert not self.scouting
+        self.scouting = True
+        self.scout_cls(self.node, self.ballot_num, self.peers).start()
 \end{verbatim}
 
 The magic of this technique is that, in testing, \texttt{Leader} can be
@@ -1637,27 +1647,27 @@ Lamport addresses this challenge in the final paragraph of ``Paxos Made
 Simple'':
 
 \begin{quote}
-We can allow a leader to get \emph{α} commands ahead by letting the set
-of servers that execute instance \emph{i+α} of the consensus algorithm
-be specified by the state after execution of the \emph{i}\th state
-machine command. (Lamport, 2001)
+We can allow a leader to get $\alpha$ commands ahead by letting the set
+of servers that execute instance $i+\alpha$ of the consensus algorithm
+be specified by the state after execution of the $i$th state machine
+command. (Lamport, 2001)
 \end{quote}
 
 The idea is that each instance of Paxos (slot) uses the view from α
-slots earlier. This allows the cluster to work on, at most, \emph{α}
-slots at any one time, so a very small value of \emph{α} limits
-concurrency, while a very large value of \emph{α} makes view changes
+slots earlier. This allows the cluster to work on, at most, $\alpha$
+slots at any one time, so a very small value of $\alpha$ limits
+concurrency, while a very large value of $\alpha$ makes view changes
 slow to take effect.
 
 In early drafts of this implementation (dutifully preserved in the git
-history!), I implemented support for view changes (using \emph{α} in
+history!), I implemented support for view changes (using $\alpha$ in
 place of 3). This seemingly simple change introduced a great deal of
 complexity:
 
 \begin{aosaitemize}
 
 \item
-  tracking the view for each of the last \emph{α} committed slots and
+  tracking the view for each of the last $\alpha$ committed slots and
   correctly sharing this with new nodes,
 \item
   ignoring proposals for which no slot is available,
