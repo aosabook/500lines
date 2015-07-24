@@ -57,6 +57,7 @@ def main(chapters=[], epub=False, pdf=False, html=False, mobi=False, pandoc_epub
     ]
 
     image_paths = [
+        './cluster/cluster-images',
         './data-store/data-store-images',
         './sample/sample-images',
         './objmodel/objmodel-images',

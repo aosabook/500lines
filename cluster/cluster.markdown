@@ -88,39 +88,10 @@ The protocol operates in a series of ballots, each led by a single member of the
 Each ballot has a unique ballot number based on an integer and the proposer's identity.
 The proposer's goal is to get a majority of cluster members, acting as acceptors, to accept its value, but only if another value has not already been decided.
 
-A single ballot looks like this:
 
-```
+\aosafigure{cluster-images/ballot.png}{A Ballot}{500l.cluster.ballot}
 
-Proposer      -------------------------     Acceptor        Acceptor        Acceptor
-   *--->>----/ Prepare(ballot_num=..) /--------+---------------+---------------+
-   :         -------------------------         :               :               :
-   :    -----------------------------------    :               :               :
-   +---/ Promise(ballot_num=.., value=..) /-<<-*               :               :
-   :   -----------------------------------                     :               :
-   :            -----------------------------------            :               :
-   +-----------/ Promise(ballot_num=.., value=..) /-----<<-----*               :
-   :           -----------------------------------                             :
-   :                    -----------------------------------                    :
-   +-------------------/ Promise(ballot_num=.., value=..) /---------<<---------*
-   :                   -----------------------------------      
-   :
-   :       -----------------------------------
-   *--->>--/ Accept(ballot_num=.., value=..) /-+---------------+---------------+
-   :      -----------------------------------  :               :               :
-   :        --------------------------         :               :               :
-   +-------/ Accepted(ballot_num=..) /---<<----*               :               :
-   :       --------------------------                          :               :
-   :                --------------------------                 :               :
-   +---------------/ Accepted(ballot_num=..) /-------<<--------*               :
-   :               --------------------------                                  :
-   :                        --------------------------                         :
-   +-----------------------/ Accepted(ballot_num=..) /-----------<<------------*
-                           --------------------------      
-
-```
-
-The ballot begins with the proposer sending a ``Prepare`` message with the ballot number *N* to the acceptors and waiting to hear from a majority.
+A ballot begins with the proposer sending a ``Prepare`` message with the ballot number *N* to the acceptors and waiting to hear from a majority (\aosafigref{500l.cluster.ballot}.)
 
 The ``Prepare`` message is a request for the accepted value (if any) with the highest ballot number less than *N*.
 Acceptors respond with a ``Promise`` containing any value they have already accepted, and promising not to accept any ballot numbered less than *N* in the future.
