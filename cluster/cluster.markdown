@@ -408,25 +408,10 @@ The ``Replica`` class is the most complicated role class, as it has a few closel
 * Tracking the current leader; and
 * Adding newly started nodes to the cluster.
 
-The replica creates new proposals in response to ``Invoke`` messages from clients, selecting what it believes to be an unused slot and sending a ``Propose`` message to the current leader.
+The replica creates new proposals in response to ``Invoke`` messages from clients, selecting what it believes to be an unused slot and sending a ``Propose`` message to the current leader (\aosafigref{500l.cluster.replica}.)
 Furthermore, if the consensus for the selected slot is for a different proposal, the replica must re-propose with a new slot.
 
-```none
-
-                                Local
-    Requester    ---------     Replica                  Current
-        *--->>---/ Invoke /--------+                      Leader
-                 ---------         :         ----------
-                                   *--->>---/ Propose /-----+
-                                            ----------      :
-                                                      (multi-paxos)
-                                            -----------     :
-                                   +-------/ Decision /-<<--*
-                  ----------       :       -----------
-        *--------/ Invoked /---<<--*
-        :        ----------
-
-```
+\aosafigure{cluster-images/replica.png}{Replica Role Control Flow}{500l.cluster.replica}
 
 ``Decision`` messages represent slots on which the cluster has come to consensus.
 Here, replicas store the new decision, then run the state machine until it reaches an undecided slot.
@@ -446,35 +431,17 @@ Replicas need to know which node is the active leader in order to send ``Propose
 There is a surprising amount of subtlety required to get this right, as we'll see later.
 Each replica tracks the active leader using three sources of information.
 
-When the leader role becomes active, it sends an ``Adopted`` message to the replica on the same node.
+When the leader role becomes active, it sends an ``Adopted`` message to the replica on the same node (\aosafigref{500l.cluster.adopted}.)
 
-```
+\aosafigure[240pt]{cluster-images/adopted.png}{Adopted}{500l.cluster.adopted}
 
-                              Local 
-  Leader      ----------     Replica
-    *--->>---/ Adopted /--------+
-             ----------
-```
+When the acceptor role sends a ``Promise`` to a new leader, it sends an ``Accepting`` message to its local replica (\aosafigref{500l.cluster.accepting}.)
 
-When the acceptor role sends a ``Promise`` to a new leader, it sends an ``Accepting`` message to its local replica.
+\aosafigure[240pt]{cluster-images/accepting.png}{Accepting}{500l.cluster.accepting}
 
-```
+The active leader sends ``Active`` messages as a heartbeat (\aosafigref{500l.cluster.active}.) If no such message arrives before the ``LEADER_TIMEOUT`` expires, the replica assumes the leader is dead and moves on to the next leader.  In this case, it's important that all replicas choose the *same* new leader, which we accomplish by sorting the members and selecting the next one in the list.
 
-                                Local 
-  Acceptor     ------------    Replica
-      *--->>--/ Accepting /-------+
-              ------------
-```
-
-The active leader sends ``Active`` messages as a heartbeat.  If no such message arrives before the ``LEADER_TIMEOUT`` expires, the replica assumes the leader is dead and moves on to the next leader.  In this case, it's important that all replicas choose the *same* new leader, which we accomplish by sorting the members and selecting the next one in the list.
-
-```
-
-  Leader      ---------    Replica   Replica   Replica
-     *--->>--/ Active /-------+---------+---------+
-             ---------
-
-```
+\aosafigure{cluster-images/active.png}{Active}{500l.cluster.active}
 
 Finally, when a node joins the network, the bootstrap role sends a ``Join``
 message. The replica responds with a ``Welcome`` message containing its most

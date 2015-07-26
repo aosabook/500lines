@@ -558,25 +558,12 @@ a few closely related responsibilities:
 
 The replica creates new proposals in response to \texttt{Invoke}
 messages from clients, selecting what it believes to be an unused slot
-and sending a \texttt{Propose} message to the current leader.
-Furthermore, if the consensus for the selected slot is for a different
-proposal, the replica must re-propose with a new slot.
+and sending a \texttt{Propose} message to the current leader
+(\aosafigref{500l.cluster.replica}.) Furthermore, if the consensus for
+the selected slot is for a different proposal, the replica must
+re-propose with a new slot.
 
-\begin{verbatim}
-
-                                Local
-    Requester    ---------     Replica                  Current
-        *--->>---/ Invoke /--------+                      Leader
-                 ---------         :         ----------
-                                   *--->>---/ Propose /-----+
-                                            ----------      :
-                                                      (multi-paxos)
-                                            -----------     :
-                                   +-------/ Decision /-<<--*
-                  ----------       :       -----------
-        *--------/ Invoked /---<<--*
-        :        ----------
-\end{verbatim}
+\aosafigure{cluster-images/replica.png}{Replica Role Control Flow}{500l.cluster.replica}
 
 \texttt{Decision} messages represent slots on which the cluster has come
 to consensus. Here, replicas store the new decision, then run the state
@@ -606,40 +593,25 @@ subtlety required to get this right, as we'll see later. Each replica
 tracks the active leader using three sources of information.
 
 When the leader role becomes active, it sends an \texttt{Adopted}
-message to the replica on the same node.
+message to the replica on the same node
+(\aosafigref{500l.cluster.adopted}.)
 
-\begin{verbatim}
-
-                              Local 
-  Leader      ----------     Replica
-    *--->>---/ Adopted /--------+
-             ----------
-\end{verbatim}
+\aosafigure[240pt]{cluster-images/adopted.png}{Adopted}{500l.cluster.adopted}
 
 When the acceptor role sends a \texttt{Promise} to a new leader, it
-sends an \texttt{Accepting} message to its local replica.
+sends an \texttt{Accepting} message to its local replica
+(\aosafigref{500l.cluster.accepting}.)
 
-\begin{verbatim}
+\aosafigure[240pt]{cluster-images/accepting.png}{Accepting}{500l.cluster.accepting}
 
-                                Local 
-  Acceptor     ------------    Replica
-      *--->>--/ Accepting /-------+
-              ------------
-\end{verbatim}
+The active leader sends \texttt{Active} messages as a heartbeat
+(\aosafigref{500l.cluster.active}.) If no such message arrives before
+the \texttt{LEADER\_TIMEOUT} expires, the replica assumes the leader is
+dead and moves on to the next leader. In this case, it's important that
+all replicas choose the \emph{same} new leader, which we accomplish by
+sorting the members and selecting the next one in the list.
 
-The active leader sends \texttt{Active} messages as a heartbeat. If no
-such message arrives before the \texttt{LEADER\_TIMEOUT} expires, the
-replica assumes the leader is dead and moves on to the next leader. In
-this case, it's important that all replicas choose the \emph{same} new
-leader, which we accomplish by sorting the members and selecting the
-next one in the list.
-
-\begin{verbatim}
-
-  Leader      ---------    Replica   Replica   Replica
-     *--->>--/ Active /-------+---------+---------+
-             ---------
-\end{verbatim}
+\aosafigure{cluster-images/active.png}{Active}{500l.cluster.active}
 
 Finally, when a node joins the network, the bootstrap role sends a
 \texttt{Join} message. The replica responds with a \texttt{Welcome}
