@@ -444,25 +444,11 @@ The active leader sends ``Active`` messages as a heartbeat (\aosafigref{500l.clu
 \aosafigure{cluster-images/active.png}{Active}{500l.cluster.active}
 
 Finally, when a node joins the network, the bootstrap role sends a ``Join``
-message. The replica responds with a ``Welcome`` message containing its most
-recent state, allowing the new node to come up to speed quickly.
+message (\aosafigref{500l.cluster.bootstrap}.) The replica responds with a
+``Welcome`` message containing its most recent state, allowing the new node to
+come up to speed quickly.
 
-```
-
-  Bootstrap   -------    Replica   Replica   Replica
-      *-->>--/ Join /-------+---------+---------+
-      :      -------        :         :         :
-      :     ----------      :         :         :
-      +----/ Welcome /--<<--*         :         :
-           ----------                 :         :
-                 ----------           :         :
-      +---------/ Welcome /----<<-----*         :
-                ----------                      :
-                      ----------                :
-      +--------------/ Welcome /------<<--------*
-                     ----------
-
-```
+\aosafigure{cluster-images/bootstrap.png}{Bootstrap}{500l.cluster.bootstrap}
 
 ```python
 
@@ -647,28 +633,11 @@ class Leader(Role):
     
 ```
 
-The leader creates a scout role when it wants to become active, in response to receiving a ``Propose`` when it is inactive.
+The leader creates a scout role when it wants to become active, in response to receiving a ``Propose`` when it is inactive (\aosafigref{500l.cluster.leaderscout}.)
 The scout sends (and re-sends, if necessary) a ``Prepare`` message, and collects ``Promise`` responses until it has heard from a majority of its peers or until it has been preempted.
 It communicates the result back to the leader with an ``Adopted`` or ``Preempted`` message, respectively.
 
-```
-
-                             Scout        ----------     Acceptor        Acceptor        Acceptor
-                               *--->>----/ Prepare /--------+---------------+---------------+
-                               :         ----------         :               :               :
-                               :       ----------           :               :               :
-                               +------/ Promise /----<<-----*               :               :
-                               :      ----------                            :               :
-                               :                  ----------                :               :
-                               +-----------------/ Promise /-------<<-------*               :
-                               :                 ----------                                 :
-                               :                              ----------                    :
-                               +-----------------------------/ Promise /---------<<---------*
-    Leader    ----------       :                             ---------- 
-      +------/ Adopted /---<<--*
-             ----------   
-
-```             
+\aosafigure{cluster-images/leaderscout.png}{Scout}{500l.cluster.leaderscout}
 
 ```python
 
@@ -722,27 +691,12 @@ class Scout(Role):
     
 ```
 
-The leader creates a commander role for each slot where it has an active proposal.
+The leader creates a commander role for each slot where it has an active proposal (\aosafigref{500l.cluster.leadercommander}.)
 Like a scout, a commander sends and re-sends ``Accept`` messages and waits for a majority of acceptors to reply with ``Accepted``, or for news of its preemption.
 When a proposal is accepted, the commander broadcasts a ``Decision`` message to all nodes.
 It responds to the leader with either ``Decided`` or ``Preempted``.
 
-````
-                           Commander      ---------      Acceptor        Acceptor        Acceptor
-                               *--->>----/ Accept /---------+---------------+---------------+
-                               :         ---------          :               :               :
-                               :       -----------          :               :               :
-                               +------/ Accepted /---<<-----*               :               :
-                               :      -----------                           :               :
-                               :                  -----------               :               :
-                               +-----------------/ Accepted /------<<-------*               :
-                               :                 -----------                                :
-                               :                              -----------                   :
-                               +-----------------------------/ Accepted /--------<<---------*
-    Leader    ----------       :                             -----------
-      +------/ Decided /---<<--*
-             ----------   
-````
+\aosafigure{cluster-images/leadercommander.png}{Commander}{500l.cluster.leadercommander}
 
 ```python
 
