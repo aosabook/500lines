@@ -67,13 +67,15 @@ This is a problem of *consensus*, and we'll address it with a derivative of the 
 
 ## Consensus by Paxos
 
-Paxos was described by Leslie Lamport in a fanciful paper, first submitted in 1990 and eventually published in 1998, entitled "The Part-Time Parliament".
+Paxos was described by Leslie Lamport in a fanciful paper, first submitted in 1990 and eventually published in 1998, entitled "The Part-Time Parliament"[^parttime].
 Lamport's paper has a great deal more detail than we will get into here, and is a fun read.
 The references at the end of the chapter describe some extensions of the algorithm that we have adapted in this implementation.
 
 The simplest form of Paxos provides a way for a set of servers to agree on one value, for all time.
 Multi-Paxos builds on this foundation by agreeing on a numbered sequence of facts, one at a time.
 To implement a distributed state machine, we use Multi-Paxos to agree on each state-machine input, and execute them in sequence.
+
+[^parttime]: Leslie Lamport. The part-time parliament. ACM Transactions on Computer Systems, 16(2):133–169, May 1998.
 
 ### Simple Paxos
 
@@ -1238,10 +1240,10 @@ The result was far too large for this book!
 
 ## References
 
-* Lamport - "The Part-Time Parliament"
-* Lamport - "Paxos Made Simple"
-* Renesse - "Paxos Made Moderately Complex" (the origin of the role names)
-* Chandra, Griesemer, and Redstone - "Paxos Made Live - An Engineering Perspective" (regarding snapshots, in particular)
-* Mazieres - "Paxos Made Practical" (view changes, although not of the type described here)
-* Liskov - "From Viewstamped Replication to Byzantine Fault Tolerance" (another, different look at view changes)
-* http://stackoverflow.com/questions/21353312/in-part-time-parliament-why-does-using-the-membership-from-decree-n-3-work-to
+In addition to the original Paxos paper and Lamport's follow-up "Paxos Made Simple"[^simple], our implementation added extensions that were informed by several other resources. The role names were taken from "Paxos Made Moderately Complex"[^complex]. "Paxos Made Live"[^live] was helpful regarding snapshots in particular, and "Paxos Made Practical"[^practical] described view changes (although not of the type described here.) Liskov's "From Viewstamped Replication to Byzantine Fault Tolerance"[^tolerance] provided yet another perspective on view changes. Finally, a [Stack Overflow discussion](http://stackoverflow.com/questions/21353312/in-part-time-parliament-why-does-using-the-membership-from-decree-n-3-work-to) was helpful in learning how members are added and removed from the system.
+
+[^simple]: Leslie Lamport. Paxos Made Simple. ACM SIGACT News (Distributed Computing Column) 32, 4 (Whole Number 121, December 2001) 51-58.
+[^complex]: Renesse - "Paxos Made Moderately Complex" (the origin of the role names)
+[^live]:  Chandra, Griesemer, and Redstone - "Paxos Made Live - An Engineering Perspective" (regarding snapshots, in particular)
+[^practical]: Mazieres - "Paxos Made Practical" (view changes, although not of the type described here)
+[^tolerance]: Liskov - "From Viewstamped Replication to Byzantine Fault Tolerance" (another, different look at view changes)
