@@ -75,7 +75,7 @@ The simplest form of Paxos provides a way for a set of servers to agree on one v
 Multi-Paxos builds on this foundation by agreeing on a numbered sequence of facts, one at a time.
 To implement a distributed state machine, we use Multi-Paxos to agree on each state-machine input, and execute them in sequence.
 
-[^parttime]: Leslie Lamport. The part-time parliament. ACM Transactions on Computer Systems, 16(2):133–169, May 1998.
+[^parttime]: L. Lamport, "The Part-Time Parliament," ACM Transactions on Computer Systems, 16(2):133–169, May 1998.
 
 ### Simple Paxos
 
@@ -1242,8 +1242,8 @@ The result was far too large for this book!
 
 In addition to the original Paxos paper and Lamport's follow-up "Paxos Made Simple"[^simple], our implementation added extensions that were informed by several other resources. The role names were taken from "Paxos Made Moderately Complex"[^complex]. "Paxos Made Live"[^live] was helpful regarding snapshots in particular, and "Paxos Made Practical"[^practical] described view changes (although not of the type described here.) Liskov's "From Viewstamped Replication to Byzantine Fault Tolerance"[^tolerance] provided yet another perspective on view changes. Finally, a [Stack Overflow discussion](http://stackoverflow.com/questions/21353312/in-part-time-parliament-why-does-using-the-membership-from-decree-n-3-work-to) was helpful in learning how members are added and removed from the system.
 
-[^simple]: Leslie Lamport. Paxos Made Simple. ACM SIGACT News (Distributed Computing Column) 32, 4 (Whole Number 121, December 2001) 51-58.
-[^complex]: Renesse - "Paxos Made Moderately Complex" (the origin of the role names)
-[^live]:  Chandra, Griesemer, and Redstone - "Paxos Made Live - An Engineering Perspective" (regarding snapshots, in particular)
-[^practical]: Mazieres - "Paxos Made Practical" (view changes, although not of the type described here)
-[^tolerance]: Liskov - "From Viewstamped Replication to Byzantine Fault Tolerance" (another, different look at view changes)
+[^simple]: L. Lamport, "Paxos Made Simple," ACM SIGACT News (Distributed Computing Column) 32, 4 (Whole Number 121, December 2001) 51-58.
+[^complex]: R. Van Renesse and D. Altinbuken, "Paxos Made Moderately Complex," ACM Computing Survey 47, 3, Article 42 (February 2015)
+[^live]: T. Chandra, R. Griesemer, and J. Redstone, "Paxos Made Live - An Engineering Perspective," Proceedings of the twenty-sixth annual ACM symposium on Principles of distributed computing (PODC '07). ACM, New York, NY, USA, 398-407. 
+[^practical]: http://www.scs.stanford.edu/~dm/home/papers/paxos.pdf
+[^tolerance]: B. Liskov, "From Viewstamped Replication to Byzantine Fault Tolerance," In *Replication*, Springer-Verlag, Berlin, Heidelberg 121-149 (2010)
