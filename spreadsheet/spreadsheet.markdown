@@ -6,7 +6,7 @@ This chapter introduces a [web spreadsheet](http://audreyt.github.io/500lines/sp
 The ES5 version of this project is available as a [jsFiddle](http://jsfiddle.net/audreyt/LtDyP/).
 
 <markdown>
-_(This chapter is also available in [Traditional Chinese](https://github.com/audreyt/500lines/blob/master/spreadsheet/chapter.zh-tw.md). 
+_(This chapter is also available in [Traditional Chinese](https://github.com/audreyt/500lines/blob/master/spreadsheet/chapter.zh-tw.md))_. 
 </markdown>
 
 ## Introduction
