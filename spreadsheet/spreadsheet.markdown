@@ -1,8 +1,13 @@
-_(Also available in [Traditional Chinese](https://github.com/audreyt/500lines/blob/master/spreadsheet/chapter.zh-tw.md). The ES5 version is available as a [jsFiddle](http://jsfiddle.net/audreyt/LtDyP/).)_
+title: Web Spreadsheet
+author: Audrey Tang
 
-# [Web Spreadsheet](http://audreyt.github.io/500lines/spreadsheet/) in [99 lines](https://github.com/audreyt/500lines/tree/master/spreadsheet)
+This chapter introduces a [web spreadsheet](http://audreyt.github.io/500lines/spreadsheet/) written in [99 lines](https://github.com/audreyt/500lines/tree/master/spreadsheet/code) of the three languages natively supported by web browsers: HTML, JavaScript, and CSS.
 
-This chapter introduces a web spreadsheet written in 99 lines of the three languages natively supported by web browsers: HTML, JavaScript, and CSS.
+The ES5 version of this project is available as a [jsFiddle](http://jsfiddle.net/audreyt/LtDyP/).
+
+<markdown>
+_(This chapter is also available in [Traditional Chinese](https://github.com/audreyt/500lines/blob/master/spreadsheet/chapter.zh-tw.md). 
+</markdown>
 
 ## Introduction
 
@@ -20,11 +25,11 @@ How many features can a web application offer in 99 lines with AngularJS? Let’
 
 ## Overview
 
-The [spreadsheet](https://github.com/audreyt/500lines/tree/master/spreadsheet) directory contains our showcase for late-2014 editions of the three web languages: [HTML5](http://www.w3.org/TR/html5/) for structure, [CSS3](http://www.w3.org/TR/css3-ui/) for presentation, and the JS [ES6 “Harmony”](http://git.io/es6features) standard for interaction. It also uses [web storage](http://www.whatwg.org/specs/web-apps/current-work/multipage/webstorage.html) for data persistence and [web workers](http://www.whatwg.org/specs/web-apps/current-work/multipage/workers.html) for running JS code in the background. As of this writing, these web standards are supported by Firefox, Chrome, and Internet Explorer 11+, as well as mobile browsers on iOS 5+ and Android 4+.
+The [spreadsheet](https://github.com/audreyt/500lines/tree/master/spreadsheet/code) directory contains our showcase for late-2014 editions of the three web languages: [HTML5](http://www.w3.org/TR/html5/) for structure, [CSS3](http://www.w3.org/TR/css3-ui/) for presentation, and the JS [ES6 “Harmony”](http://git.io/es6features) standard for interaction. It also uses [web storage](http://www.whatwg.org/specs/web-apps/current-work/multipage/webstorage.html) for data persistence and [web workers](http://www.whatwg.org/specs/web-apps/current-work/multipage/workers.html) for running JS code in the background. As of this writing, these web standards are supported by Firefox, Chrome, and Internet Explorer 11+, as well as mobile browsers on iOS 5+ and Android 4+.
 
-Now let’s open http://audreyt.github.io/500lines/spreadsheet/ in a browser:
+Now let’s open [our spreadsheet](http://audreyt.github.io/500lines/spreadsheet/) in a browser (\aosafigref{500l.spreadsheet.initial}):
 
-![Initial Screen](./images/01-initial.png)
+\aosafigure{spreadsheet-images/01-initial.png}{Initial Screen}{500l.spreadsheet.initial}
 
 ### Basic Concepts
 
@@ -35,42 +40,42 @@ The spreadsheet spans two dimensions, with _columns_ starting from **A**, and _r
 * Formula:  `=A1+C1` in **E1**, which _calculates_ to the _value_ "3920", displayed with a light blue background.
 * Empty: All cells in row **2** are currently empty.
 
-Click "3920" to set _focus_ on **E1**, revealing its formula in an _input box_:
+Click "3920" to set _focus_ on **E1**, revealing its formula in an _input box_ (\aosafigref{500l.spreadsheet.inputbox}):
 
-![Input Box](./images/02-input.png)
+\aosafigure{spreadsheet-images/02-input.png}{Input Box}{500l.spreadsheet.input}
 
-Now let’s set focus on **A1** and _change_ its content to "1", causing **E1** to _recalculate_ its value to "2047":
+Now let’s set focus on **A1** and _change_ its content to "1", causing **E1** to _recalculate_ its value to "2047" (\aosafigref{500l.spreadsheet.changed}):
 
-![Changed Content](./images/03-changed.png)
+\aosafigure{spreadsheet-images/03-changed.png}{Changed Content}{500l.spreadsheet.changed}
 
-Press **ENTER** to set focus to **A2** and change its content to `=Date()`, then press **TAB**, change the content of **B2** to `=alert()`, then press **TAB** again to set focus to `C2`:
+Press **ENTER** to set focus to **A2** and change its content to `=Date()`, then press **TAB**, change the content of **B2** to `=alert()`, then press **TAB** again to set focus to `C2` (\aosafigref{500l.spreadsheet.error}):
 
-![Formula Error](./images/04-error.png)
+\aosafigure{spreadsheet-images/04-error.png}{Formula Error}{500l.spreadsheet.error}
 
 This shows that a formula may calculate to a number ("2047" in **E1**), a text (the current time in **A2**, aligned to the left), or an _error_ (red letters in **B2**, aligned to the center).
 
 Next, let’s try entering `=for(;;){}`, the JS code for an infinite loop that never terminates. The spreadsheet will prevent this by automatically _restoring_ the content of **C2** after an attempted change.
 
-Now reload the page in the browser with **Ctrl-R** or **Cmd-R** to verify that the spreadsheet content is _persistent_, staying the same across browser sessions. To _reset_ the spreadsheet to its original contents, press the `↻` button on the top-left corner.
+Now reload the page in the browser with **Ctrl-R** or **Cmd-R** to verify that the spreadsheet content is _persistent_, staying the same across browser sessions. To _reset_ the spreadsheet to its original contents, press the 'curved arrow' button on the top-left corner.
 
 ### Progressive Enhancement
 
-Before we dive into the 99 lines of code, it’s worthwhile to disable JS in the browser, reload the page, and note the differences:
+Before we dive into the 99 lines of code, it’s worthwhile to disable JS in the browser, reload the page, and note the differences (\aosafigref{500l.spreadsheet.nojs}):
 
 * Instead of a large grid, only a 2x2 table remains onscreen, with a single content cell.
 * Row and column labels are replaced by `{{ row }}` and `{{ col }}`.
-* Pressing the `↻` button produces no effect.
+* Pressing the reset button produces no effect.
 * Pressing **TAB** or clicking into the first line of content still reveals an editable input box.
 
-![With JavaScript Disabled](./images/05-nojs.png)
+\aosafigure{spreadsheet-images/05-nojs.png}{With JavaScript Disabled}{500l.spreadsheet.nojs}
 
 When we disable the dynamic interactions (JS), the content structure (HTML) and the presentational styles (CSS) remain in effect. If a website is useful with both JS and CSS disabled, we say it adheres to the _progressive enhancement_ principle, making its content accessible to the largest audience possible.
 
 Because our spreadsheet is a web application with no server-side code, we must rely on JS to provide the required logic. However, it does work correctly when CSS is not fully supported, such as with screen readers and text-mode browsers.
 
-![With CSS Disabled](./images/06-nocss.png)
+\aosafigure[240pt]{spreadsheet-images/06-nocss.png}{With CSS Disabled}{500l.spreadsheet.nocss}
 
-As shown in the screenshot above, if we enable JS in the browser and disable CSS instead, the effects are:
+As shown in \aosafigref{500l.spreadsheet.nocss}, if we enable JS in the browser and disable CSS instead, the effects are:
 
 * All background and foreground colors are gone.
 * The input box and the cell value are both displayed, instead of just one at a time.
@@ -78,9 +83,9 @@ As shown in the screenshot above, if we enable JS in the browser and disable CSS
 
 ## Code Walkthrough
 
-The diagram below shows the links between HTML and JS components:
+\aosafigref{500l.spreadsheet.architecture} shows the links between HTML and JS components:
 
-![Architecture Diagram](./images/00-architecture.png)
+\aosafigure{spreadsheet-images/00-architecture.png}{Architecture Diagram}{500l.spreadsheet.architecture}
 
 In order to make sense of the diagram, let’s go through the four source code files, in the same sequence as the browser loads them:
 
@@ -197,9 +202,9 @@ As the bridge between the HTML view and the background worker, it has four tasks
 * When the user changes the spreadsheet, send its new content to the worker.
 * When computed results arrive from the worker, update the view and save the current state.
 
-The flowchart below shows the controller-worker interaction in more detail:
+The flowchart in \aosafigref{500l.spreadsheet.flowchart} shows the controller-worker interaction in more detail:
 
-![Controller-Worker Flowchart](./images/00-flowchart.png)
+\aosafigure{spreadsheet-images/00-flowchart.png}{Controller-Worker Flowchart}{500l.spreadsheet.flowchart}
 
 Now let's walk through the code. In the first line, we request the JS model `$scope` object from AngularJS:
 

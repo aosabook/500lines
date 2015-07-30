@@ -14,6 +14,7 @@ def main(chapters=[], epub=False, pdf=False, html=False, mobi=False, pandoc_epub
             run('rm {}'.format(f))
 
     chapter_dirs = [
+        'spreadsheet',
         'cluster',
         'data-store',
         'sample',
@@ -57,6 +58,7 @@ def main(chapters=[], epub=False, pdf=False, html=False, mobi=False, pandoc_epub
     ]
 
     image_paths = [
+        './spreadsheet/spreadsheet-images',
         './cluster/cluster-images',
         './data-store/data-store-images',
         './sample/sample-images',
