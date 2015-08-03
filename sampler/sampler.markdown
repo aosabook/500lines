@@ -1,10 +1,5 @@
-<!-- to convert to HTML, run `pandoc --to html --mathjax -s README.md > README.html` -->
-<!-- NB: US spelling used -->
-
-# Sampling Methods
-
-Note: This chapter assumes some familiarity with statistics and
-probability theory.
+title: A Rejection Sampler
+author: Jessica B. Hamrick
 
 ## Introduction
 
@@ -32,7 +27,11 @@ Even though these types of problems cannot be solved exactly, we can
 often achieve an approximate solution to them using techniques known
 as *Monte Carlo sampling* methods. In Monte Carlo methods, the key
 idea is to take many *samples*, which will then allow you to estimate
-the solution.
+the solution.[^note]
+
+[^note]: This chapter assumes some familiarity with statistics and
+probability theory.
+
 
 ### What is Sampling?
 
@@ -153,8 +152,7 @@ multinomial distribution is then used to describe the possible
 combinations of outcomes when multiple balls are drawn (e.g., two
 green and one blue).
 
-Note: the code in this section is also located in the file
-`multinomial.py`.
+The code in this section is located in the file `multinomial.py`.
 
 ### The `MultinomialDistribution` Class
 
@@ -190,12 +188,12 @@ distributions. There are several advantages to doing so:
    these constants in the constructor, rather than having to compute
    them every time the PMF or PDF function is called.
 
-> *In practice, this is how many statistics packages work, including
-> SciPy's own distributions, which are located in the `scipy.stats`
-> module. While we are using other SciPy functions, however, we are
-> not using their probability distributions, both for the sake of
-> illustration, and because there is currently no multinomial
-> distribution in SciPy.*
+In practice, this is how many statistics packages work, including
+SciPy's own distributions, which are located in the `scipy.stats`
+module. While we are using other SciPy functions, however, we are
+not using their probability distributions, both for the sake of
+illustration, and because there is currently no multinomial
+distribution in SciPy.
 
 Here is the constructor code for the class:
 
@@ -305,11 +303,11 @@ than `numpy` is significantly clearer:
 
 Taking a sample from a multinomial distribution is actually fairly
 straightforward, because NumPy provides us with a function that
-does it: `np.random.multinomial`.
+does it: `np.random.multinomial`[^multinomial].
 
-> *NumPy includes functions to draw samples from many different types
-> of distributions. For a full list, take a look at the
-> random sampling module, `np.random`.*
+[^multinomial]: NumPy includes functions to draw samples from many different types
+of distributions. For a full list, take a look at the
+random sampling module, `np.random`.
 
 Despite the fact that this function already exists, there are a few
 design decisions surrounding it that we can make.
@@ -362,18 +360,18 @@ just use the `np.random` module, I would not be able to do).
 
 So, if the `rso` variable is not given, then the constructor defaults
 to using `np.random.multinomial`. Otherwise, it uses the multinomial
-sampler from the `RandomState` object itself.
+sampler from the `RandomState` object itself[^rng].
 
-> *Aside: the functions in `np.random` actually do rely on a random
-> number generator that we can control: NumPy's global random number
-> generator. You can set the global seed with `np.seed`. There's a
-> tradeoff to using the global generator vs. a local `RandomState`
-> object. If you use the global generator, then you don't have to pass
-> around a `RandomState` object everywhere. However, you also run the
-> risk of depending on some third party code that also uses the global
-> generator without your knowledge. If you use a local object, then it
-> is easier to find out whether there is nondeterminism coming from
-> somewhere other than your own code.*
+[^rng]: The functions in `np.random` actually do rely on a random
+number generator that we can control: NumPy's global random number
+generator. You can set the global seed with `np.seed`. There's a
+tradeoff to using the global generator vs. a local `RandomState`
+object. If you use the global generator, then you don't have to pass
+around a `RandomState` object everywhere. However, you also run the
+risk of depending on some third party code that also uses the global
+generator without your knowledge. If you use a local object, then it
+is easier to find out whether there is nondeterminism coming from
+somewhere other than your own code.
 
 #### What's a Parameter?
 
@@ -951,21 +949,25 @@ We can now create our distrbution as follows:
 
 Once created, we can use it to generate a few different items:
 
-```python
+```
 >>> item_dist.sample()
-{'dexterity': 0, 'strength': 0, 'constitution': 0, 'intelligence': 0, 'wisdom': 0, 'charisma': 1}
+{'dexterity': 0, 'strength': 0, 'constitution': 0, 
+ 'intelligence': 0, 'wisdom': 0, 'charisma': 1}
 >>> item_dist.sample()
-{'dexterity': 0, 'strength': 0, 'constitution': 1, 'intelligence': 0, 'wisdom': 2, 'charisma': 0}
+{'dexterity': 0, 'strength': 0, 'constitution': 1, 
+ 'intelligence': 0, 'wisdom': 2, 'charisma': 0}
 >>> item_dist.sample()
-{'dexterity': 1, 'strength': 0, 'constitution': 1, 'intelligence': 0, 'wisdom': 0, 'charisma': 0}
+{'dexterity': 1, 'strength': 0, 'constitution': 1, 
+ 'intelligence': 0, 'wisdom': 0, 'charisma': 0}
 ```
 
 And, if we want, we can evaluate the probability of a sampled item:
 
-```python
+```
 >>> item = item_dist.sample()
 >>> item
-{'dexterity': 0, 'strength': 0, 'constitution': 0, 'intelligence': 0, 'wisdom': 2, 'charisma': 0}
+{'dexterity': 0, 'strength': 0, 'constitution': 0, 
+ 'intelligence': 0, 'wisdom': 2, 'charisma': 0}
 >>> item_dist.log_pmf(item)
 -4.9698132995760007
 >>> item_dist.pmf(item)
@@ -1134,9 +1136,9 @@ Now we can draw a bunch of samples, and compute the 50th percentile
 ```
 
 If we were to plot a histogram of how many samples we got for each
-amount of damage, it would look something like this:
+amount of damage, it would look something like \aosafigref{500l.sampler.damage}.
 
-![](damage_distribution.png)
+\aosafigure[144pt]{sampler-images/damage_distribution.png}{Damage Distribution}{500l.sampler.damage}
 
 There is a pretty wide range of damage that the player could
 potentially inflict, but it has a long tail: the 50th percentile is at
