@@ -14,11 +14,11 @@ def main(chapters=[], epub=False, pdf=False, html=False, mobi=False, pandoc_epub
             run('rm {}'.format(f))
 
     chapter_dirs = [
+        'pedometer',
         'sampler',
         'spreadsheet',
         'cluster',
         'data-store',
-        'sample',
         'objmodel',
         'ci',
         'crawler',
@@ -59,11 +59,11 @@ def main(chapters=[], epub=False, pdf=False, html=False, mobi=False, pandoc_epub
     ]
 
     image_paths = [
+        './pedometer/pedometer-images',
         './sampler/sampler-images',
         './spreadsheet/spreadsheet-images',
         './cluster/cluster-images',
         './data-store/data-store-images',
-        './sample/sample-images',
         './objmodel/objmodel-images',
         './ci/ci-images',
         './crawler/crawler-images',
