@@ -39,7 +39,7 @@ We are going to count steps by using the accelerometer to count bounces up and d
 
 Let's look at a person walking with an accelerometer-equipped smartphone in his or her shirt pocket (\aosafigref{500l.pedometer.walk1}).
 
-\aosafigure{pedometer-images/walk-1.png}{Walking}{500l.pedometer.walk1}
+\aosafigure[240pt]{pedometer-images/walk-1.png}{Walking}{500l.pedometer.walk1}
 
 For the sake of simplicity, we'll assume that the person:
 
@@ -665,7 +665,7 @@ We're through the most labour intensive part of our program. Next, we'll build a
 
 When a user first enters the app by navigating to `/uploads`, they see a table of existing data and a form to submit new data by uploading an accelerometer output file and trial and user information (\aosafigref{500l.pedometer.app1}).
 
-\aosafigure{pedometer-images/app1.png}{Upload view}{500l.pedometer.accelerationtotal}
+\aosafigure{pedometer-images/app1.png}{Upload view}{500l.pedometer.app1}
 
 Submitting the form stores the data to the file system, parses, processes, and analyzes it, and redirects back to `/uploads` with the new entry in the table.
 
