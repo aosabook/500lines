@@ -35,7 +35,7 @@ ways.
 
 For purposes of illustration, let's imagine we want to produce this toy HTML:
 
-```
+```html
 <p>Welcome, Charlie!</p>
 <p>Products:</p>
 <ul>
@@ -58,7 +58,7 @@ page.
 
 Producing our toy page in this way might look like this:
 
-```
+```python
 # The main HTML for the whole page.
 PAGE_HTML = """
 <p>Welcome, {name}!</p>
@@ -95,7 +95,7 @@ authored as a template, meaning that the file is mostly static HTML, with
 dynamic pieces embedded in it using special notation.  Our toy page above could
 look like this as a template:
 
-```
+```html
 <p>Welcome, {{user_name}}!</p>
 <p>Products:</p>
 <ul>
@@ -116,7 +116,7 @@ programming languages work.  For example, with Python, most of
 the source file is executable code, and if you need literal static text, you
 embed it in a string literal:
 
-```
+```python
 def hello():
     print("Hello, world!")
 
@@ -133,7 +133,7 @@ static pieces are indicated by the double-quote notation.
 A template language flips this around: the template file is mostly static
 literal text, with special notation to indicate the executable dynamic parts.
 
-```
+```html
 <p>Welcome, {{user_name}}!</p>
 ```
 
@@ -178,7 +178,7 @@ summary of all of the syntax we'll implement.
 
 Data from the context is inserted using double curly braces:
 
-```
+```html
 <p>Welcome, {{user_name}}!</p>
 ```
 
@@ -189,7 +189,7 @@ Template engines usually provide access to elements within data using a
 simplified and relaxed syntax. In Python, these expressions all have different
 effects:
 
-```
+```python
 dict["key"]
 obj.attr
 obj.method()
@@ -208,7 +208,7 @@ if the resulting value is callable, it's automatically called.  This is
 different than the Python code, where you need to use different syntax for
 those operations.  This results in simpler template syntax:
 
-```
+```html
 <p>The price is: {{product.price}}, with a {{product.discount}}% discount.</p>
 ```
 
@@ -218,14 +218,14 @@ or element chain.
 You can use helper functions, called filters, to modify values.  Filters
 are invoked with a pipe character:
 
-```
+```html
 <p>Short name: {{story.subject|slugify|lower}}</p>
 ```
 
 Building interesting pages usually requires at least a small amount of logic,
 so conditionals are available:
 
-```
+```html
 {% if user.is_logged_in %}
     <p>Welcome, {{ user.name }}!</p>
 {% else %}
@@ -235,7 +235,7 @@ so conditionals are available:
 
 Looping lets us include collections of data in our pages:
 
-```
+```html
 <p>Products:</p>
 <ul>
 {% for product in product_list %}
@@ -250,7 +250,7 @@ build complex logical structures.
 Lastly, so that we can document our templates, comments appear between
 brace-hashes:
 
-```
+```html
 {# This is the best template ever! #}
 ```
 
@@ -312,7 +312,7 @@ Before we get to the code of the template engine, let's look at the code it
 produces.  The parsing phase will convert a template into a Python function.
 Here is our small template again:
 
-```
+```html
 <p>Welcome, {{user_name}}!</p>
 <p>Products:</p>
 <ul>
@@ -327,7 +327,7 @@ Our engine will compile this template to Python code.  The resulting Python
 code looks unusual, because we've chosen some shortcuts that produce slightly
 faster code.  Here is the Python (slightly reformatted for readability):
 
-```
+```python
 def render_function(context, do_dots):
     c_user_name = context['user_name']
     c_product_list = context['product_list']
@@ -377,7 +377,7 @@ together, they really are separate. If you save the result of the first step,
 you can perform the second step on the saved value.  So these two Python
 snippets do the same thing:
 
-```
+```python
 # The way we're used to seeing it:
 result.append("hello")
 
@@ -447,7 +447,7 @@ The Templite class has a small interface.  You construct a Templite object with 
 text of the template, then later you can use the `render` method on it to
 render a particular context, the dictionary of data, through the template:
 
-```
+```python
 # Make a Templite object.
 templite = Templite('''
     <h1>Hello {{name|upper}}!</h1>
@@ -500,7 +500,7 @@ A CodeBuilder object keeps a list of strings that will together be the final
 Python code.  The only other state it needs is the current indentation level:
 
 <!-- [[[cog include("templite.py", first="class CodeBuilder", numblanks=2) ]]] -->
-```
+```python
 class CodeBuilder(object):
     """Build source code conveniently."""
 
@@ -516,7 +516,7 @@ CodeBuilder doesn't do much. Let's take a method-by-method look at the interface
   the current indentation level, and supplies a newline:
 
 <!-- [[[cog include("templite.py", first="def add_line", numblanks=3, dedent=False) ]]] -->
-```
+```python
     def add_line(self, line):
         """Add a line of source to the code.
 
@@ -530,7 +530,7 @@ CodeBuilder doesn't do much. Let's take a method-by-method look at the interface
 `indent` and `dedent` increase or decrease the indentation level:
 
 <!-- [[[cog include("templite.py", first="INDENT_STEP = 4", numblanks=3, dedent=False) ]]] -->
-```
+```python
     INDENT_STEP = 4      # PEP8 says so!
 
     def indent(self):
@@ -549,7 +549,7 @@ keep a reference to a place in the code, and add text to it later. The
 these sections:
 
 <!-- [[[cog include("templite.py", first="def add_section", numblanks=1, dedent=False) ]]] -->
-```
+```python
     def add_section(self):
         """Add a section, a sub-CodeBuilder."""
         section = CodeBuilder(self.indent_level)
@@ -564,7 +564,7 @@ simply joins together all the strings in `self.code`.  Note that because
 objects recursively:
 
 <!-- [[[cog include("templite.py", first="def __str__", numblanks=1, dedent=False) ]]] -->
-```
+```python
     def __str__(self):
         return "".join(str(c) for c in self.code)
 ```
@@ -575,7 +575,7 @@ the object, executes it to get its definitions, and returns the resulting
 values:
 
 <!-- [[[cog include("templite.py", first="def get_globals", numblanks=1, dedent=False) ]]] -->
-```
+```python
     def get_globals(self):
         """Execute the code, and return a dict of globals it defines."""
         # A check that the caller really finished all the blocks they started.
@@ -594,7 +594,7 @@ executes a string containing Python code.  The second argument to `exec` is
 a dictionary that will collect up the globals defined by the code.  So for
 example, if we do this:
 
-```
+```python
 python_source = """\
 SEVENTEEN = 17
 
@@ -642,7 +642,7 @@ All of the work to compile the template into a Python function happens in the
 Templite constructor.  First the contexts are saved away:
 
 <!-- [[[cog include("templite.py", first="def __init__(self, text, ", numblanks=3, dedent=False) ]]] -->
-```
+```python
     def __init__(self, text, *contexts):
         """Construct a Templite with the given `text`.
 
@@ -662,7 +662,7 @@ number of positional arguments will be packed into a tuple and passed in as
 provide a number of different context dictionaries.  Now any of these calls are
 valid:
 
-```
+```python
 t = Templite(template_text)
 t = Templite(template_text, context1)
 t = Templite(template_text, context1, context2)
@@ -680,7 +680,7 @@ we encounter, but we also need to track the names of variables defined in the
 template, the loop variables:
 
 <!-- [[[cog include("templite.py", first="self.all_vars", numblanks=1, dedent=False) ]]] -->
-```
+```python
         self.all_vars = set()
         self.loop_vars = set()
 ```
@@ -691,7 +691,7 @@ function. First, we'll use the CodeBuilder class we wrote earlier to start to
 build our compiled function:
 
 <!-- [[[cog include("templite.py", first="code = CodeBuilder", numblanks=2, dedent=False) ]]] -->
-```
+```python
         code = CodeBuilder()
 
         code.add_line("def render_function(context, do_dots):")
@@ -735,7 +735,7 @@ our result, or more than one.
 Next we define an inner function to help us with buffering output strings:
 
 <!-- [[[cog include("templite.py", first="buffered =", numblanks=1, dedent=False) ]]] -->
-```
+```python
         buffered = []
         def flush_output():
             """Force `buffered` to the code builder."""
@@ -776,13 +776,13 @@ CodeBuilder.
 With this function in place, we can have a line of code in our compiler like
 this:
 
-```
+```python
 buffered.append("'hello'")
 ```
 
 which will mean that our compiled Python function will have this line:
 
-```
+```python
 append_result('hello')
 ```
 
@@ -792,7 +792,7 @@ Back to our Templite class. As we parse control structures, we want to check
 that they are properly nested.  The `ops_stack` list is a stack of strings:
 
 <!-- [[[cog include("templite.py", first="ops_stack", numblanks=1, dedent=False) ]]] -->
-```
+```python
         ops_stack = []
 ```
 <!-- [[[end]]] -->
@@ -809,7 +809,7 @@ implemented in C in the regular expression engine, rather than in your own
 Python code.  Here's our regex:
 
 <!-- [[[cog include("templite.py", first="tokens =", numblanks=1, dedent=False) ]]] -->
-```
+```python
         tokens = re.split(r"(?s)({{.*?}}|{%.*?%}|{#.*?#})", text)
 ```
 <!-- [[[end]]] -->
@@ -831,13 +831,13 @@ sequence that matches.
 
 The result of `re.split` is a list of strings.  For example, this template text:
 
-```
+```html
 <p>Topics for {{name}}: {% for t in topics %}{{t}}, {% endfor %}</p>
 ```
 
 would be split into these pieces:
 
-```
+```python
 [
     '<p>Topics for ',               # literal
     '{{name}}',                     # expression
@@ -858,7 +858,7 @@ handle each type separately.
 The compilation code is a loop over these tokens:
 
 <!-- [[[cog include("templite.py", first="for token", numlines=1, dedent=False) ]]] -->
-```
+```python
         for token in tokens:
 ```
 <!-- [[[end]]] -->
@@ -868,7 +868,7 @@ the first two characters is enough.  The first case is a comment, which is easy
 to handle: just ignore it and move on to the next token:
 
 <!-- [[[cog include("templite.py", first="if token.", numlines=3, dedent=False) ]]] -->
-```
+```python
             if token.startswith('{#'):
                 # Comment: ignore it and move on.
                 continue
@@ -880,7 +880,7 @@ and back, strip off the white space, and pass the entire expression to
 `_expr_code`:
 
 <!-- [[[cog include("templite.py", first="elif token.startswith('{{')", numlines=4, dedent=False) ]]] -->
-```
+```python
             elif token.startswith('{{'):
                 # An expression to evaluate.
                 expr = self._expr_code(token[2:-2].strip())
@@ -897,7 +897,7 @@ that will become Python control structures.  First we have to flush our
 buffered output lines, then we extract a list of words from the tag:
 
 <!-- [[[cog include("templite.py", first="elif token.startswith('{%')", numlines=4, dedent=False) ]]] -->
-```
+```python
             elif token.startswith('{%'):
                 # Action tag: split into words and parse further.
                 flush_output()
@@ -909,7 +909,7 @@ Now we have three sub-cases, based on the first word in the tag: `if`, `for`,
 or `end`.  The `if` case shows our simple error handling and code generation:
 
 <!-- [[[cog include("templite.py", first="if words[0] == 'if'", numlines=7, dedent=False) ]]] -->
-```
+```python
                 if words[0] == 'if':
                     # An if statement: evaluate the expression to determine if.
                     if len(words) != 2:
@@ -930,7 +930,7 @@ expression in a Python `if` statement.
 The second tag type is `for`, which will be compiled to a Python `for` statement:
 
 <!-- [[[cog include("templite.py", first="elif words[0] == 'for'", numlines=13, dedent=False) ]]] -->
-```
+```python
                 elif words[0] == 'for':
                     # A loop: iterate over expression result.
                     if len(words) != 4 or words[2] != 'in':
@@ -966,7 +966,7 @@ The last kind of tag we handle is an `end` tag; either `{% endif %}` or
 unindent to end the `if` or `for` statement that was started earlier:
 
 <!-- [[[cog include("templite.py", first="elif words[0].startswith('end')", numlines=11, dedent=False) ]]] -->
-```
+```python
                 elif words[0].startswith('end'):
                     # Endsomething.  Pop the ops stack.
                     if len(words) != 1:
@@ -990,7 +990,7 @@ Speaking of error handling, if the tag isn't an `if`, a `for`, or an `end`, then
 we don't know what it is, so raise a syntax error:
 
 <!-- [[[cog include("templite.py", first="else:", numlines=2, dedent=False) ]]] -->
-```
+```python
                 else:
                     self._syntax_error("Don't understand tag", words[0])
 ```
@@ -1002,7 +1002,7 @@ the buffered output, using the `repr` built-in function to produce a Python
 string literal for the token:
 
 <!-- [[[cog include("templite.py", first="else:", after="Don't understand tag", numblanks=1, dedent=False) ]]] -->
-```
+```python
             else:
                 # Literal content.  If it isn't empty, output it.
                 if token:
@@ -1013,20 +1013,20 @@ string literal for the token:
 If we didn't use `repr`, then we'd end up with lines like this in our compiled
 function:
 
-```
+```python
 append_result(abc)      # Error! abc isn't defined
 ```
 
 We need the value to be quoted like this:
 
-```
+```python
 append_result('abc')
 ```
 
 The `repr` function supplies the quotes around the string for us, and also
 provides backslashes where needed:
 
-```
+```python
 append_result('"Don\'t you like my hat?" he asked.')
 ```
 
@@ -1043,7 +1043,7 @@ if `ops_stack` isn't empty, then we must be missing an end tag.  Then we flush
 the buffered output to the function source:
 
 <!-- [[[cog include("templite.py", first="if ops_stack:", numblanks=2, dedent=False) ]]] -->
-```
+```python
         if ops_stack:
             self._syntax_error("Unmatched action tag", ops_stack[-1])
 
@@ -1059,7 +1059,7 @@ can write the lines in this prologue.
 We have to do a little work to know what names we need to define.  If we look
 again at our sample template:
 
-```
+```html
 <p>Welcome, {{user_name}}!</p>
 <p>Products:</p>
 <ul>
@@ -1081,7 +1081,7 @@ variables defined in the template are in `loop_vars`.  All of the names in
 loops.  So we need to unpack any name in `all_vars` that isn't in `loop_vars`:
 
 <!-- [[[cog include("templite.py", first="for var_name", numblanks=1, dedent=False) ]]] -->
-```
+```python
         for var_name in self.all_vars - self.loop_vars:
             vars_code.add_line("c_%s = context[%r]" % (var_name, var_name))
 ```
@@ -1095,7 +1095,7 @@ has been appending strings to `result`, so the last line of the function is
 simply to join them all together and return them:
 
 <!-- [[[cog include("templite.py", first='code.add_line("return', numlines=2, dedent=False) ]]] -->
-```
+```python
         code.add_line("return ''.join(result)")
         code.dedent()
 ```
@@ -1113,7 +1113,7 @@ We grab the `render_function` value from it, and save it as an attribute in our
 Templite object:
 
 <!-- [[[cog include("templite.py", first="self._render_function =", numlines=1, dedent=False) ]]] -->
-```
+```python
         self._render_function = code.get_globals()['render_function']
 ```
 <!-- [[[end]]] -->
@@ -1145,7 +1145,7 @@ the first piece is dot-separated, and so on.  So our function naturally takes a
 recursive form:
 
 <!-- [[[cog include("templite.py", first="def _expr_code", numlines=2, dedent=False) ]]] -->
-```
+```python
     def _expr_code(self, expr):
         """Generate a Python expression for `expr`."""
 ```
@@ -1156,7 +1156,7 @@ then we split it into a list of pipe-pieces.  The first pipe-piece is passed
 recursively to `_expr_code` to turn it into a Python expression.
 
 <!-- [[[cog include("templite.py", first="if ", after="def _expr_code", numlines=6, dedent=False) ]]] -->
-```
+```python
         if "|" in expr:
             pipes = expr.split("|")
             code = self._expr_code(pipes[0])
@@ -1176,7 +1176,7 @@ first part is passed recursively to `_expr_code` to turn it into a Python
 expression, then each dot name is handled in turn:
 
 <!-- [[[cog include("templite.py", first="elif ", after="def _expr_code", numlines=5, dedent=False) ]]] -->
-```
+```python
         elif "." in expr:
             dots = expr.split(".")
             code = self._expr_code(dots[0])
@@ -1201,7 +1201,7 @@ record it in `all_vars`, and access the variable using its prefixed Python
 name:
 
 <!-- [[[cog include("templite.py", first="else:", after="def _expr_code", numlines=4, dedent=False) ]]] -->
-```
+```python
         else:
             self._variable(expr, self.all_vars)
             code = "c_%s" % expr
@@ -1216,7 +1216,7 @@ During compilation, we used a few helper functions.  The `_syntax_error` method
 simply puts together a nice error message and raises the exception:
 
 <!-- [[[cog include("templite.py", first="def _syntax_error", numblanks=1, dedent=False) ]]] -->
-```
+```python
     def _syntax_error(self, msg, thing):
         """Raise a syntax error using `msg`, and showing `thing`."""
         raise TempliteSyntaxError("%s: %r" % (msg, thing))
@@ -1229,7 +1229,7 @@ regex to check that the name is a valid Python identifier, then add the name to
 the set:
 
 <!-- [[[cog include("templite.py", first="def _variable", numblanks=4, dedent=False) ]]] -->
-```
+```python
     def _variable(self, name, vars_set):
         """Track that `name` is used as a variable.
 
@@ -1254,7 +1254,7 @@ template to a Python function, the rendering code doesn't have much to do.  It
 has to get the data context ready, and then call the compiled Python code:
 
 <!-- [[[cog include("templite.py", first="def render(", numblanks=3, dedent=False) ]]] -->
-```
+```python
     def render(self, context=None):
         """Render this template by applying it to `context`.
 
@@ -1289,7 +1289,7 @@ the dot semantics.  We use the same implementation every time: our own
 `_do_dots` method, which is the last piece of code to look at.
 
 <!-- [[[cog include("templite.py", first="def _do_dots", numblanks=1, dedent=False) ]]] -->
-```
+```python
     def _do_dots(self, value, *dots):
         """Evaluate dotted expressions at runtime."""
         for dot in dots:
