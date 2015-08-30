@@ -14,6 +14,7 @@ def main(chapters=[], epub=False, pdf=False, html=False, mobi=False, pandoc_epub
             run('rm {}'.format(f))
 
     chapter_dirs = [
+        'template-engine',
         'pedometer',
         'sampler',
         'spreadsheet',
@@ -22,7 +23,6 @@ def main(chapters=[], epub=False, pdf=False, html=False, mobi=False, pandoc_epub
         'objmodel',
         'ci',
         'crawler',
-        'template-engine',
         'modeller',
     ]
     if len(chapters) > 0:

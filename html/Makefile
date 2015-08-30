@@ -12,10 +12,10 @@ FTP_HOST=localhost
 FTP_USER=anonymous
 FTP_TARGET_DIR=/
 
-SSH_HOST=tavman
+SSH_HOST=aosabook.org
 SSH_PORT=22
-SSH_USER=tavish
-SSH_TARGET_DIR=/var/shared/sites/theperformanceofopensourcesoftware.com/site/
+SSH_USER=aosabook
+SSH_TARGET_DIR=/home/aosabook/www/en/500L
 
 S3_BUCKET=my_s3_bucket
 
@@ -46,6 +46,9 @@ html:
 
 clean:
 	[ ! -d $(OUTPUTDIR) ] || rm -rf $(OUTPUTDIR)
+	mkdir $(OUTPUTDIR)
+	[ ! -d $(INPUTDIR) ] || rm -rf $(INPUTDIR)
+	mkdir $(INPUTDIR)
 
 regenerate:
 	$(PELICAN) -r $(INPUTDIR) -o $(OUTPUTDIR) -s $(CONFFILE) $(PELICANOPTS)
@@ -66,6 +69,9 @@ publish:
 
 ssh_upload: publish
 	scp -P $(SSH_PORT) -r $(OUTPUTDIR)/* $(SSH_USER)@$(SSH_HOST):$(SSH_TARGET_DIR)
+	# Prodigious hack -- we want the chapters available one level up, and
+	# messing with symlinks here is not great.
+	scp -P $(SSH_PORT) -r $(OUTPUTDIR)/pages/* $(SSH_USER)@$(SSH_HOST):$(SSH_TARGET_DIR)
 
 rsync_upload: publish
 	rsync -e "ssh -p $(SSH_PORT)" -P -rvz --delete $(OUTPUTDIR)/ $(SSH_USER)@$(SSH_HOST):$(SSH_TARGET_DIR) --cvs-exclude
