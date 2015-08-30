@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*- #
 from __future__ import unicode_literals
 
-AUTHOR = u'Tavish Armstrong'
-SITENAME = u'The Performance of Open Source Software'
+AUTHOR = u'Michael DiBernardo'
+SITENAME = u'500 Lines or Less'
 SITEURL = ''
 
 TIMEZONE = 'Europe/Paris'
@@ -16,24 +16,13 @@ CATEGORY_FEED_ATOM = None
 TRANSLATION_FEED_ATOM = None
 
 STATIC_PATHS = [
-#    'chrome-images',
-#    'ethercalc-images',
-#    'infinispan-images',
-#    'khmer-images',
-#    'memshrink-images',
-#    'mobile-perf-images',
-#    'pugixml-images',
-#    'talos-images',
-#    'warp-images',
-#    'zotonic-images',
-        ]
+]
 
 
 DEFAULT_PAGINATION = False
 
-THEME = 'posa'
+THEME = '500L'
 
-# TODO This turns --- into &mdash;. Why? :(
 TYPOGRIFY = True
 
 EXTENSIONS = ('latex',)
