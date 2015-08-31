@@ -23,7 +23,7 @@ DEFAULT_PAGINATION = False
 
 THEME = '500L'
 
-TYPOGRIFY = True
+TYPOGRIFY = False
 
 EXTENSIONS = ('latex',)
 
