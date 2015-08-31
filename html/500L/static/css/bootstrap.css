@@ -514,10 +514,9 @@ pre {
   -webkit-border-radius: 4px;
   -moz-border-radius: 4px;
   border-radius: 4px;
-  white-space: pre;
-  white-space: pre-wrap;
-  word-break: break-all;
-  word-wrap: break-word;
+  overflow-x: scroll;
+  overflow-y: hidden;
+  width: auto;
 }
 pre.prettyprint {
   margin-bottom: 18px;
