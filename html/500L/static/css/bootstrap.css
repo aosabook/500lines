@@ -514,7 +514,7 @@ pre {
   -webkit-border-radius: 4px;
   -moz-border-radius: 4px;
   border-radius: 4px;
-  overflow-x: scroll;
+  overflow-x: auto;
   overflow-y: hidden;
   width: auto;
 }
