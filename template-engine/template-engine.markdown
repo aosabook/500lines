@@ -163,10 +163,6 @@ HTML, and occasionally have HTML-specific features, such as escaping, which
 makes it possible to insert values into the HTML without worrying about which
 characters are special in HTML.
 
-Templates are also not always the best choice for producing large chunks of text,
-even if they do follow a common pattern.  Very data-heavy outputs might be
-easier to do the logic-centric way rather than the document-centric template way.
-
 
 ## Supported Syntax
 
