@@ -26,37 +26,28 @@ Mission
 Every architect studies family homes, apartments, schools, and other common
 types of buildings during her training.  Equally, every programmer ought to
 know how a compiler turns text into instructions, how a spreadsheet updates
-cells, and how a browser decides what to put where when it renders a page.
-This book's goal is to give readers that broad-ranging overview, and while
-doing so, to help them understand how software designers think.
+cells, and how a database efficiently persists data.
 
-Contributions should not focus on the details of one algorithm or on the
-features of a particular language.  Instead, they should discuss the decisions
-and tradeoffs software architects make when crafting an application:
+Previous books in the AOSA series have done this by describing the high-level
+architecture of several mature open-source projects. While the lessons learned
+from those stories are valuable, they are sometimes difficult to absorb for
+programmers who have not yet had to build anything at that scale.
+
+"500 Lines or Less" focuses on the design decisions and tradeoffs that
+experienced programmers make when they are writing code: 
 
 *   Why divide the application into these particular modules with these
     particular interfaces?
 *   Why use inheritance here and composition there?
-*   Why multi-thread this but not that?
-*   When should the application allow for or rely on plugins, and how should
-    they be configured and loaded?
+*   How do we predict where our program might need to be extended, and how can
+    we make that easy for other programmers?
 
-Contribution Guidelines
------------------------
-
-Writing for a book like this should be fun, so we're trying to keep process to
-minimum. Here is our basic set of procedural guidelines:
-
-1. When you start coding, try to submit one pull request early (e.g. somewhere
-   between 50-100 lines), so that we can catch any early problems that we never
-   thought about.
-
-2. After that first commit, feel free to submit pull requests as often or as
-   infrequently as you like.
-
-3. When you are done your "first draft" of your code, do let us know in the
-   commit message, or by emailing us directly (emails below). We'll assign a
-   reviewer or two to your work at that time.
+Each chapter consists of a walkthrough of a program that solves a canonical
+problem in software engineering in at most 500 source lines of code. We hope
+that the material in this book will help readers understand the varied
+approaches that engineers take when solving problems in different domains, and
+will serve as a basis for projects that extend or modify the contributions
+here.
 
 Contributors
 ------------
@@ -125,18 +116,6 @@ Contributors
     <td>gvwilson@third-bit.com</td>
   </tr>
   <tr>
-    <td>Kresten Krab Thorup</td>
-    <td>Trifork</td>
-    <td>torrent client</td>
-    <td>
-        <ul>
-            <li><a href="https://twitter.com/drkrab">@drkrab</a></li>
-        </ul>
-    </td>
-    <td><a href="https://github.com/krestenkrab">krestenkrab</a></td>
-    <td>krab@trifork.com</td>
-  </tr>
-  <tr>
     <td>Taavi Burns</td>
     <td>Previously at Points, now at PagerDuty</td>
     <td>data-store</td>
@@ -185,18 +164,6 @@ Contributors
     <td>erick.dransch@upverter.com</td>
   </tr>
   <tr>
-    <td>Sarah Mei</td>
-    <td>Ministry of Velocity</td>
-    <td>testing framework</td>
-    <td>
-        <ul>
-            <li><a href="https://twitter.com/sarahmei">@sarahmei</a></li>
-        </ul>
-    </td>
-    <td><a href="https://github.com/sarahmei">sarahmei</a></td>
-    <td>&nbsp;</td>
-  </tr>
-  <tr>
     <td>Ned Batchelder</td>
     <td>edX</td>
     <td>templating engine</td>
@@ -232,18 +199,6 @@ Contributors
     </td>
     <td><a href="https://github.com/haz">haz</a></td>
     <td>christian.muise@gmail.com</td>
-  </tr>
-  <tr>
-    <td>Carlos Scheidegger</td>
-    <td>AT&amp;T Research</td>
-    <td>rasterizer</td>
-    <td>
-        <ul>
-            <li><a href="https://twitter.com/cjmuise">@cscheid</a></li>
-        </ul>
-    </td>
-    <td><a href="https://github.com/cscheid">cscheid</a></td>
-    <td>carlos.scheidegger@gmail.com</td>
   </tr>
   <tr>
     <td>Marina Samuel</td>
