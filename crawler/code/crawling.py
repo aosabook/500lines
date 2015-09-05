@@ -179,6 +179,7 @@ class Crawler:
                     loop=self.loop)
                 if tries > 1:
                     LOGGER.info('try %r for %r success', tries, url)
+
                 break
             except aiohttp.ClientError as client_error:
                 LOGGER.info('try %r for %r raised %r', tries, url, client_error)
@@ -227,7 +228,6 @@ class Crawler:
             for link in links.difference(self.seen_urls):
                 self.q.put_nowait((link, self.max_redirect))
             self.seen_urls.update(links)
-
 
     @asyncio.coroutine
     def work(self):
