@@ -61,7 +61,7 @@ class Crawler:
         self.q = Queue(loop=self.loop)
         self.seen_urls = set()
         self.done = []
-        self.connector = aiohttp.TCPConnector(loop=self.loop)
+        self.session = aiohttp.ClientSession(loop=self.loop)
         self.root_domains = set()
         for root in roots:
             parts = urllib.parse.urlparse(root)
@@ -83,7 +83,7 @@ class Crawler:
 
     def close(self):
         """Close resources."""
-        self.connector.close()
+        self.session.close()
 
     def host_okay(self, host):
         """Check if a host should be crawled.
@@ -172,11 +172,9 @@ class Crawler:
         exception = None
         while tries < self.max_tries:
             try:
-                response = yield from aiohttp.request(
-                    'get', url,
-                    connector=self.connector,
-                    allow_redirects=False,
-                    loop=self.loop)
+                response = yield from self.session.get(
+                    url, allow_redirects=False)
+
                 if tries > 1:
                     LOGGER.info('try %r for %r success', tries, url)
 
@@ -228,6 +226,8 @@ class Crawler:
             for link in links.difference(self.seen_urls):
                 self.q.put_nowait((link, self.max_redirect))
             self.seen_urls.update(links)
+
+        yield from response.release()
 
     @asyncio.coroutine
     def work(self):

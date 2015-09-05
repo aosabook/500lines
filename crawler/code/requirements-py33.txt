@@ -7,4 +7,4 @@
 # Then install these packages with "pip install -r requirements-py33.txt".
 
 asyncio
-aiohttp
+aiohttp>=0.16

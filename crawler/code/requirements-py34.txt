@@ -6,4 +6,4 @@
 #
 # Then install this package with "pip install -r requirements-py34.txt".
 
-aiohttp
+aiohttp>=0.16

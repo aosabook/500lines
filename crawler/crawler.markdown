@@ -298,7 +298,7 @@ We entice you with a promise. It is possible to write asynchronous code that com
 ```python
     @asyncio.coroutine
     def fetch(self, url):
-        response = yield from aiohttp.request('get', url)
+        response = yield from self.session.get(url)
         body = yield from response.read()
 ```
 
@@ -806,6 +806,10 @@ class Crawler:
         self.q = Queue()
         self.seen_urls = set()
         
+        # aiohttp's ClientSession does connection pooling and
+        # HTTP keep-alives for us.
+        self.session = aiohttp.ClientSession(loop=self.loop)
+        
         # Put (URL, max_redirect) in the queue.
         self.q.put((root_url, self.max_redirect))
 ```
@@ -935,8 +939,8 @@ The crawler fetches "foo" and sees it redirects to "baz", so it adds "baz" to th
     @asyncio.coroutine
     def fetch(self, url, max_redirect):
         # Handle redirects ourselves.
-        response = yield from aiohttp.request(
-            'get', url, allow_redirects=False)
+        response = yield from self.session.get(
+            url, allow_redirects=False)
 
         if is_redirect(response):
             if max_redirect > 0:
