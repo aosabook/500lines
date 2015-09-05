@@ -31,7 +31,7 @@ def do_sequence(network, node, key):
         def req_done(output):
             assert output == exp_output, "%r != %r" % (output, exp_output)
             request()
-        Request(node, input, req_done).start()
+        Requester(node, input, req_done).start()
 
     network.set_timer(None, 1.0, request)
 
