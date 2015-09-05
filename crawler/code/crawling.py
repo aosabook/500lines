@@ -141,7 +141,7 @@ class Crawler:
                 text = yield from response.text()
 
                 # Replace href with (?:href|src) to follow image links.
-                urls = set(re.findall(r'''(?i)href=["']?([^\s"'<>]+)''',
+                urls = set(re.findall(r'''(?i)href=["']([^\s"'<>]+)''',
                                       text))
                 if urls:
                     LOGGER.info('got %r distinct urls from %r',
