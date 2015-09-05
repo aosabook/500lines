@@ -266,7 +266,6 @@ class Crawler:
                    for _ in range(self.max_tasks)]
         self.t0 = time.time()
         yield from self.q.join()
-        assert self.seen_urls == set(stat.url for stat in self.done)
         self.t1 = time.time()
         for w in workers:
             w.cancel()
