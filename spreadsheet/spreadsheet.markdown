@@ -1,6 +1,8 @@
 title: Web Spreadsheet
 author: Audrey Tang
 
+_A self-educated programmer and translator, Audrey works with Apple as an independent contractor on cloud service localization and natural language technologies. Audrey has previously designed and led the first working Perl 6 implementation, and served in computer language design committees for Haskell, Perl 5, and Perl 6. Currently Audrey is a full-time g0v contributor and leads Taiwan’s first e-Rulemaking project._
+
 This chapter introduces a [web spreadsheet](http://audreyt.github.io/500lines/spreadsheet/) written in [99 lines](https://github.com/audreyt/500lines/tree/master/spreadsheet/code) of the three languages natively supported by web browsers: HTML, JavaScript, and CSS.
 
 The ES5 version of this project is available as a [jsFiddle](http://jsfiddle.net/audreyt/LtDyP/).
