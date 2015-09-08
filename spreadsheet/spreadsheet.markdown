@@ -208,7 +208,7 @@ The flowchart in \aosafigref{500l.spreadsheet.flowchart} shows the controller-wo
 
 Now let's walk through the code. In the first line, we request the JS model `$scope` object from AngularJS:
 
-```js
+```javascript
 angular.module('500lines', []).controller('Spreadsheet', function ($scope, $timeout) {
 ```
 
@@ -216,7 +216,7 @@ The `$` in `$scope` is part of the variable name. Here we also request the [`$ti
 
 To put `Cols` and `Rows` into the model, simply define them as properties of `$scope`:
 
-```js
+```javascript
   // Begin of $scope properties; start with the column/row labels
   $scope.Cols = [], $scope.Rows = [];
   for (col of range( 'A', 'H' )) { $scope.Cols.push(col); }
@@ -226,7 +226,7 @@ To put `Cols` and `Rows` into the model, simply define them as properties of `$s
 The ES6 [for...of](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for...of) syntax makes it easy to loop through ranges with a start and an end point, with the helper function `range` defined as a [generator](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function*):
 
 
-```js
+```javascript
   function* range(cur, end) { while (cur <= end) { yield cur;
 ```
 
@@ -242,20 +242,20 @@ To generate the next value, we use `isNaN` to see if `cur` is meant as a letter 
 
 Next up, we define the `keydown()` function that handles keyboard navigation across rows:
 
-```js
+```javascript
   // UP(38) and DOWN(40)/ENTER(13) move focus to the row above (-1) and below (+1).
   $scope.keydown = ({which}, col, row)=>{ switch (which) {
 ```
 
 The [arrow function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/arrow_functions) receives the arguments `($event, col, row)` from `<input ng-keydown>`, using [destructuring assignment](https://developer.mozilla.org/en-US/docs/Web/JavaScript/New_in_JavaScript/1.7#Pulling_fields_from_objects_passed_as_function_parameter) to assign `$event.which` into the `which` parameter, and checks if it’s among the three navigational key codes:
 
-```js
+```javascript
     case 38: case 40: case 13: $timeout( ()=>{
 ```
 
 If it is, we use `$timeout` to schedule a change of cell focus after the current `ng-keydown` and `ng-change` handler. Because `$timeout` requires a function as argument, the `()=>{…}` syntax constructs a function to represent the focus-change logic, which starts by checking the direction of movement:
 
-```js
+```javascript
       const direction = (which === 38) ? -1 : +1;
 ```
 
@@ -263,7 +263,7 @@ The `const` declarator means `direction` will not change during the function’s
 
 Next up, we retrieve the target element using the ID selector syntax (e.g. `"#A3"`), constructed with a [template string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/template_strings) written in a pair of backticks, concatenating the leading `#`, the current `col` and the target `row + direction`:
 
-```js
+```javascript
       const cell = document.querySelector( `#${ col }${ row + direction }` );
       if (cell) { cell.focus(); }
     } );
@@ -274,14 +274,14 @@ We put an extra check on the result of `querySelector` because moving upward fro
 
 Next, we define the `reset()` function so the `↻` button can restore the initial contents of the `sheet`:
 
-```js
+```javascript
   // Default sheet content, with some data cells and one formula cell.
   $scope.reset = ()=>{ $scope.sheet = { A1: 1874, B1: '+', C1: 2046, D1: '⇒', E1: '=A1+C1' }; }
 ```
 
 The `init()` function tries restoring the `sheet` content from its previous state from the [localStorage](https://developer.mozilla.org/en-US/docs/Web/Guide/API/DOM/Storage#localStorage), and defaults to the initial content if it’s our first time running the application:
 
-```js
+```javascript
   // Define the initializer, and immediately call it
   ($scope.init = ()=>{
     // Restore the previous .sheet; reset to default if it’s the first run
@@ -299,14 +299,14 @@ A few things are worth nothing in the `init()` function above:
 
 While `sheet` holds the user-editable cell content, `errs` and `vals` contain the results of calculations — errors and values — that are read-only to the user:
 
-```js
+```javascript
   // Formula cells may produce errors in .errs; normal cell contents are in .vals
   [$scope.errs, $scope.vals] = [ {}, {} ];
 ```
 
 With these properties in place, we can define the `calc()` function that triggers whenever the user makes a change to `sheet`:
 
-```js
+```javascript
   // Define the calculation handler; not calling it yet
   $scope.calc = ()=>{
     const json = angular.toJson( $scope.sheet );
@@ -316,7 +316,7 @@ Here we first take a snapshot of the state of `sheet` and store it in the consta
 
 Next up, we construct a `promise` from [$timeout](https://docs.angularjs.org/api/ng/service/$timeout) that cancels the upcoming computation if it takes more than 99 milliseconds:
 
-```js
+```javascript
     const promise = $timeout( ()=>{
       // If the worker has not returned in 99 milliseconds, terminate it
       $scope.worker.terminate();
@@ -331,7 +331,7 @@ Since we made sure that  `calc()` is called at most once every 200 milliseconds 
 
 The worker’s task is to calculate `errs` and `vals` from the contents of`sheet`. Because **main.js** and **worker.js** communicate by message-passing, we need an `onmessage` handler to receive the results once they are ready:
 
-```js
+```javascript
     // When the worker returns, apply its effect on the scope
     $scope.worker.onmessage = ({data})=>{
       $timeout.cancel( promise );
@@ -344,7 +344,7 @@ If `onmessage` is called,  we know that the `sheet` snapshot in `json` is stable
 
 With the handler in place, we can post the state of `sheet` to the worker, starting its calculation in the background:
 
-```js
+```javascript
     // Post the current sheet content for the worker to process
     $scope.worker.postMessage( $scope.sheet );
   };
@@ -367,7 +367,7 @@ With these in mind, let’s take a look at the worker’s code.
 
 The worker’s sole purpose is defining its `onmessage` handler. The handler takes `sheet`, calculates `errs` and `vals`, and posts them back to the main JS thread. We begin by re-initializing the three variables when we receive a message:
 
-```js
+```javascript
 let sheet, errs, vals;
 self.onmessage = ({data})=>{
   [sheet, errs, vals] = [ data, {}, {} ];
@@ -375,7 +375,7 @@ self.onmessage = ({data})=>{
 
 In order to turn coordinates into global variables, we first iterate over each property in `sheet`, using a `for…in` loop:
 
-```js
+```javascript
   for (const coord in sheet) {
 ```
 
@@ -385,7 +385,7 @@ In contrast, `var coord` in earlier versions of JS would declare a _function sco
 
 Customarily, formula variables are case-insensitive and can optionally have a `$` prefix. Because JS variables are case-sensitive, we use two `map` calls to go over the four variable names for the same coordinate:
 
-```js
+```javascript
     // Four variable names pointing to the same coordinate: A1, a1, $A1, $a1
     [ '', '$' ].map( p => [ coord, coord.toLowerCase() ].map(c => {
       const name = p+c;
@@ -395,7 +395,7 @@ Note the shorthand arrow function syntax above: `p => ...` is the same as `(p) =
 
 For each variable name, like `A1` and `$a1`, we define an [accessor property](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/defineProperty) on `self` that calculates `vals["A1"]` whenever they are evaluated in an expression:
 
-```js
+```javascript
       // Worker is reused across calculations, so only define each variable once
       if ((Object.getOwnPropertyDescriptor( self, name ) || {}).get) { return; }
 
@@ -407,7 +407,7 @@ The `{ get() { … } }` syntax above is shorthand for `{ get: ()=>{ … } }`. Be
 
 The `get` accessor starts by checking `vals[coord]`, and simply returns it if it’s already calculated:
 
-```js
+```javascript
         if (coord in vals) { return vals[coord]; }
 ```
 
@@ -415,13 +415,13 @@ If not, we need to calculate `vals[coord]` from `sheet[coord]`.
 
 First we set it to `NaN`, so self-references like setting **A1** to `=A1` will end up with `NaN` instead of an infinite loop:
 
-```js
+```javascript
         vals[coord] = NaN;
 ```
 
 Next we check if `sheet[coord]` is a number by converting it to numeric with prefix `+`, assigning the number to `x`, and comparing its string representation with the original string. If they differ, then we set `x` to the original string:
 
-```js
+```javascript
         // Turn numeric strings into numbers, so =A1+C1 works when both are numbers
         let x = +sheet[coord];
         if (sheet[coord] !== x.toString()) { x = sheet[coord]; }
@@ -429,7 +429,7 @@ Next we check if `sheet[coord]` is a number by converting it to numeric with pre
 
 If the initial character of `x` is `=`, then it’s a formula cell. We evaluate the part after `=` with `eval.call()`, using the first argument `null` to tell `eval` to run in the _global scope_, hiding the _lexical scope_ variables like `x` and `sheet` from the evaluation:
 
-```js
+```javascript
         // Evaluate formula cells that begin with =
         try { vals[coord] = (('=' === x[0]) ? eval.call( null, x.slice( 1 ) ) : x);
 ```
@@ -438,7 +438,7 @@ If the evaluation succeeds, the result is stored into `vals[coord]`. For non-for
 
 If `eval` results in an error, the `catch` block tests if it’s because the formula refers to an empty cell not yet defined in `self`:
 
-```js
+```javascript
         } catch (e) {
           const match = /\$?[A-Za-z]+[1-9][0-9]*\b/.exec( e );
           if (match && !( match[0] in self )) {
@@ -446,7 +446,7 @@ If `eval` results in an error, the `catch` block tests if it’s because the for
 
 In that case, we set the missing cell’s default value to "0", clear `vals[coord]`, and re-run the current computation using `self[coord]`:
 
-```js
+```javascript
             // The formula refers to a uninitialized cell; set it to 0 and retry
             self[match[0]] = 0;
             delete vals[coord];
@@ -458,7 +458,7 @@ In that case, we set the missing cell’s default value to "0", clear `vals[coor
 
 Other kinds of errors are stored in `errs[coord]`:
 
-```js
+```javascript
           // Otherwise, stringify the caught exception in the errs object
           errs[coord] = e.toString();
         }
@@ -468,7 +468,7 @@ In case of errors, the value of `vals[coord]` will remain `NaN` because the assi
 
 Finally, the `get` accessor returns the calculated value stored in `vals[coord]`, which must be a number, a Boolean value, or a string:
 
-```js
+```javascript
         // Turn vals[coord] into a string if it's not a number or Boolean
         switch (typeof vals[coord]) { case 'function': case 'object': vals[coord]+=''; }
         return vals[coord];
@@ -479,7 +479,7 @@ Finally, the `get` accessor returns the calculated value stored in `vals[coord]`
 
 With accessors defined for all coordinates, the worker goes through the coordinates again, invoking each accessor with `self[coord]`, then posts the resulting `errs` and `vals` back to the main JS thread:
 
-```js
+```javascript
   // For each coordinate in the sheet, call the property getter defined above
   for (const coord in sheet) { self[coord]; }
   return [ errs, vals ];
