@@ -14,6 +14,7 @@ def main(chapters=[], epub=False, pdf=False, html=False, mobi=False, pandoc_epub
             run('rm {}'.format(f))
 
     chapter_dirs = [
+        'flow-shop',
         'template-engine',
         'pedometer',
         'sampler',
@@ -59,6 +60,7 @@ def main(chapters=[], epub=False, pdf=False, html=False, mobi=False, pandoc_epub
     ]
 
     image_paths = [
+        './flow-shop/flow-shop-images',
         './pedometer/pedometer-images',
         './sampler/sampler-images',
         './spreadsheet/spreadsheet-images',
