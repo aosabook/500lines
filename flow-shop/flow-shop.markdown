@@ -1,5 +1,7 @@
-<!-- British spelling -->
-# A Flow Shop Scheduler
+title: A Flow Shop Scheduler
+author: Christian Muise
+
+## A Flow Shop Scheduler
 *Flow shop scheduling* is one of the most challenging and well-studied problems in operations research. Like many challenging optimization problems, finding the best solution is just not possible for problems of a practical size. In this chapter we consider the implementation of a flow shop scheduling solver that uses a technique called *local search*. Local search allows us to find a solution that is "pretty good" when finding the best solution isn't possible. The solver will try and find new solutions to the problem for a given amount of time, and finish by returning the best solution found.
 
 The idea behind local search is to improve an existing solution heuristically by considering similar solutions that may be a little better. The solver uses a variety of strategies to (1) try and find similar solutions, and (2) choose one that is promising to explore next. The implementation is written in Python, and has no external requirements. By leveraging some of Python's lesser-known functionality, the solver dynamically changes its search strategy during the solving process based on which strategies work well.
@@ -13,26 +15,23 @@ The flow shop scheduling problem is an optimization problem in which we must det
 
 The objective in flow shop scheduling is to minimize the total time it takes to process all of the tasks from every job to completion. Typically, this total time is referred to as the *makespan*. The flow shop scheduling problem has many applications, but is most related to optimizing production facilities.
 
-<!-- FIXME: Might as well make these italics into math symbols at some point-->
-Every flow shop problem consists of *n* machines and *m* jobs. In our car example, there will be *n* stations to work on the car and *m* cars to make in total. Each job is made up of exactly *n* tasks, and we can assume that the *i*-th task of a job must use machine *i* and requires a predetermined amount of processing time: *p*(*j*,*i*) is the processing time for the *i*-th task of job *j*. Further, the order of the tasks for any given job should follow the order of the machines available; for a given job, task *i* must be completed prior to the start of task *i+*1. In our car example, we wouldn't want to start painting the car before the frame was assembled. The final restriction is that no two tasks can be processed on a machine simultaneously.
+Every flow shop problem consists of $n$ machines and $m$ jobs. In our car example, there will be $n$ stations to work on the car and $m$ cars to make in total. Each job is made up of exactly $n$ tasks, and we can assume that the $i$-th task of a job must use machine $i$ and requires a predetermined amount of processing time: $p(j,i)$ is the processing time for the $i$th task of job $j$. Further, the order of the tasks for any given job should follow the order of the machines available; for a given job, task $i$ must be completed prior to the start of task $i+1$. In our car example, we wouldn't want to start painting the car before the frame was assembled. The final restriction is that no two tasks can be processed on a machine simultaneously.
 
-Because the order of tasks within a job is predetermined, a solution to the flow shop scheduling problem can be represented as a permutation of the jobs. The order of jobs processed on a machine will be the same for every machine, and given a permutation, a task for machine *i* in job *j* is scheduled to be the latest of the following two possibilities:
+Because the order of tasks within a job is predetermined, a solution to the flow shop scheduling problem can be represented as a permutation of the jobs. The order of jobs processed on a machine will be the same for every machine, and given a permutation, a task for machine $i$ in job $j$ is scheduled to be the latest of the following two possibilities:
 
-1. The completion of the task for machine *i* in job *j*-1 (i.e., the most recent task on the same machine), or
+1. The completion of the task for machine $i$ in job $j-1$ (i.e., the most recent task on the same machine), or
 
-2. The completion of the task for machine *i*-1 in job *j* (i.e., the most recent task on the same job)
+2. The completion of the task for machine $i-1$ in job $j$ (i.e., the most recent task on the same job)
 
-Because we select the maximum of these two values, idle time for either machine *i* or job *j* will be created. It is this idle time that we ultimately want to minimize, as it will push the total makespan to be larger.
+Because we select the maximum of these two values, idle time for either machine $i$ or job $j$ will be created. It is this idle time that we ultimately want to minimize, as it will push the total makespan to be larger.
 
 Due to the simple form of the problem, any permutation of jobs is a valid solution, and the optimal solution will correspond to *some* permutation. Thus, we search for improved solutions by changing the permutation of jobs and measuring the corresponding makespan. In what follows, we refer to a permutation of the jobs as a *candidate*.
 
-Let's consider a simple example with two jobs and two machines. The first job has tasks **A** and **B**, which take 1 and 2 minutes to complete respectively. The second job has tasks **C** and **D**, which take 2 and 1 minutes to complete respectively. Recall that **A** must come before **B** and **C** must come before **D**. Because there are two jobs, we have just two permutations to consider. If we order job 2 before job 1, the makespan is 5:
+Let's consider a simple example with two jobs and two machines. The first job has tasks $\mathbf{A}$ and $\mathbf{B}$, which take 1 and 2 minutes to complete respectively. The second job has tasks $\mathbf{C}$ and $\mathbf{D}$, which take 2 and 1 minutes to complete respectively. Recall that $\mathbf{A}$ must come before $\mathbf{B}$ and $\mathbf{C}$ must come before $\mathbf{D}$. Because there are two jobs, we have just two permutations to consider. If we order job 2 before job 1, the makespan is 5 (\aosafigref{500l.flowshop.example1}); on the other hand, if we order job 1 before job 2, the makespan is only 4 (\aosafigref{500l.flowshop.example2}).
 
-![Flow Shop Example 1](http://i.imgur.com/nhcozcS.png)
+\aosafigure[240pt]{flow-shop-images/example1.png}{Flow Shop Example 1}{500l.flowshop.example1}
 
-On the other hand, if we order job 1 before job 2, the makespan is only 4:
-
-![Flow Shop Example 2](http://i.imgur.com/UJUdTki.png)
+\aosafigure[240pt]{flow-shop-images/example2.png}{Flow Shop Example 2}{500l.flowshop.example2}
 
 Notice that there is no budge room to push any of the tasks earlier. A guiding principle for a good permutation is to minimize the time in which any machine is left without a task to process.
 
@@ -70,7 +69,7 @@ DEBUG_SWITCH = False # Displays intermediate heuristic info when True
 MAX_LNS_NEIGHBOURHOODS = 1000 # Maximum number of neighbours to explore in LNS
 ```
 
-There are two settings that should be explained further. The TIME_INCREMENT setting will be used as part of the dynamic strategy selection, and the MAX_LNS_NEIGHBOURHOODS setting will be used as part of the neighbourhood selection strategy. Both are described in more detail below.
+There are two settings that should be explained further. The `TIME_INCREMENT` setting will be used as part of the dynamic strategy selection, and the `MAX_LNS_NEIGHBOURHOODS` setting will be used as part of the neighbourhood selection strategy. Both are described in more detail below.
 
 These settings could be exposed to the user as command line parameters, but at this stage we instead provide the input data as parameters to the program. The input problem --- a problem from the Taillard benchmark set --- is assumed to be in a standard format for flow shop scheduling. The following code is used as the `__main__` method for the solver file, and calls the appropriate functions based on the number of parameters input to the program:
 
@@ -165,7 +164,7 @@ Below we describe how the strategy is picked, but for now it is sufficient to kn
         old_time = time.time()
 
         # Use the current strategy's heuristic to pick the next permutation from
-        #  the set of candidates generated by the strategy's neighbourhood
+        # the set of candidates generated by the strategy's neighbourhood
         candidates = strategy.neighbourhood(data, perm)
         perm = strategy.heuristic(data, candidates)
         res = makespan(data, perm)
@@ -216,8 +215,7 @@ def parse_problem(filename, k=1):
     """Parse the kth instance of a Taillard problem file
 
     The Taillard problem files are a standard benchmark set for the problem
-    of flow shop scheduling. They can be found online at the following address:
-    - http://mistic.heig-vd.ch/taillard/problemes.dir/ordonnancement.dir/ordonnancement.html"""
+    of flow shop scheduling. 
 
     print "\nParsing..."
 ```
@@ -227,7 +225,8 @@ We start the parsing by reading in the file and identifying the line that separa
 ```python
     with open(filename, 'r') as f:
         # Identify the string that separates instances
-        problem_line = '/number of jobs, number of machines, initial seed, upper bound and lower bound :/'
+        problem_line = ('/number of jobs, number of machines, initial seed, '
+                        'upper bound and lower bound :/')
 
         # Strip spaces and newline characters from every line
         lines = map(str.strip, f.readlines())
@@ -251,7 +250,6 @@ To make locating the correct instance easier, we assume that lines will be separ
 
 We parse the data directly, converting the processing time of each task to an integer and storing it in a list. Finally, we zip the data to invert the rows and columns so that the format respects what is expected by the solving code above. (That is, every item in `data` should correspond to a particular job.)
 
-<!-- QUERY Is the indentation below correct? -->
 ```python
         # Split every line based on spaces and convert each item to an int
         data = [map(int, line.split()) for line in lines]
@@ -299,8 +297,9 @@ We then add all the tasks for the remaining jobs. The first task in a job will a
         #  previous task in the job completed, or when the current machine
         #  completes the task for the previous job.
         for mach in range(1, num_machines):
-            machine_times[mach].append(max(machine_times[mach-1][i] + data[perm[i]][mach-1],
-                                           machine_times[mach][i-1] + data[perm[i-1]][mach]))
+            machine_times[mach].append(max(
+                machine_times[mach-1][i] + data[perm[i]][mach-1],
+                machine_times[mach][i-1] + data[perm[i-1]][mach]))
 
     return machine_times
 ```
@@ -463,7 +462,7 @@ If we were to set the `size` parameter to be equal to the number of jobs, then e
 
 A heuristic returns a single candidate permutation from a set of provided candidates. The heuristic is also given access to the problem data in order to evaluate which candidate might be preferred.
 
-The first heuristic that we consider is **heur_random**. This heuristic randomly selects a candidate from the list without evaluating which one might be preferred:
+The first heuristic that we consider is `heur_random`. This heuristic randomly selects a candidate from the list without evaluating which one might be preferred:
 
 ```python
 def heur_random(data, candidates):
@@ -471,7 +470,7 @@ def heur_random(data, candidates):
     return random.choice(candidates)
 ```
 
-The next heuristic uses the other extreme. Rather than randomly selecting a candidate, **heur_hillclimbing** selects the candidate that has the best makespan. Note that the list `scores` will contain tuples of the form *(make,perm)* where *make* is the makespan value for permutation *perm*. Sorting such a list places the tuple with the best makespan at the start of the list; from this tuple we return the permutation.
+The next heuristic uses the other extreme. Rather than randomly selecting a candidate, `heur_hillclimbing` selects the candidate that has the best makespan. Note that the list `scores` will contain tuples of the form `(make,perm)` where `make` is the makespan value for permutation `perm`. Sorting such a list places the tuple with the best makespan at the start of the list; from this tuple we return the permutation.
 
 ```python
 def heur_hillclimbing(data, candidates):
@@ -480,7 +479,7 @@ def heur_hillclimbing(data, candidates):
     return sorted(scores)[0][1]
 ```
 
-The final heuristic, **heur_random_hillclimbing**, combines both the random and hillclimbing heuristics above. When performing local search, you may not always want to choose a random candidate, or even the best one. The **heur_random_hillclimbing** heuristic returns a "pretty good" solution by choosing the best candidate with probability 0.5, then the second best with probability 0.25, and so on. The while-loop essentially flips a coin at every iteration to see if it should continue increasing the index (with a limit on the size of the list). The final index chosen corresponds to the candidate that the heuristic selects.
+The final heuristic, `heur_random_hillclimbing`, combines both the random and hillclimbing heuristics above. When performing local search, you may not always want to choose a random candidate, or even the best one. The `heur_random_hillclimbing` heuristic returns a "pretty good" solution by choosing the best candidate with probability 0.5, then the second best with probability 0.25, and so on. The while-loop essentially flips a coin at every iteration to see if it should continue increasing the index (with a limit on the size of the list). The final index chosen corresponds to the candidate that the heuristic selects.
 
 ```python
 def heur_random_hillclimbing(data, candidates):
@@ -542,7 +541,7 @@ def initialize_strategies():
         STRATEGIES.append(Strategy("%s / %s" % (n[0], h[0]), n[1], h[1]))
 ```
 
-Once the strategies are defined, we do not necessarily want to stick with a single option during search. Instead, we select randomly any one of the strategies, but *weight the selection* based on how well the strategy has performed. We describe the weighting below, but for the `pick_strategy` function, we need only a list of strategies and a corresponding list of relative weights (any number will do). To select a random strategy with the given weights, we pick a number uniformly between 0 and the sum of all weights. Subsequently, we find the lowest index *i* such that the sum of all of the weights for indices smaller than *i* is greater than the random number that we have chosen. This technique, sometimes referred to as *roulette wheel selection*, will randomly pick a strategy for us and give a greater chance to those strategies with higher weight.
+Once the strategies are defined, we do not necessarily want to stick with a single option during search. Instead, we select randomly any one of the strategies, but *weight the selection* based on how well the strategy has performed. We describe the weighting below, but for the `pick_strategy` function, we need only a list of strategies and a corresponding list of relative weights (any number will do). To select a random strategy with the given weights, we pick a number uniformly between 0 and the sum of all weights. Subsequently, we find the lowest index $i$ such that the sum of all of the weights for indices smaller than $i$ is greater than the random number that we have chosen. This technique, sometimes referred to as *roulette wheel selection*, will randomly pick a strategy for us and give a greater chance to those strategies with higher weight.
 
 ```python
 def pick_strategy(strategies, weights):
@@ -578,11 +577,12 @@ Recall that `strat_improvements` stores the sum of all improvements that a strat
 
 ```python
             # Normalize the improvements made by the time it takes to make them
-            results = sorted([(float(strat_improvements[s]) / max(0.001, strat_time_spent[s]), s)
-                              for s in STRATEGIES])
+            results = sorted([
+                (float(strat_improvements[s]) / max(0.001, strat_time_spent[s]), s)
+                for s in STRATEGIES])
 ```
 
-Now that we have a ranking of how well each strategy has performed, we add *k* to the weight of the best strategy (assuming we had *k* strategies), *k*-1 to the next best strategy, etc. Each strategy will have its weight increased, and the worst strategy in the list will see an increase of only 1.
+Now that we have a ranking of how well each strategy has performed, we add $k$ to the weight of the best strategy (assuming we had $k$ strategies), $k-1$ to the next best strategy, etc. Each strategy will have its weight increased, and the worst strategy in the list will see an increase of only 1.
 
 ```python
             # Boost the weight for the successful strategies
@@ -603,10 +603,11 @@ Finally, we output some information about the strategy ranking (if the `DEBUG_SW
 ```python
             if DEBUG_SWITCH:
                 print "\nComputing another switch..."
-                print "Best performer: %s (%d)" % (results[0][1].name, results[0][0])
-                print "Worst performer: %s (%d)" % (results[-1][1].name, results[-1][0])
+                print "Best: %s (%d)" % (results[0][1].name, results[0][0])
+                print "Worst: %s (%d)" % (results[-1][1].name, results[-1][0])
                 print results
-                print sorted([strat_weights[STRATEGIES[i]] for i in range(len(STRATEGIES))])
+                print sorted([strat_weights[STRATEGIES[i]] 
+                              for i in range(len(STRATEGIES))])
 
             strat_improvements = {strategy: 0 for strategy in STRATEGIES}
             strat_time_spent = {strategy: 0 for strategy in STRATEGIES}
