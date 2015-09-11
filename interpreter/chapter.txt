@@ -931,7 +931,7 @@ class VirtualMachine(object):
 
 One thing you've probably heard is that Python is a "dynamic" language --- particularly that it's "dynamically typed". The context we've just built up on the interpreter sheds some light on this description.
 
-One of the things "dynamic" means in this context is that a lot of work is done at run time. We saw earlier that the Python compiler doesn't have much information about what the code actually does. For example, consider the short function `mod` below. `mod` takes two arguments and returns the modulus of one against the other. In the bytecode, we see that the variables `a` and `b` are loaded and then the bytecode `BINARY_MODULO` performs the modulo itself.
+One of the things "dynamic" means in this context is that a lot of work is done at run time. We saw earlier that the Python compiler doesn't have much information about what the code actually does. For example, consider the short function `mod` below. `mod` takes two arguments and returns the first modulo the second. In the bytecode, we see that the variables `a` and `b` are loaded, then the bytecode `BINARY_MODULO` performs the modulo operation itself.
 
 ```
 >>> def mod(a, b):
@@ -957,7 +957,7 @@ bytecode
 
 Using the symbol `%` to format a string for printing means invoking the instruction `BINARY_MODULO`. This instruction mods together the top two values on the stack when the instruction executes --- regardless of whether they're strings, integers, or instances of a class you defined yourself. The bytecode was generated when the function was compiled (effectively, when it was defined) and the same bytecode is used with different types of arguments.
 
-The Python compiler knows relatively little about the effect the bytecode will have. It's up to the interpreter to determine the type of the object that `BINARY_MODULO` is operating on and do the right thing for that type! This is why Python is described at _dynamically typed_: you don't know the types of the arguments to this function until you actually run it. By constrast, in a language that's statically typed, the programmer tells the compiler up front what type the arguments will be (or the compiler figures them out for itself).
+The Python compiler knows relatively little about the effect the bytecode will have. It's up to the interpreter to determine the type of the object that `BINARY_MODULO` is operating on and do the right thing for that type. This is why Python is described at _dynamically typed_: you don't know the types of the arguments to this function until you actually run it. By constrast, in a language that's statically typed, the programmer tells the compiler up front what type the arguments will be (or the compiler figures them out for itself).
 
 The compiler's ignorance is one of the challenges to optimizing Python or analyzing it statically --- just looking at the bytecode, without actually running the code, you don't know what each instruction will do! In fact, you could define a class that implements the `__mod__` method, and Python would invoke that method if you use `%` on your objects. So `BINARY_MODULO` could actually run any code at all!
 
@@ -969,13 +969,14 @@ def mod(a,b):
     return a %b
 ```
 
-Unfortunately, a static analysis of this code --- the kind of you can do without running it --- can't be certain that the first `a % b` really does nothing. Calling `__mod__` with `%` might write to a file, or interact with another part of your program, or do literally anything else that it's possible to do in Python. It's hard to optimize a function when you don't know what it does! In Russell Power and Alex Rubensteyn's great paper "How fast can we make interpreted Python?", they note, "In the general absence of type information, each instruction must be treated as `INVOKE_ARBITRARY_METHOD`."
+Unfortunately, a static analysis of this code --- the kind of you can do without running it --- can't be certain that the first `a % b` really does nothing. Calling `__mod__` with `%` might write to a file, or interact with another part of your program, or do literally anything else that's possible in Python. It's hard to optimize a function when you don't know what it does! In Russell Power and Alex Rubensteyn's great paper "How fast can we make interpreted Python?", they note, "In the general absence of type information, each instruction must be treated as `INVOKE_ARBITRARY_METHOD`."
 
 ## Conclusion
 
 Byterun is a compact Python interpreter that's easier to understand than CPython. Byterun replicates CPython's primary structural details: a stack-based interpreter operating on instruction sets called bytecode. It steps or jumps through these instructions, pushing to and popping from a stack of data. The interpreter creates, destroys, and jumps between frames as it calls into and returns from functions and generators. Byterun shares the real interpreter's limitations, too: because Python uses dynamic typing, the interpreter must work hard at run time to determine the correct behavior for any series of instructions.
 
-I encourage you to disassemble your own programs and to run them using Byterun. You'll quickly run into instructions that this shorter version of Byterun doesn't implement. The full implementation can be found at github.com/nedbat/FIXME --- or, by carefully reading the real CPython interpreter's `ceval.c`, you can implement them yourself!
+I encourage you to disassemble your own programs and to run them using Byterun. You'll quickly run into instructions that this shorter version of Byterun doesn't implement. The full implementation can be found at github.com/nedbat/FIXME --- or, by carefully reading the real CPython interpreter's `ceval.c`, you can implement it yourself!
 
-Acknowledgements:
+## Acknowledgements:
+
 Thanks to Ned Batchelder for originating this project and guiding my contributions, Michael Artzenius for his help debugging the code and editing the prose, Leta Montopoli for her edits, and the entire Recurse Center community for their support and interest. Any errors are my own.
