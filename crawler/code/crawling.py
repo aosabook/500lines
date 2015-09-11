@@ -61,7 +61,7 @@ class Crawler:
         self.q = Queue(loop=self.loop)
         self.seen_urls = set()
         self.done = []
-        self.connector = aiohttp.TCPConnector(loop=self.loop)
+        self.session = aiohttp.ClientSession(loop=self.loop)
         self.root_domains = set()
         for root in roots:
             parts = urllib.parse.urlparse(root)
@@ -83,7 +83,7 @@ class Crawler:
 
     def close(self):
         """Close resources."""
-        self.connector.close()
+        self.session.close()
 
     def host_okay(self, host):
         """Check if a host should be crawled.
@@ -141,7 +141,7 @@ class Crawler:
                 text = yield from response.text()
 
                 # Replace href with (?:href|src) to follow image links.
-                urls = set(re.findall(r'''(?i)href=["']?([^\s"'<>]+)''',
+                urls = set(re.findall(r'''(?i)href=["']([^\s"'<>]+)''',
                                       text))
                 if urls:
                     LOGGER.info('got %r distinct urls from %r',
@@ -172,13 +172,12 @@ class Crawler:
         exception = None
         while tries < self.max_tries:
             try:
-                response = yield from aiohttp.request(
-                    'get', url,
-                    connector=self.connector,
-                    allow_redirects=False,
-                    loop=self.loop)
+                response = yield from self.session.get(
+                    url, allow_redirects=False)
+
                 if tries > 1:
                     LOGGER.info('try %r for %r success', tries, url)
+
                 break
             except aiohttp.ClientError as client_error:
                 LOGGER.info('try %r for %r raised %r', tries, url, client_error)
@@ -228,6 +227,7 @@ class Crawler:
                 self.q.put_nowait((link, self.max_redirect))
             self.seen_urls.update(links)
 
+        yield from response.release()
 
     @asyncio.coroutine
     def work(self):
@@ -266,7 +266,6 @@ class Crawler:
                    for _ in range(self.max_tasks)]
         self.t0 = time.time()
         yield from self.q.join()
-        assert self.seen_urls == set(stat.url for stat in self.done)
         self.t1 = time.time()
         for w in workers:
             w.cancel()
