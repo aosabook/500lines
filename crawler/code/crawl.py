@@ -97,6 +97,11 @@ def main():
     finally:
         reporting.report(crawler)
         crawler.close()
+
+        # next two lines are required for actual aiohttp resource cleanup
+        loop.stop()
+        loop.run_forever()
+
         loop.close()
 
 

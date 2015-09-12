@@ -199,44 +199,48 @@ class Crawler:
                                                  num_new_urls=0))
             return
 
-        if is_redirect(response):
-            location = response.headers['location']
-            next_url = urllib.parse.urljoin(url, location)
-            self.record_statistic(FetchStatistic(url=url,
-                                                 next_url=next_url,
-                                                 status=response.status,
-                                                 exception=None,
-                                                 size=0,
-                                                 content_type=None,
-                                                 encoding=None,
-                                                 num_urls=0,
-                                                 num_new_urls=0))
+        try:
+            if is_redirect(response):
+                location = response.headers['location']
+                next_url = urllib.parse.urljoin(url, location)
+                self.record_statistic(FetchStatistic(url=url,
+                                                     next_url=next_url,
+                                                     status=response.status,
+                                                     exception=None,
+                                                     size=0,
+                                                     content_type=None,
+                                                     encoding=None,
+                                                     num_urls=0,
+                                                     num_new_urls=0))
 
-            if next_url in self.seen_urls:
-                return
-            if max_redirect > 0:
-                LOGGER.info('redirect to %r from %r', next_url, url)
-                self.add_url(next_url, max_redirect - 1)
+                if next_url in self.seen_urls:
+                    return
+                if max_redirect > 0:
+                    LOGGER.info('redirect to %r from %r', next_url, url)
+                    self.add_url(next_url, max_redirect - 1)
+                else:
+                    LOGGER.error('redirect limit reached for %r from %r',
+                                 next_url, url)
             else:
-                LOGGER.error('redirect limit reached for %r from %r',
-                             next_url, url)
-        else:
-            stat, links = yield from self.parse_links(response)
-            self.record_statistic(stat)
-            for link in links.difference(self.seen_urls):
-                self.q.put_nowait((link, self.max_redirect))
-            self.seen_urls.update(links)
-
-        yield from response.release()
+                stat, links = yield from self.parse_links(response)
+                self.record_statistic(stat)
+                for link in links.difference(self.seen_urls):
+                    self.q.put_nowait((link, self.max_redirect))
+                self.seen_urls.update(links)
+        finally:
+            yield from response.release()
 
     @asyncio.coroutine
     def work(self):
         """Process queue items forever."""
-        while True:
-            url, max_redirect = yield from self.q.get()
-            assert url in self.seen_urls
-            yield from self.fetch(url, max_redirect)
-            self.q.task_done()
+        try:
+            while True:
+                url, max_redirect = yield from self.q.get()
+                assert url in self.seen_urls
+                yield from self.fetch(url, max_redirect)
+                self.q.task_done()
+        except asyncio.CancelledError:
+            pass
 
     def url_allowed(self, url):
         if self.exclude and re.search(self.exclude, url):
