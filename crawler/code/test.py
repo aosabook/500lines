@@ -39,7 +39,13 @@ class TestCrawler(unittest.TestCase):
     def setUp(self):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(None)
-        self.addCleanup(self.loop.close)
+
+        def close_loop():
+            self.loop.stop()
+            self.loop.run_forever()
+            self.loop.close()
+        self.addCleanup(close_loop)
+
         self.port = self._find_unused_port()
         self.app_url = "http://127.0.0.1:{}".format(self.port)
         self.app = self.loop.run_until_complete(self._create_server())
@@ -120,7 +126,7 @@ class TestCrawler(unittest.TestCase):
         self.add_page('/', ['/foo'])
         self.crawl()
         self.assertDoneCount(2)
-        self.assertStat(url=self.app_url,
+        self.assertStat(url=self.app_url + '/',
                         num_urls=1,
                         num_new_urls=1)
 
@@ -149,24 +155,28 @@ class TestCrawler(unittest.TestCase):
 
     def test_strict_host_checking(self):
         crawler = crawling.Crawler(['http://example.com'], loop=self.loop)
+        self.addCleanup(crawler.close)
         self.assertTrue(crawler.url_allowed("http://www.example.com"))
         self.assertFalse(crawler.url_allowed("http://foo.example.com"))
 
     def test_lenient_host_checking(self):
         crawler = crawling.Crawler(['http://example.com'], strict=False,
                                    loop=self.loop)
+        self.addCleanup(crawler.close)
         self.assertTrue(crawler.url_allowed("http://www.example.com"))
         self.assertTrue(crawler.url_allowed("http://foo.example.com"))
 
     def test_exclude(self):
         crawler = crawling.Crawler(['http://example.com'],
                                    exclude=r'.*pattern', loop=self.loop)
+        self.addCleanup(crawler.close)
         self.assertTrue(crawler.url_allowed("http://example.com"))
         self.assertFalse(crawler.url_allowed("http://example.com/pattern"))
 
     def test_roots(self):
         crawler = crawling.Crawler(['http://a', 'http://b', 'not-a-host'],
                                    loop=self.loop)
+        self.addCleanup(crawler.close)
         self.assertTrue(crawler.url_allowed("http://a/a"))
         self.assertTrue(crawler.url_allowed("http://b/b"))
         self.assertFalse(crawler.url_allowed("http://c/c"))
@@ -175,6 +185,7 @@ class TestCrawler(unittest.TestCase):
     def test_deep_root(self):
         # Make sure 'a' is a root domain if the root is a link deep in 'a'.
         crawler = crawling.Crawler(['http://a/a#fragment'], loop=self.loop)
+        self.addCleanup(crawler.close)
         self.assertTrue(crawler.url_allowed("http://a/b"))
 
     def test_redirect(self):
@@ -311,7 +322,7 @@ class TestCrawler(unittest.TestCase):
         self.add_page('/xml', body=body, content_type='application/xml')
         self.crawl([self.app_url + '/xml'])
         self.assertStat(0, content_type='application/xml', num_urls=1)
-        self.assertStat(1, url=self.app_url)
+        self.assertStat(1, url=self.app_url + '/')
 
         self.add_page('/image', content_type='image')
         self.crawl([self.app_url + '/image'])
