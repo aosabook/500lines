@@ -761,7 +761,7 @@ To an asyncio user, coding with coroutines is much simpler than you saw here. In
 ```python
     @asyncio.coroutine
     def fetch(self, url):
-        response = yield from aiohttp.request('get', url)
+        response = yield from self.session.get(url)
         body = yield from response.read()
 ```
 
@@ -942,24 +942,28 @@ The crawler fetches "foo" and sees it redirects to "baz", so it adds "baz" to th
         response = yield from self.session.get(
             url, allow_redirects=False)
 
-        if is_redirect(response):
-            if max_redirect > 0:
-                next_url = response.headers['location']
-                if next_url in self.seen_urls:
-                    # We have been down this path before.
-                    return
-
-                # Remember we have seen this URL.
-                self.seen_urls.add(next_url)
-                
-                # Follow the redirect. One less redirect remains.
-                self.q.put_nowait((next_url, max_redirect - 1))
-	     else:
-	         links = yield from self.parse_links(response)
-	         # Python set-logic:
-	         for link in links.difference(self.seen_urls):
-                self.q.put_nowait((link, self.max_redirect))
-            self.seen_urls.update(links)
+        try:
+            if is_redirect(response):
+                if max_redirect > 0:
+                    next_url = response.headers['location']
+                    if next_url in self.seen_urls:
+                        # We have been down this path before.
+                        return
+    
+                    # Remember we have seen this URL.
+                    self.seen_urls.add(next_url)
+                    
+                    # Follow the redirect. One less redirect remains.
+                    self.q.put_nowait((next_url, max_redirect - 1))
+    	     else:
+    	         links = yield from self.parse_links(response)
+    	         # Python set-logic:
+    	         for link in links.difference(self.seen_urls):
+                    self.q.put_nowait((link, self.max_redirect))
+                self.seen_urls.update(links)
+        finally:
+            # Return connection to pool.
+            yield from response.release()
 ```
 
 If the response is a page, rather than a redirect, `fetch` parses it for links and puts new ones in the queue.
