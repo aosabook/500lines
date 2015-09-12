@@ -103,7 +103,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_content(content)
         except IOError, msg:
             msg = "'%s' cannot be listed: %s" % (self.path, msg)
-            self.send_error(ERR_NO_PERM, msg)
+            self.send_error(self.ERR_NO_PERM, msg)
 
     # Send actual content.
     def send_content(self, content):

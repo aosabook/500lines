@@ -347,7 +347,7 @@ included in the HTTP request.
 (We'll do this pretty frequently when debugging,
 so we might as well get some practice.)
 To keep our code clean,
-we'l separate creating the page from sending it:
+we'll separate creating the page from sending it:
 
 ~~~ {file="01-echo-request-info/server.py"}
 class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
