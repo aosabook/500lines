@@ -120,7 +120,7 @@ class TestCrawler(unittest.TestCase):
         self.add_page('/', ['/foo'])
         self.crawl()
         self.assertDoneCount(2)
-        self.assertStat(url=self.app_url,
+        self.assertStat(url=self.app_url + '/',
                         num_urls=1,
                         num_new_urls=1)
 
@@ -311,7 +311,7 @@ class TestCrawler(unittest.TestCase):
         self.add_page('/xml', body=body, content_type='application/xml')
         self.crawl([self.app_url + '/xml'])
         self.assertStat(0, content_type='application/xml', num_urls=1)
-        self.assertStat(1, url=self.app_url)
+        self.assertStat(1, url=self.app_url + '/')
 
         self.add_page('/image', content_type='image')
         self.crawl([self.app_url + '/image'])
