@@ -1,9 +1,9 @@
 # testquery.py : CGI script that echoes query parameters.
 
-import time, cgiutil
+import time, cgi, os
 
-rawData = cgiutil.getRawCgiData()
-params = cgiutil.parseCgiData(rawData)
+rawData = os.environ.get("QUERY_STRING", "")
+params = dict(cgi.parse_qs(rawData))
 
 print "Content-type: text/html"
 print
@@ -18,8 +18,8 @@ else:
     keys = params.keys()
     keys.sort()
     for k in keys:
-        v = cgiutil.htmlEncode('|'.join(params[k]))
-        k = cgiutil.htmlEncode(k)
+        v = cgi.escape('|'.join(params[k]))
+        k = cgi.escape(k)
         print "<tr><td>%s</td><td>%s</td></tr>" % (k, v)
     print "</table>"
 print "</body>"
