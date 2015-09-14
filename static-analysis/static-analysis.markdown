@@ -48,7 +48,7 @@ This code defines a method of the function `increment` that takes one argument, 
 
 `Int64` is a type whose values are signed integers represented in memory by 64 bits; they are the integers that your hardware understands if your computer has a 64-bit processor. Types in Julia define the representation of data in memory, in addition to influencing method dispatch.
 
-The name `increment` refers to a generic function, which may have many methods. We have just defined one method of it. In many languages, the terms "function" and "method" are used interchangeably; in Julia, they have distinct meanings. This chapter will make more sense if you are careful to understand "function" as a named collection of methods, where a "method" is a specific implementation for specific type signatures.
+The name `increment` refers to a generic function, which may have many methods. We have just defined one method of it. In many languages, the terms "function" and "method" are used interchangeably; in Julia, they have distinct meanings. This chapter will make more sense if you are careful to understand "function" as a named collection of methods, where a "method" is a specific implementation for a specific type signature.
 
 Let's define another method of the `increment` function:
 
@@ -367,11 +367,11 @@ julia> code_typed(lloop, (Int,))[1].args[3]
     end::Nothing)
 ```
 
-You'll notice there's no for or while loop in the body. As the compiler transforms the code from what we wrote to the binary instructions the CPU understands, features that are useful to humans but that are not understood by the CPU (like loops) are removed. The loop has been rewritten as `label` and `goto` commands. The `goto` has a number in it; each `label` also has a number. The `goto` jumps to the the `label` with the same number.
+You'll notice there's no for or while loop in the body. As the compiler transforms the code from what we wrote to the binary instructions the CPU understands, features that are useful to humans but that are not understood by the CPU (like loops) are removed. The loop has been rewritten as `label` and `goto` expressions. The `goto` has a number in it; each `label` also has a number. The `goto` jumps to the the `label` with the same number.
 
 #### Detecting and Extracting Loops
 
-We're going to find loops by looking for `goto` commands that jump backwards.
+We're going to find loops by looking for `goto` expressions that jump backwards.
 
 We'll need to find the labels and gotos, and figure out which ones match. I'm going to give you the full implementation first. After the wall of code, we'll take it apart and examine the smaller pieces.
 
@@ -632,7 +632,7 @@ end
 
 ## Looking For Unused Variables
 
-Sometimes, as you're typing in your program, you mistype a variable name. The program can't tell that you meant the same variable as the other times; it sees a variable used only one time, where you might see a variable name misspelled. Languages that require variable declarations naturally catch these misspellings, but many dynamic languages don’t require declarations and thus need an extra layer of analysis to catch them.
+Sometimes, as you're typing in your program, you mistype a variable name. The program can't tell that you meant for this to be the same variable that you spelled correctly before; it sees a variable used only one time, where you might see a variable name misspelled. Languages that require variable declarations naturally catch these misspellings, but many dynamic languages don’t require declarations and thus need an extra layer of analysis to catch them.
 
 We can find misspelled variable names (and other unused variables) by looking for variables that are only used once --- or only used one way.
 
@@ -891,7 +891,7 @@ Statically-typed languages already do the kind of work our type-based analysis d
 
 Non-typed-based checks, like our variable-usage one, are applicable to both dynamically and statically typed languages. However, many statically typed languages, like C++ and Java, require you to declare variables, and already give basic warnings like the ones we created. There are still custom checks that can be written; for example, checks that are specific to your project’s style guide or extra safety precautions based on security policies.
 
-While Julia does have great tools for enabling static analysis, it’s not alone. Lisp, of course, is famous for having the code be a data structure of nested lists, so it tends to be easy to get at the AST. Java also exposes its AST, although the AST is much more complicated than Lisp’s. Some languages or language tool-chains are not designed to allow mere users to poke around at internal representations. For open-source tool chains (especially well-commented ones), one option is to add the hooks you want to pull out to the AST.
+While Julia does have great tools for enabling static analysis, it’s not alone. Lisp, of course, is famous for having the code be a data structure of nested lists, so it tends to be easy to get at the AST. Java also exposes its AST, although the AST is much more complicated than Lisp’s. Some languages or language tool-chains are not designed to allow mere users to poke around at internal representations. For open-source tool chains (especially well-commented ones), one option is to add hooks to the enviroment that let you access the AST.
 
 In cases where that won’t work, the final fallback is writing a parser yourself; this is to be avoided when possible. It’s a lot of work to cover the full grammar of most programming languages, and you’ll have to update it yourself as new features are added to the language (rather than getting the updates automatically from upstream). Depending on the checks you want to do, you may be able to get away with parsing only some lines or a subset of language features, which would greatly decrease the cost of writing your own parser.
 
