@@ -9,7 +9,7 @@ Byterun was written by Ned Batchelder and myself, building on the work of Paul S
 
 ### A Python Interpreter
 
-Before we begin, let's narrow down what we mean by "a Python interpreter." The word "interpreter" can be used in a variety of different ways when discussing Python. Sometimes interpreter refers to the Python REPL, the interactive prompt you get by typing `python` at the command line. Sometimes people use "the Python interpreter" more or less interchangeably with "Python" to talk about executing Python code from start to finish. In this chapter, "interpreter" has a more narrow meaning: it's the last step in the process of executing a Python program.
+Before we begin, let's narrow down what we mean by "a Python interpreter". The word "interpreter" can be used in a variety of different ways when discussing Python. Sometimes interpreter refers to the Python REPL, the interactive prompt you get by typing `python` at the command line. Sometimes people use "the Python interpreter" more or less interchangeably with "Python" to talk about executing Python code from start to finish. In this chapter, "interpreter" has a more narrow meaning: it's the last step in the process of executing a Python program.
 
 Before the interpreter takes over, Python performs three other steps: lexing, parsing, and compiling. Together, these steps transform the programmer's source code from lines of text into structured _code objects_ containing instructions that the interpreter can understand. The interpreter's job is to take these code objects and follow the instructions.
 
@@ -19,7 +19,7 @@ You may be surprised to hear that compiling is a step in executing Python code a
 
 Byterun is a Python interpreter written in Python. This may strike you as odd, but it's no more odd than writing a C compiler in C. (Indeed, the widely used C compiler gcc is written in C.) You could write a Python interpreter in almost any language.
 
-Writing a Python interpreter in Python has both advantages and disadvantages.  The biggest disadvantage is speed: executing code via Byterun is much slower than executing it in CPython, where the interpreter is written in C and carefully optimized. However, Byterun was designed originally as a learning exercise, so speed is not important to us.  The biggest advantage to using Python is that we can more easily implement *just* the interpreter, and not the rest of the Python run-time too, particularly the object system. For example, Byterun can fall back to "real" Python when it needs to create a class. Another advantage is that Byterun is easy to understand, partly because it's written in a high-level language (Python!) that many people find easy to read. (We also exclude interpreter optimizations in Byterun --- once again favoring clarity and simplicity over speed.)
+Writing a Python interpreter in Python has both advantages and disadvantages.  The biggest disadvantage is speed: executing code via Byterun is much slower than executing it in CPython, where the interpreter is written in C and carefully optimized. However, Byterun was designed originally as a learning exercise, so speed is not important to us.  The biggest advantage to using Python is that we can more easily implement *just* the interpreter, and not the rest of the Python run-time, particularly the object system. For example, Byterun can fall back to "real" Python when it needs to create a class. Another advantage is that Byterun is easy to understand, partly because it's written in a high-level language (Python!) that many people find easy to read. (We also exclude interpreter optimizations in Byterun --- once again favoring clarity and simplicity over speed.)
 
 ## Building an Interpreter
 
@@ -339,7 +339,7 @@ Python loops also rely on jumping. In the bytecode below, notice that the line `
              38 RETURN_VALUE
 ~~~~
 
-## Explore Bytecode
+### Explore Bytecode
 
 I encourage you to try running `dis.dis` on functions you write. Some interesting questions to explore are:
 
@@ -347,9 +347,9 @@ I encourage you to try running `dis.dis` on functions you write. Some interestin
 - How can you write different functions that generate identical bytecode?
 - How does `elif` work? What about list comprehensions?
 
-### Frames
+## Frames
 
-So far, we've learneD that the Python virtual machine is a stack machine. It steps and jumps through instructions, pushing and popping values on and off a stack. There are still some gaps in our mental model, though. In the examples above, the last instruction is `RETURN_VALUE`, which corresponds to the `return` statement in the code. But where does the instruction return to?
+So far, we've learned that the Python virtual machine is a stack machine. It steps and jumps through instructions, pushing and popping values on and off a stack. There are still some gaps in our mental model, though. In the examples above, the last instruction is `RETURN_VALUE`, which corresponds to the `return` statement in the code. But where does the instruction return to?
 
 To answer this question, we must add one additional layer of complexity: the frame. A frame is a collection of information and context for a chunk of code. Frames are created and destroyed on the fly as your Python code executes. There's one frame corresponding to each *call* of a function --- so while each frame has one code object associated with it, a code object can have many frames. If you had a function that called itself recursively ten times, you'd have eleven frames --- one for each level of recursion and one for the module you started from. In general, there's a frame for each scope in a Python program. For example, each module, each function call, and each class definition has a frame.
 
@@ -425,7 +425,7 @@ class VirtualMachine(object):
 
 ```
 
-## The `Frame` Class
+### The `Frame` Class
 
 Next we'll write the `Frame` object. The frame is a collection of attributes with no methods. As mentioned above, the attributes include the code object created by the compiler; the local, global, and builtin namespaces; a reference to the previous frame; a data stack, a block stack, and the last instruction executed. (We have to do a little extra work to get to the builtin namespace because Python treats this namespace differently in different modules; this detail is not important to the virtual machine.)
 
@@ -739,7 +739,8 @@ class VirtualMachine(object):
         return why
 ```
 
-### The Instructions
+## The Instructions
+
 All that's left is to implement the dozens of methods for instructions: `byte_LOAD_FAST`, `byte_BINARY_MODULO`, and so on. The actual instructions are the least interesting part of the interpreter, so we show only a handful here, but the full implementation is available at github.com/nedbat/FIXME. (Enough instructions are included here to execute all the code samples that we disassembled above.)
 
 ``` python
@@ -977,6 +978,6 @@ Byterun is a compact Python interpreter that's easier to understand than CPython
 
 I encourage you to disassemble your own programs and to run them using Byterun. You'll quickly run into instructions that this shorter version of Byterun doesn't implement. The full implementation can be found at github.com/nedbat/FIXME --- or, by carefully reading the real CPython interpreter's `ceval.c`, you can implement it yourself!
 
-## Acknowledgements:
+## Acknowledgements
 
 Thanks to Ned Batchelder for originating this project and guiding my contributions, Michael Artzenius for his help debugging the code and editing the prose, Leta Montopoli for her edits, and the entire Recurse Center community for their support and interest. Any errors are my own.
