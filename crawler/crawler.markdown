@@ -195,7 +195,7 @@ Here is the implementation of `connected`:
     def connected(self, key, mask):
         print('connected!')
         selector.unregister(key.fd)
-        request = 'GET {} HTTP/1.0\r\nHost: xkcd.com\r\n\r\n'.format(url)
+        request = 'GET {} HTTP/1.0\r\nHost: xkcd.com\r\n\r\n'.format(self.url)
         self.sock.send(request.encode('ascii'))
         
         # Register the next callback.
