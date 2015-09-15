@@ -795,10 +795,11 @@ except ImportError:
 We collect the workers' shared state in a crawler class, and write the main logic in its `crawl` method. We start `crawl` on a coroutine and run asyncio's event loop until `crawl` finishes:
 
 ```python
-crawler = crawling.Crawler('http://xkcd.com',
+loop = asyncio.get_event_loop()
+
+crawler = crawling.Crawler(loop, 'http://xkcd.com',
                            max_redirect=10)
 
-loop = asyncio.get_event_loop()
 loop.run_until_complete(crawler.crawl())
 ```
 
@@ -806,7 +807,7 @@ The crawler begins with a root URL and `max_redirect`, the number of redirects i
 
 ```python
 class Crawler:
-    def __init__(self, root_url, max_redirect):
+    def __init__(self, loop, root_url, max_redirect):
         self.max_tasks = 10
         self.max_redirect = max_redirect
         self.q = Queue()
