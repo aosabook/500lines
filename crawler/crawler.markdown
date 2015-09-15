@@ -88,7 +88,7 @@ This method not only wastes electricity, but it cannot efficiently await events 
 Python 3.4's `DefaultSelector` uses the best `select`-like function available on your system. To register for notifications about network I/O, we create a non-blocking socket and register it with the default selector:
 
 ```python
-from selectors import DefaultSelector
+from selectors import DefaultSelector, EVENT_WRITE
 
 selector = DefaultSelector()
 
