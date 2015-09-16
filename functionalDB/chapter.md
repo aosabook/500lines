@@ -33,7 +33,7 @@ This analogy is visualized in Figure 1:
 * Each slice is a labeled artifact (‘a’ through ‘e’).
 * Each artifact has a ‘color’ attribute (where white means that no update was made).
 * Black arrows denote a change in color between layers (e.g., from c.color @t2 to c.color @t0).
-* Light blue arrows are arbitrary relationships of interest between entities (e.g., from ‘b’ to ‘d’).
+* Light blue arrows are arbitrary relationships of interest between artifacts (e.g., from ‘b’ to ‘d’).
 
  ![image alt text](image_0.png)
 
@@ -148,7 +148,7 @@ And here's our in-memory implementation of the protocol, which uses a map as the
    (drop-entity [storage entity] (dissoc storage (:id entity))))
 ````
 
-### Querying our Data
+### Indexing the Data
 
 Now that we've defined the basic elements of our database, we can start thinking about how we're going to query it. By virtue of how we've structured our data, any query is necessarily going to be interested in at least one of an entity's ID, and the name and value of some of its attributes. This triplet of `(entity-id, attribute-name, attribute-value)` is important enough to our query process that we give it an explicit name: a _datom_.
 
