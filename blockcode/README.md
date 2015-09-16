@@ -2,16 +2,16 @@
 
 ![Blockcode IDE in use](blockcode_ide.png "Blockcode IDE in use")
 
-In block-based programming languages you write programs by dragging and connecting blocks that represent parts of the program. Block-based languages differ from more conventional programming languages where you type words and symbols.
+In block-based programming languages you write programs by dragging and connecting blocks that represent parts of the program. Block-based languages differ from conventional programming languages where you type words and symbols.
 
-Learning a programming language can be difficult because they are extremely sensitive to even the slightest of typos. Most programming languages are case-sensitive, have obscure syntax, and will refuse to run if you get so much as a semicolon in the wrong place, or worse, leave one out. Further, most programming languages in use today are based on English and the languages themselves cannot be localized. 
+Learning a programming language can be difficult because they are extremely sensitive to even the slightest of typos. Most programming languages are case-sensitive, have obscure syntax, and will refuse to run if you get so much as a semicolon in the wrong place, or worse, leave one out. Further, most programming languages in use today are based on English and cannot be localized. 
 
 In contrast, a well-done block language can eliminate syntax errors completely. You can still create a program which does the wrong thing, but you cannot create one with the wrong syntax: the blocks just won't fit that way. Block languages are more discoverable: you can see all the constructs and libraries of the language right in the list of blocks. Further, blocks can be localized into any human language without changing the meaning of the programming language.
 
-<!-- FIXME: assume the square brackets here are supposed to contain links? -->
+<!-- FIXME: the links below need linking -->
 Block-based languages have a long history, with some of the prominent ones being Lego Mindstorms [Mindstorms], Alice3D [Alice], StarLogo [StarLogo], and especially Scratch [Scratch]. There are several tools for block-based programming on the web as well: Blockly [Blockly], AppInventor [AppInventor], Tynker [Tynker], and many more [Visual Programming].
 
-This particular code is loosely based on the open-source project Waterbear [Waterbear], which is not a language but a tool for wrapping existing languages with a block-based syntax. Advantages of such a wrapper include the ones noted above: eliminating syntax errors, visual display of available components, ease of localization. Additionally, visual code can sometimes be easier to read and debug, and blocks can be used by pre-typing children. We could even go further and put icons on the blocks, either in conjunction with the text names or instead of them, to allow pre-literate children to write programs, but we don't go that far in this example.
+This particular code is loosely based on the open-source project Waterbear [Waterbear], which is not a language but a tool for wrapping existing languages with a block-based syntax. Advantages of such a wrapper include the ones noted above: eliminating syntax errors, visual display of available components, ease of localization. Additionally, visual code can sometimes be easier to read and debug, and blocks can be used by pre-typing children. (We could even go further and put icons on the blocks, either in conjunction with the text names or instead of them, to allow pre-literate children to write programs, but we don't go that far in this example.)
 
 The choice of turtle graphics for this language goes back to the Logo language, which was created specifically to teach programming to children. Several of the block-based languages above include turtle graphics, and it is a small enough domain to be able to capture in a tightly constrained project such as this.
 <!-- QUERY: not sure what "it is a small enough domain..." means -->
@@ -20,7 +20,7 @@ The choice of turtle graphics for this language goes back to the Logo language, 
 
 I want to accomplish a couple of things with this code. First and foremost, I want to implement a block language for turtle graphics, with which you can write code to create images through simple dragging-and-dropping of blocks, using as simple a structure of HTML, CSS, and JavaScript as possible. Second, but still important, I want to show how the blocks themselves can serve as a framework for other languages besides our mini turtle language.
 
-To do this, we encapsulate everything that is specific to the turtle language into one file (turtle.js) that we can easily swap out with another file. Nothing else should be specific to the turtle language; the rest should just be about handling the blocks (`block.js` and `menu.js`) or be generally useful web utilities (`util.js`, `drag.js`, `file.js`). That is the goal, although to maintain the small size of the project, some of those utilities are less general-purpose and more specific to their use with the blocks.
+To do this, we encapsulate everything that is specific to the turtle language into one file (turtle.js) that we can easily swap with another file. Nothing else should be specific to the turtle language; the rest should just be about handling the blocks (`block.js` and `menu.js`) or be generally useful web utilities (`util.js`, `drag.js`, `file.js`). That is the goal, although to maintain the small size of the project, some of those utilities are less general-purpose and more specific to their use with the blocks.
 
 One thing that struck me when writing a block language was that the language is its own IDE. You can't just code up blocks in your favourite text editor; the IDE has to be designed and developed in parallel with the block language. This has some pros and cons. On the plus side, everyone will use a consistent environment and there is no room for religious wars about what editor to use. On the downside, it can be a huge distraction from building the block language itself.
 
@@ -33,6 +33,7 @@ In most (text-based) languages, a script goes through several stages: a lexer co
 
 There is nothing stopping us from adding additional stages to be more like a traditional language. Instead of simply calling associated JavaScript functions, we could replace `turtle.js` with a block language that emits byte codes for a different virtual machine, or even C++ code for a compiler. Block languages exist (as part of the Waterbear project) for generating Java robotics code, for programming Arduino, and for scripting Minecraft running on Raspberry Pi.
 
+XXX STOPPED HERE
 ### Web Applications
 
 In order to make the tool available to the widest possible audience, it is web-native. Being written in HTML, CSS, and JavaScript, it should work in most browsers and platforms. Modern web browsers are powerful platforms, with a rich set of tools for building great apps. If something about the implementation became too complex, I took that as a sign that I wasn't doing it "the web way" and, where possible, tried to re-think how to leverage the tools built into the browser better. 
