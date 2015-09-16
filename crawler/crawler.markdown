@@ -797,7 +797,7 @@ We collect the workers' shared state in a crawler class, and write the main logi
 ```python
 loop = asyncio.get_event_loop()
 
-crawler = crawling.Crawler(loop, 'http://xkcd.com',
+crawler = crawling.Crawler('http://xkcd.com',
                            max_redirect=10)
 
 loop.run_until_complete(crawler.crawl())
@@ -807,7 +807,7 @@ The crawler begins with a root URL and `max_redirect`, the number of redirects i
 
 ```python
 class Crawler:
-    def __init__(self, loop, root_url, max_redirect):
+    def __init__(self, root_url, max_redirect):
         self.max_tasks = 10
         self.max_redirect = max_redirect
         self.q = Queue()
@@ -815,7 +815,7 @@ class Crawler:
         
         # aiohttp's ClientSession does connection pooling and
         # HTTP keep-alives for us.
-        self.session = aiohttp.ClientSession(loop=self.loop)
+        self.session = aiohttp.ClientSession(loop=loop)
         
         # Put (URL, max_redirect) in the queue.
         self.q.put((root_url, self.max_redirect))
