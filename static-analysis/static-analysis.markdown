@@ -219,7 +219,7 @@ end
 code_typed(foo,(Int64,Int64))
 ```
 
-This is the structure that `code_typed_` would return:
+This is the structure that `code_typed` would return:
 ```
 1-element Array{Any,1}:
 :($(Expr(:lambda, {:x,:y}, {{:z},{{:x,Int64,0},{:y,Int64,0},{:z,Int64,18}},{}},

@@ -106,8 +106,8 @@ many methods. We have just defined one method of it. In many languages,
 the terms ``function'' and ``method'' are used interchangeably; in
 Julia, they have distinct meanings. This chapter will make more sense if
 you are careful to understand ``function'' as a named collection of
-methods, where a ``method'' is a specific implementation for specific
-type signatures.
+methods, where a ``method'' is a specific implementation for a specific
+type signature.
 
 Let's define another method of the \texttt{increment} function:
 
@@ -451,11 +451,12 @@ end
 code_typed(foo,(Int64,Int64))
 \end{verbatim}
 
-This is the structure that \texttt{code\_typed\_} would return:
+This is the structure that \texttt{code\_typed} would return:
 
 \begin{verbatim}
 1-element Array{Any,1}:
- :($(Expr(:lambda, {:x,:y}, {{:z},{{:x,Int64,0},{:y,Int64,0},{:z,Int64,18}},{}}, :(begin  # none, line 2:
+:($(Expr(:lambda, {:x,:y}, {{:z},{{:x,Int64,0},{:y,Int64,0},{:z,Int64,18}},{}},
+ :(begin  # none, line 2:
         z = (top(box))(Int64,(top(add_int))(x::Int64,y::Int64))::Int64 # line 3:
         return (top(box))(Int64,(top(mul_int))(2,z::Int64))::Int64
     end::Int64))))
@@ -477,7 +478,8 @@ about.
 
 \begin{verbatim}
 julia> e = code_typed(foo,(Int64,Int64))[1]
-:($(Expr(:lambda, {:x,:y}, {{:z},{{:x,Int64,0},{:y,Int64,0},{:z,Int64,18}},{}}, :(begin  # none, line 2:
+:($(Expr(:lambda, {:x,:y}, {{:z},{{:x,Int64,0},{:y,Int64,0},{:z,Int64,18}},{}},
+ :(begin  # none, line 2:
         z = (top(box))(Int64,(top(add_int))(x::Int64,y::Int64))::Int64 # line 3:
         return (top(box))(Int64,(top(mul_int))(2,z::Int64))::Int64
     end::Int64))))
@@ -652,8 +654,13 @@ lloop (generic function with 1 method)
 
 julia> code_typed(lloop, (Int,))[1].args[3]
 :(begin  # none, line 2:
-        #s120 = $(Expr(:new, UnitRange{Int64}, 1, :(((top(getfield))(Intrinsics,:select_value))((top(sle_int))(1,100)::Bool,100,(top(box))(Int64,(top(sub_int))(1,1))::Int64)::Int64)))::UnitRange{Int64}
-        #s119 = (top(getfield))(#s120::UnitRange{Int64},:start)::Int64        unless (top(box))(Bool,(top(not_int))(#s119::Int64 === (top(box))(Int64,(top(add_int))((top(getfield))(#s120::UnitRange{Int64},:stop)::Int64,1))::Int64::Bool))::Bool goto 1
+        #s120 = $(Expr(:new, UnitRange{Int64}, 1, :(((top(getfield))(Intrinsics,
+         :select_value))((top(sle_int))(1,100)::Bool,100,(top(box))(Int64,(top(
+         sub_int))(1,1))::Int64)::Int64)))::UnitRange{Int64}
+        #s119 = (top(getfield))(#s120::UnitRange{Int64},:start)::Int64        unless 
+         (top(box))(Bool,(top(not_int))(#s119::Int64 === (top(box))(Int64,(top(
+         add_int))((top(getfield))
+         (#s120::UnitRange{Int64},:stop)::Int64,1))::Int64::Bool))::Bool goto 1
         2: 
         _var0 = #s119::Int64
         _var1 = (top(box))(Int64,(top(add_int))(#s119::Int64,1))::Int64
@@ -661,7 +668,10 @@ julia> code_typed(lloop, (Int,))[1].args[3]
         #s119 = _var1::Int64 # line 3:
         x = (top(box))(Int64,(top(mul_int))(x::Int64,2))::Int64
         3: 
-        unless (top(box))(Bool,(top(not_int))((top(box))(Bool,(top(not_int))(#s119::Int64 === (top(box))(Int64,(top(add_int))((top(getfield))(#s120::UnitRange{Int64},:stop)::Int64,1))::Int64::Bool))::Bool))::Bool goto 2
+        unless (top(box))(Bool,(top(not_int))((top(box))(Bool,(top(not_int))
+         (#s119::Int64 === (top(box))(Int64,(top(add_int))((top(getfield))(
+         #s120::UnitRange{Int64},:stop)::Int64,1))::Int64::Bool))::Bool))::Bool
+         goto 2
         1:         0: 
         return
     end::Nothing)
@@ -671,14 +681,14 @@ You'll notice there's no for or while loop in the body. As the compiler
 transforms the code from what we wrote to the binary instructions the
 CPU understands, features that are useful to humans but that are not
 understood by the CPU (like loops) are removed. The loop has been
-rewritten as \texttt{label} and \texttt{goto} commands. The
+rewritten as \texttt{label} and \texttt{goto} expressions. The
 \texttt{goto} has a number in it; each \texttt{label} also has a number.
 The \texttt{goto} jumps to the the \texttt{label} with the same number.
 
 \aosasectiii{Detecting and Extracting
 Loops}\label{detecting-and-extracting-loops}
 
-We're going to find loops by looking for \texttt{goto} commands that
+We're going to find loops by looking for \texttt{goto} expressions that
 jump backwards.
 
 We'll need to find the labels and gotos, and figure out which ones
@@ -696,9 +706,9 @@ function loopcontents(e::Expr)
   for i in 1:length(b)
     if typeof(b[i]) == LabelNode
       l = b[i].label
-      jumpback = findnext(
-        x-> (typeof(x) == GotoNode && x.label == l) || (Base.is_expr(x,:gotoifnot) && x.args[end] == l),
-        b, i)
+      jumpback = findnext(x-> (typeof(x) == GotoNode && x.label == l) 
+                              || (Base.is_expr(x,:gotoifnot) && x.args[end] == l),
+                          b, i)
       if jumpback != 0
         push!(loops,jumpback)
         nesting += 1
@@ -754,7 +764,8 @@ are currently inside. \texttt{lines} is an \texttt{Array} of (index,
     if typeof(b[i]) == LabelNode
       l = b[i].label
       jumpback = findnext(
-        x-> (typeof(x) == GotoNode && x.label == l) || (Base.is_expr(x,:gotoifnot) && x.args[end] == l),
+        x-> (typeof(x) == GotoNode && x.label == l) 
+            || (Base.is_expr(x,:gotoifnot) && x.args[end] == l),
         b, i)
       if jumpback != 0
         push!(loops,jumpback)
@@ -919,7 +930,8 @@ end
 # for an Expr representing a Method,
 # check that the type of each variable used in a loop
 # has a concrete type
-checklooptypes(e::Expr;kwargs...) = LoopResult(MethodSignature(e),loosetypes(loopcontents(e)))
+checklooptypes(e::Expr;kwargs...) = 
+ LoopResult(MethodSignature(e),loosetypes(loopcontents(e)))
 \end{verbatim}
 
 We can see both options work about the same for a function with one
@@ -1000,12 +1012,12 @@ end
 Variables}\label{looking-for-unused-variables}
 
 Sometimes, as you're typing in your program, you mistype a variable
-name. The program can't tell that you meant the same variable as the
-other times; it sees a variable used only one time, where you might see
-a variable name misspelled. Languages that require variable declarations
-naturally catch these misspellings, but many dynamic languages don't
-require declarations and thus need an extra layer of analysis to catch
-them.
+name. The program can't tell that you meant for this to be the same
+variable that you spelled correctly before; it sees a variable used only
+one time, where you might see a variable name misspelled. Languages that
+require variable declarations naturally catch these misspellings, but
+many dynamic languages don't require declarations and thus need an extra
+layer of analysis to catch them.
 
 We can find misspelled variable names (and other unused variables) by
 looking for variables that are only used once --- or only used one way.
@@ -1333,7 +1345,7 @@ methods to handle the other possible types appropriately.
 
 \begin{verbatim}
 # Recursive Base Cases, to simplify control flow in the Expr version
-find_rhs_variables(a) = Set{Symbol}()  # unhandled, should be an immediate value, like an Int.
+find_rhs_variables(a) = Set{Symbol}()  # unhandled, should be immediate val e.g. Int
 find_rhs_variables(s::Symbol) = Set{Symbol}([s])
 find_rhs_variables(s::SymbolNode) = Set{Symbol}([s.name])
 \end{verbatim}
@@ -1394,7 +1406,7 @@ Java also exposes its AST, although the AST is much more complicated
 than Lisp's. Some languages or language tool-chains are not designed to
 allow mere users to poke around at internal representations. For
 open-source tool chains (especially well-commented ones), one option is
-to add the hooks you want to pull out to the AST.
+to add hooks to the enviroment that let you access the AST.
 
 In cases where that won't work, the final fallback is writing a parser
 yourself; this is to be avoided when possible. It's a lot of work to
