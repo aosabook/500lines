@@ -795,10 +795,11 @@ except ImportError:
 We collect the workers' shared state in a crawler class, and write the main logic in its `crawl` method. We start `crawl` on a coroutine and run asyncio's event loop until `crawl` finishes:
 
 ```python
+loop = asyncio.get_event_loop()
+
 crawler = crawling.Crawler('http://xkcd.com',
                            max_redirect=10)
 
-loop = asyncio.get_event_loop()
 loop.run_until_complete(crawler.crawl())
 ```
 
@@ -814,7 +815,7 @@ class Crawler:
         
         # aiohttp's ClientSession does connection pooling and
         # HTTP keep-alives for us.
-        self.session = aiohttp.ClientSession(loop=self.loop)
+        self.session = aiohttp.ClientSession(loop=loop)
         
         # Put (URL, max_redirect) in the queue.
         self.q.put((root_url, self.max_redirect))
