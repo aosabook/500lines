@@ -222,7 +222,8 @@ code_typed(foo,(Int64,Int64))
 This is the structure that `code_typed_` would return:
 ```
 1-element Array{Any,1}:
- :($(Expr(:lambda, {:x,:y}, {{:z},{{:x,Int64,0},{:y,Int64,0},{:z,Int64,18}},{}}, :(begin  # none, line 2:
+:($(Expr(:lambda, {:x,:y}, {{:z},{{:x,Int64,0},{:y,Int64,0},{:z,Int64,18}},{}},
+ :(begin  # none, line 2:
         z = (top(box))(Int64,(top(add_int))(x::Int64,y::Int64))::Int64 # line 3:
         return (top(box))(Int64,(top(mul_int))(2,z::Int64))::Int64
     end::Int64))))
@@ -233,7 +234,8 @@ This is an `Array`; this allows `code_typed` to return multiple matching methods
 Let's pull our example `Expr` out to make it easier to talk about.
 ```julia
 julia> e = code_typed(foo,(Int64,Int64))[1]
-:($(Expr(:lambda, {:x,:y}, {{:z},{{:x,Int64,0},{:y,Int64,0},{:z,Int64,18}},{}}, :(begin  # none, line 2:
+:($(Expr(:lambda, {:x,:y}, {{:z},{{:x,Int64,0},{:y,Int64,0},{:z,Int64,18}},{}},
+ :(begin  # none, line 2:
         z = (top(box))(Int64,(top(add_int))(x::Int64,y::Int64))::Int64 # line 3:
         return (top(box))(Int64,(top(mul_int))(2,z::Int64))::Int64
     end::Int64))))
@@ -352,8 +354,13 @@ lloop (generic function with 1 method)
 
 julia> code_typed(lloop, (Int,))[1].args[3]
 :(begin  # none, line 2:
-        #s120 = $(Expr(:new, UnitRange{Int64}, 1, :(((top(getfield))(Intrinsics,:select_value))((top(sle_int))(1,100)::Bool,100,(top(box))(Int64,(top(sub_int))(1,1))::Int64)::Int64)))::UnitRange{Int64}
-        #s119 = (top(getfield))(#s120::UnitRange{Int64},:start)::Int64        unless (top(box))(Bool,(top(not_int))(#s119::Int64 === (top(box))(Int64,(top(add_int))((top(getfield))(#s120::UnitRange{Int64},:stop)::Int64,1))::Int64::Bool))::Bool goto 1
+        #s120 = $(Expr(:new, UnitRange{Int64}, 1, :(((top(getfield))(Intrinsics,
+         :select_value))((top(sle_int))(1,100)::Bool,100,(top(box))(Int64,(top(
+         sub_int))(1,1))::Int64)::Int64)))::UnitRange{Int64}
+        #s119 = (top(getfield))(#s120::UnitRange{Int64},:start)::Int64        unless 
+         (top(box))(Bool,(top(not_int))(#s119::Int64 === (top(box))(Int64,(top(
+         add_int))((top(getfield))
+         (#s120::UnitRange{Int64},:stop)::Int64,1))::Int64::Bool))::Bool goto 1
         2: 
         _var0 = #s119::Int64
         _var1 = (top(box))(Int64,(top(add_int))(#s119::Int64,1))::Int64
@@ -361,7 +368,10 @@ julia> code_typed(lloop, (Int,))[1].args[3]
         #s119 = _var1::Int64 # line 3:
         x = (top(box))(Int64,(top(mul_int))(x::Int64,2))::Int64
         3: 
-        unless (top(box))(Bool,(top(not_int))((top(box))(Bool,(top(not_int))(#s119::Int64 === (top(box))(Int64,(top(add_int))((top(getfield))(#s120::UnitRange{Int64},:stop)::Int64,1))::Int64::Bool))::Bool))::Bool goto 2
+        unless (top(box))(Bool,(top(not_int))((top(box))(Bool,(top(not_int))
+         (#s119::Int64 === (top(box))(Int64,(top(add_int))((top(getfield))(
+         #s120::UnitRange{Int64},:stop)::Int64,1))::Int64::Bool))::Bool))::Bool
+         goto 2
         1:         0: 
         return
     end::Nothing)
@@ -386,9 +396,9 @@ function loopcontents(e::Expr)
   for i in 1:length(b)
     if typeof(b[i]) == LabelNode
       l = b[i].label
-      jumpback = findnext(
-        x-> (typeof(x) == GotoNode && x.label == l) || (Base.is_expr(x,:gotoifnot) && x.args[end] == l),
-        b, i)
+      jumpback = findnext(x-> (typeof(x) == GotoNode && x.label == l) 
+                              || (Base.is_expr(x,:gotoifnot) && x.args[end] == l),
+                          b, i)
       if jumpback != 0
         push!(loops,jumpback)
         nesting += 1
@@ -440,7 +450,8 @@ And then:
     if typeof(b[i]) == LabelNode
       l = b[i].label
       jumpback = findnext(
-        x-> (typeof(x) == GotoNode && x.label == l) || (Base.is_expr(x,:gotoifnot) && x.args[end] == l),
+        x-> (typeof(x) == GotoNode && x.label == l) 
+            || (Base.is_expr(x,:gotoifnot) && x.args[end] == l),
         b, i)
       if jumpback != 0
         push!(loops,jumpback)
@@ -564,7 +575,8 @@ end
 # for an Expr representing a Method,
 # check that the type of each variable used in a loop
 # has a concrete type
-checklooptypes(e::Expr;kwargs...) = LoopResult(MethodSignature(e),loosetypes(loopcontents(e)))
+checklooptypes(e::Expr;kwargs...) = 
+ LoopResult(MethodSignature(e),loosetypes(loopcontents(e)))
 ```
 
 We can see both options work about the same for a function with one method:
@@ -860,7 +872,7 @@ There's a little more code that simplifies the method above. Because the version
 
 ```julia
 # Recursive Base Cases, to simplify control flow in the Expr version
-find_rhs_variables(a) = Set{Symbol}()  # unhandled, should be an immediate value, like an Int.
+find_rhs_variables(a) = Set{Symbol}()  # unhandled, should be immediate val e.g. Int
 find_rhs_variables(s::Symbol) = Set{Symbol}([s])
 find_rhs_variables(s::SymbolNode) = Set{Symbol}([s.name])
 ```
