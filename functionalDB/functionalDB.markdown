@@ -31,9 +31,9 @@ This analogy is visualized in \aosafigref{500l.functionaldb.exc}:
 * The entire circle is the excavation site.
 * Each ring is a _layer_ (here numbered from 0 to 4).
 * Each slice is a labeled artifact (‘a’ through ‘e’).
-* Each artifact has a ‘color’ attribute (where white means that no update was made).
-* Black arrows denote a change in color between layers (e.g., from c.color @t2 to c.color @t0).
-* Light blue arrows are arbitrary relationships of interest between artifacts (e.g., from ‘b’ to ‘d’).
+* Each artifact has a ‘symbol’ attribute (where white means that no update was made).
+* Solid arrows denote a change in symbol between layers 
+* Dotted arrows are arbitrary relationships of interest between artifacts (e.g., from ‘b’ to ‘d’).
 
 \aosafigure[240pt]{functionalDB-images/image_0.png}{The Excavation Site}{500l.functionaldb.exc}
 
@@ -158,9 +158,9 @@ If you've used a database system before, you are probably already familiar with 
 
 For example, let’s look at at the index sketched in \aosafigref{500l.functionaldb.eavt}:
 
-* The first level stores entity-IDs (the blueish area).
-* The second level stores the related attribute-names (the greenish area).
-* The third level stores the related value (the pinkish area).
+* The first level stores entity-IDs 
+* The second level stores the related attribute-names 
+* The third level stores the related value 
 
 This index is named EAVT, as the top level map holds Entity IDs, the second level holds Attribute names, and the leaves hold Values. The "T" comes from the fact that each layer in the database has its own indexes, hence the index itself is relevant for a specific Time. 
 
@@ -195,8 +195,8 @@ In our database there are four indexes: EAVT (see Figure 2), AVET (see Figure 3)
 (defn indexes[] [:VAET :AVET :VEAT :EAVT])
 ```
 
-<!-- FIXME: more colours -->
-To demonstrate how all of this comes together, the result of indexing the following five entities is visualized in the table below (the color coding follows the color coding of Figure 2 and Figure 3).
+<!-- FIXME: remove colors from this table when typesetting -->
+To demonstrate how all of this comes together, the result of indexing the following five entities is visualized in the table below:
 
 1. <span style="background-color:lightblue">Julius Caesar</span> (also known as JC) <span style="background-color:lightgreen">lives in</span> <span style="background-color:pink">Rome</span> 
 2. <span style="background-color:lightblue">Brutus</span> (also known as B) <span style="background-color:lightgreen">lives in</span> <span style="background-color:pink">Rome</span> 
@@ -649,7 +649,7 @@ The information found in the VAET index can be leveraged to extract all the inco
 We can also go through all of a given entity’s attributes and collect all the values of attributes of type `:db/ref`, and by that extract all the outgoing references from that entity. This is done by the `outgoing-refs` function.
 
 ```clojure
-(defn outgoing-refs [db ts ent-id & needed-keys]
+(defn outgoing-refs [db ts ent-id & ref-names]
    (let [val-filter-fn (if ref-names #(vals (select-keys ref-names %)) vals)]
    (if-not ent-id []
      (->> (entity-at db ts ent-id)
