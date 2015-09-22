@@ -43,6 +43,7 @@ tex/sampler-images
 tex/sampler.markdown
 tex/spreadsheet-images
 tex/spreadsheet.markdown
+tex/static-analysis.markdown
 tex/template-engine.markdown
 html/content
 html/cache
