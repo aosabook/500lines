@@ -1,7 +1,7 @@
 title: Static Analysis
 author: Leah Hanson
 
-_Leah Hanson is a proud alumni of Hacker School and loves helping people learn about Julia. She blogs at [http://blog.leahhanson.us/](http://blog.leahhanson.us/) and Tweets at [@astrieanna](https://twitter.com/astrieanna)._
+_Leah Hanson is a proud alumni of Hacker School and loves helping people learn about Julia. She blogs at [http://blog.leahhanson.us/](http://blog.leahhanson.us/) and tweets at [\@astrieanna](https://twitter.com/astrieanna)._
 
 ## Introduction
 
