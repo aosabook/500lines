@@ -337,7 +337,7 @@ julia> body.args
  :( # none, line 2:)                                              
  :(z = (top(box))(Int64,(top(add_int))(x::Int64,y::Int64))::Int64)
  :( # line 3:)                                                    
- :(return (top(box))(Int64,(top(mul_int))(2,z::Int64))::Int64)    ~~
+ :(return (top(box))(Int64,(top(mul_int))(2,z::Int64))::Int64)    
 ```
 
 `args` holds a list of expressions: the list of expressions in the method's body. There are a couple of annotations of line numbers (i.e., `:( # line 3:)`), but most of the body is setting the value of `z` (`z = x + y`) and returning `2 * z`. Notice that these operations have been replaced by `Int64`-specific intrinsic functions. The `top(function-name)` indicates an intrinsic function; something that is implemented in Julia's code generation, rather than in Julia.
