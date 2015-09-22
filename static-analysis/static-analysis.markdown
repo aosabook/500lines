@@ -1,6 +1,8 @@
 title: Static Analysis
 author: Leah Hanson
 
+_Leah Hanson is a proud alumni of Hacker School and loves helping people learn about Julia. She blogs at [http://blog.leahhanson.us/](http://blog.leahhanson.us/) and Tweets at [@astrieanna](https://twitter.com/astrieanna)._
+
 ## Introduction
 
 You may be familiar with a fancy IDE that draws red underlines under parts of your code that don't compile. You may have run a linter on your code to check for formatting or style problems. You might run your compiler in super-picky mode with all the warnings turned on. All of these tools are applications of static analysis.
