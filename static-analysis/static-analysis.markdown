@@ -204,7 +204,7 @@ Parsing code into a representative structure is a complicated business, and gets
 
 Besides all the work we'll save by not having to parse the code by ourselves, working with the same data structures that the compiler uses means that our checks will be based on an accurate assessment of the compilers understanding --- which means our check will be consistent with how the code actually runs.
 
-This process of examining Julia code from Julia code is called introspection. When you or I introspect, we're thinking about how and why we think and feel. When code introspects, it examines the representation or execution properties of code in the same language (possibly it's own code). When code's introspection extends to modifying the examined code, it's called metaprogramming (programs that write or modify programs).
+This process of examining Julia code from Julia code is called introspection. When you or I introspect, we're thinking about how and why we think and feel. When code introspects, it examines the representation or execution properties of code in the same language (possibly its own code). When code's introspection extends to modifying the examined code, it's called metaprogramming (programs that write or modify programs).
 
 #### Introspection in Julia
 
