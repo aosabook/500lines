@@ -33,8 +33,8 @@ found, the answer would be ``hopefully, it's just buried underneath''.
 based on visiting a few museums, reading several Wikipedia articles, and
 watching the entire Indiana Jones series.)
 
-\aosasectii{From Archaeology to
-Databases}\label{from-archaeology-to-databases}
+\aosasectii{Designing a Database Like an
+Archaeologist}\label{designing-a-database-like-an-archaeologist}
 
 If we were to ask our friendly archaeologist to design a database, we
 might expect the requirements to reflect what would be found at an
@@ -66,16 +66,15 @@ This analogy is visualized in \aosafigref{500l.functionaldb.exc}:
 \item
   Each ring is a \emph{layer} (here numbered from 0 to 4).
 \item
-  Each slice is a labeled artifact (`a' through `e').
+  Each slice is a labeled artifact (`A' through `E').
 \item
-  Each artifact has a `color' attribute (where white means that no
+  Each artifact has a `symbol' attribute (where a blank means that no
   update was made).
 \item
-  Black arrows denote a change in color between layers (e.g., from
-  c.color @t2 to c.color @t0).
+  Solid arrows denote a change in symbol between layers
 \item
-  Light blue arrows are arbitrary relationships of interest between
-  artifacts (e.g., from `b' to `d').
+  Dotted arrows are arbitrary relationships of interest between
+  artifacts (e.g., from `E' to `A').
 \end{aosaitemize}
 
 \aosafigure[240pt]{functionalDB-images/image_0.png}{The Excavation Site}{500l.functionaldb.exc}
@@ -290,12 +289,11 @@ For example, let's look at at the index sketched in
 \begin{aosaitemize}
 
 \item
-  The first level stores entity-IDs (the blueish area).
+  The first level stores entity-IDs
 \item
-  The second level stores the related attribute-names (the greenish
-  area).
+  The second level stores the related attribute-names
 \item
-  The third level stores the related value (the pinkish area).
+  The third level stores the related value
 \end{aosaitemize}
 
 This index is named EAVT, as the top level map holds Entity IDs, the
@@ -359,61 +357,53 @@ returned from the \texttt{indexes} function.
 \end{verbatim}
 
 To demonstrate how all of this comes together, the result of indexing
-the following five entities is visualized in the table below (the color
-coding follows the color coding of Figure 2 and Figure 3).
+the following five entities is visualized in the table below:
 
 \begin{aosaenumerate}
 \def\labelenumi{\arabic{enumi}.}
 
 \item
-  {Julius Caesar} (also known as JC) {lives in} {Rome}
+  Julius Caesar (also known as JC) lives in Rome
 \item
-  {Brutus} (also known as B) {lives in} {Rome}
+  Brutus (also known as B) lives in Rome
 \item
-  {Cleopatra} (also known as Cleo) {lives in} {Egypt}
+  Cleopatra (also known as Cleo) lives in Egypt
 \item
-  {Rome}'s {river} is the {Tiber}
+  Rome's river is the Tiber
 \item
-  {Egypt}'s {river} is the {Nile}
+  Egypt's river is the Nile
 \end{aosaenumerate}
 
-EAVT index
-
-AVET index
-
-{JC} ⇒ \{{lives-in} ⇒ \{{Rome}\}\}
-
-{B} ⇒ \{{lives-in} ⇒ \{{Rome}\}\}
-
-{Cleo} ⇒ \{{lives-in} ⇒ \{{Egypt}\}\}
-
-{Rome} ⇒ \{{river} ⇒ \{{Tiber}\}\}
-
-{Egypt} ⇒ \{{river} ⇒ \{{Nile}\}\}
-
-{lives-in} ⇒ \{{Rome} ⇒ \{{JC, B}\}\} \{{Egypt} ⇒ \{{Cleo}\}\}
-
-{river} ⇒ \{{Rome} ⇒ \{{Tiber}\}\} \{{Egypt} ⇒ \{{Nile}\}\}
-
-VEAT index
-
-VAET index
-
-{Rome} ⇒ \{{JC} ⇒ \{{lives-in}\}\} \{{B} ⇒ \{{lives-in}\}\}
-
-{Egypt} ⇒ \{{Cleo} ⇒ \{{lives-in}\}\}
-
-{Tiber} ⇒ \{{Rome} ⇒ \{{river}\}\}
-
-{Nile} ⇒ \{{Egypt} ⇒ \{{river}\}\}
-
-{Rome} ⇒ \{{lives-in} ⇒ \{{JC, B}\}\}
-
-{Egypt} ⇒ \{{lives-in} ⇒ \{{Cleo}\}\}
-
-{Tiber} ⇒ \{{river} ⇒ \{{Rome}\}\}
-
-{Nile} ⇒ \{{river} ⇒ \{{Egypt}\}\}
+\begin{table}
+\centering
+{\footnotesize
+\rowcolors{2}{TableOdd}{TableEven}
+\begin{tabular}{ll}
+\hline
+\textbf{EAVT index}
+& \textbf{AVET index}
+\\
+\hline
+JC $\Rightarrow$ \{lives-in $\Rightarrow$ \{Rome\}\} & lives-in $\Rightarrow$ \{Rome $\Rightarrow$ \{JC, B\}\}, \{Egypt $\Rightarrow$ \{Cleo\}\} \\
+B $\Rightarrow$ \{lives-in $\Rightarrow$ \{Rome\}\}  & river $\Rightarrow$ \{Rome $\Rightarrow$ \{Tiber\}\}, \{Egypt $\Rightarrow$ \{Nile\}\} \\
+Cleo $\Rightarrow$ \{lives-in $\Rightarrow$ \{Egypt\}\} & \\ 
+Rome $\Rightarrow$ \{river $\Rightarrow$ \{Tiber\}\}  & \\ 
+Egypt $\Rightarrow$ \{river $\Rightarrow$ \{Nile\}\}  & \\
+\hline
+\textbf{VEAT index}
+& \textbf{VAET index}
+\\
+\hline
+Rome $\Rightarrow$ \{JC $\Rightarrow$ \{lives-in\}\}, \{B $\Rightarrow$ \{lives-in\}\} & Rome $\Rightarrow$ \{lives-in $\Rightarrow$ \{JC, B\}\} \\
+Egypt $\Rightarrow$ \{Cleo $\Rightarrow$ \{lives-in\}\}                                & Egypt $\Rightarrow$ \{lives-in $\Rightarrow$ \{Cleo\}\} \\ 
+Tiber $\Rightarrow$ \{Rome $\Rightarrow$ \{river\}\}                                   & Tiber $\Rightarrow$ \{river $\Rightarrow$ \{Rome\}\} \\
+Nile $\Rightarrow$ \{Egypt $\Rightarrow$ \{river\}\}                                   & Nile $\Rightarrow$ \{river $\Rightarrow$ \{Egypt\}\} \\
+\hline
+\end{tabular}
+}
+\caption{Indexes}
+\label{500l.functionaldb.indextable}
+\end{table}
 
 \aosasectii{Database}\label{database}
 
@@ -989,7 +979,7 @@ which becomes:
 (swap! db-conn transact-on-db [[add-entity e1][update-entity e2 atr2 val2 :db/add]])
 \end{verbatim}
 
-The what-if user call:
+For what-if, the user call:
 
 \begin{verbatim}
 (what-if my-db (add-entity e3) (remove-entity e4))
@@ -1047,7 +1037,7 @@ extract all the outgoing references from that entity. This is done by
 the \texttt{outgoing-refs} function.
 
 \begin{verbatim}
-(defn outgoing-refs [db ts ent-id & needed-keys]
+(defn outgoing-refs [db ts ent-id & ref-names]
    (let [val-filter-fn (if ref-names #(vals (select-keys ref-names %)) vals)]
    (if-not ent-id []
      (->> (entity-at db ts ent-id)

@@ -1,4 +1,4 @@
-title: Designing a Database Like an Archaeologist
+title: An Archaeology-Inspired Database
 author: Yoav Rubin
 
 Software development is often viewed as a rigorous process, where the inputs are requirements and the output is the working product. However, software developers are people, with their own perspectives and biases which color the outcome of their work. 
@@ -15,7 +15,7 @@ If you were to instead ask an archaeologist where the old data can be found, the
 
 (Disclaimer: My understanding of the views of a typical archaeologist is based on visiting a few museums, reading several Wikipedia articles, and watching the entire Indiana Jones series.)
 
-### From Archaeology to Databases
+### Designing a Database Like an Archaeologist
 
 If we were to ask our friendly archaeologist to design a database, we might expect the requirements to reflect what would be found at an excavation site:
 
@@ -195,15 +195,15 @@ In our database there are four indexes: EAVT (see Figure 2), AVET (see Figure 3)
 (defn indexes[] [:VAET :AVET :VEAT :EAVT])
 ```
 
-<!-- FIXME: remove colors from this table when typesetting -->
 To demonstrate how all of this comes together, the result of indexing the following five entities is visualized in the table below:
 
-1. <span style="background-color:lightblue">Julius Caesar</span> (also known as JC) <span style="background-color:lightgreen">lives in</span> <span style="background-color:pink">Rome</span> 
-2. <span style="background-color:lightblue">Brutus</span> (also known as B) <span style="background-color:lightgreen">lives in</span> <span style="background-color:pink">Rome</span> 
-3. <span style="background-color:lightblue">Cleopatra</span> (also known as Cleo) <span style="background-color:lightgreen">lives in</span> <span style="background-color:pink">Egypt</span>
-4. <span style="background-color:lightblue">Rome</span>’s <span style="background-color:lightgreen">river</span> is the <span style="background-color:pink">Tiber</span>
-5. <span style="background-color:lightblue">Egypt</span>’s <span style="background-color:lightgreen">river</span> is the <span style="background-color:pink">Nile</span>
+1. Julius Caesar (also known as JC) lives in Rome
+2. Brutus (also known as B) lives in Rome
+3. Cleopatra (also known as Cleo) lives in Egypt
+4. Rome’s river is the Tiber
+5. Egypt’s river is the Nile
  
+<markdown>
 <table>
   <tr>
     <td>EAVT index</td>
@@ -271,6 +271,41 @@ To demonstrate how all of this comes together, the result of indexing the follow
 </li></ul></td>
   </tr>
 </table>
+</markdown>
+
+
+<latex>
+\begin{table}
+\centering
+{\footnotesize
+\rowcolors{2}{TableOdd}{TableEven}
+\begin{tabular}{ll}
+\hline
+\textbf{EAVT index}
+& \textbf{AVET index}
+\\
+\hline
+JC $\Rightarrow$ \{lives-in $\Rightarrow$ \{Rome\}\} & lives-in $\Rightarrow$ \{Rome $\Rightarrow$ \{JC, B\}\}, \{Egypt $\Rightarrow$ \{Cleo\}\} \\
+B $\Rightarrow$ \{lives-in $\Rightarrow$ \{Rome\}\}  & river $\Rightarrow$ \{Rome $\Rightarrow$ \{Tiber\}\}, \{Egypt $\Rightarrow$ \{Nile\}\} \\
+Cleo $\Rightarrow$ \{lives-in $\Rightarrow$ \{Egypt\}\} & \\ 
+Rome $\Rightarrow$ \{river $\Rightarrow$ \{Tiber\}\}  & \\ 
+Egypt $\Rightarrow$ \{river $\Rightarrow$ \{Nile\}\}  & \\
+\hline
+\textbf{VEAT index}
+& \textbf{VAET index}
+\\
+\hline
+Rome $\Rightarrow$ \{JC $\Rightarrow$ \{lives-in\}\}, \{B $\Rightarrow$ \{lives-in\}\} & Rome $\Rightarrow$ \{lives-in $\Rightarrow$ \{JC, B\}\} \\
+Egypt $\Rightarrow$ \{Cleo $\Rightarrow$ \{lives-in\}\}                                & Egypt $\Rightarrow$ \{lives-in $\Rightarrow$ \{Cleo\}\} \\ 
+Tiber $\Rightarrow$ \{Rome $\Rightarrow$ \{river\}\}                                   & Tiber $\Rightarrow$ \{river $\Rightarrow$ \{Rome\}\} \\
+Nile $\Rightarrow$ \{Egypt $\Rightarrow$ \{river\}\}                                   & Nile $\Rightarrow$ \{river $\Rightarrow$ \{Egypt\}\} \\
+\hline
+\end{tabular}
+}
+\caption{Indexes}
+\label{500l.functionaldb.indextable}
+\end{table}
+</latex>
 
 ### Database
 
