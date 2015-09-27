@@ -1,4 +1,4 @@
-title: An Archaeology-Inspired Database
+title: Designing a Database Like an Archaeologist
 author: Yoav Rubin
 
 Software development is often viewed as a rigorous process, where the inputs are requirements and the output is the working product. However, software developers are people, with their own perspectives and biases which color the outcome of their work. 
@@ -30,10 +30,10 @@ This analogy is visualized in \aosafigref{500l.functionaldb.exc}:
 
 * The entire circle is the excavation site.
 * Each ring is a _layer_ (here numbered from 0 to 4).
-* Each slice is a labeled artifact (‘a’ through ‘e’).
-* Each artifact has a ‘symbol’ attribute (where white means that no update was made).
+* Each slice is a labeled artifact (‘A’ through ‘E’).
+* Each artifact has a ‘symbol’ attribute (where a blank means that no update was made).
 * Solid arrows denote a change in symbol between layers 
-* Dotted arrows are arbitrary relationships of interest between artifacts (e.g., from ‘b’ to ‘d’).
+* Dotted arrows are arbitrary relationships of interest between artifacts (e.g., from ‘E’ to ‘A’).
 
 \aosafigure[240pt]{functionalDB-images/image_0.png}{The Excavation Site}{500l.functionaldb.exc}
 
@@ -612,7 +612,7 @@ which becomes:
 (swap! db-conn transact-on-db [[add-entity e1][update-entity e2 atr2 val2 :db/add]])
 ```
 
-The what-if user call:
+For what-if, the user call:
 
 ```clojure
 (what-if my-db (add-entity e3) (remove-entity e4))
