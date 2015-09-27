@@ -348,9 +348,10 @@ in this index or not.
  (defn usage-pred [index] (:usage-pred (meta index)))
 \end{verbatim}
 
-In our database there are four indexes: EAVT (see Figure 2), AVET (see
-Figure 3), VEAT and VAET. We can access these as a vector of values
-returned from the \texttt{indexes} function.
+In our database there are four indexes: EAVT (see
+\aosafigref{500l.functionaldb.eavt}), AVET (see
+\aosafigref{500l.functionaldb.avet}), VEAT and VAET. We can access these
+as a vector of values returned from the \texttt{indexes} function.
 
 \begin{verbatim}
 (defn indexes[] [:VAET :AVET :VEAT :EAVT])
@@ -417,22 +418,29 @@ Initializing our database means:
 \item
   creating a set of empty indexes
 \item
-  setting its \texttt{top-id} and \texttt{curr-time} to be 0 ```clojure
-  (defn ref? {[}attr{]} (= :db/ref (:type (meta attr))))
+  setting its \texttt{top-id} and \texttt{curr-time} to be 0
 \end{aosaitemize}
 
-(defn always{[}\& more{]} true)
+\begin{verbatim}
+(defn ref? [attr] (= :db/ref (:type (meta attr))))
 
-(defn make-db {[}{]} (atom (Database. {[}(Layer. (fdb.storage.InMemory.)
-; storage (make-index \#(vector \%3 \%2 \%1) \#(vector \%3 \%2 \%1)
-\#(ref? \%)); VAET\\ (make-index \#(vector \%2 \%3 \%1) \#(vector \%3
-\%1 \%2) always); AVET\\ (make-index \#(vector \%3 \%1 \%2) \#(vector
-\%2 \%3 \%1) always); VEAT\\ (make-index \#(vector \%1 \%2 \%3)
-\#(vector \%1 \%2 \%3) always); EAVT ){]} 0 0))) ``` There is one snag,
-though: all collections in Clojure are immutable. Since write operations
-are pretty critical in a database, we define our structure to be an
-\emph{Atom}, which is a Clojure reference type that provides the
-capability of atomic writes.
+(defn always[& more] true)
+
+(defn make-db []
+   (atom 
+       (Database. [(Layer.
+                   (fdb.storage.InMemory.) ; storage
+                   (make-index #(vector %3 %2 %1) #(vector %3 %2 %1) #(ref? %)); VAET                     
+                   (make-index #(vector %2 %3 %1) #(vector %3 %1 %2) always); AVET                        
+                   (make-index #(vector %3 %1 %2) #(vector %2 %3 %1) always); VEAT                       
+                   (make-index #(vector %1 %2 %3) #(vector %1 %2 %3) always); EAVT
+                  )] 0 0)))
+\end{verbatim}
+
+There is one snag, though: all collections in Clojure are immutable.
+Since write operations are pretty critical in a database, we define our
+structure to be an \emph{Atom}, which is a Clojure reference type that
+provides the capability of atomic writes.
 
 You may be wondering why we use the \texttt{always} function for the
 AVET, VEAT and EAVT indexes, and the \texttt{ref?} predicate for the
@@ -782,7 +790,7 @@ creation of the black arrows in Figure 1:
 (defn- update-attr-value [attr value operation]
    (cond
       (single? attr)    (assoc attr :value #{value})
-    ; now we're talking about an attribute of multiple values
+      ; now we're talking about an attribute of multiple values
       (= :db/reset-to operation)  (assoc attr :value value)
       (= :db/add operation) (assoc attr :value (CS/union (:value attr) value))
       (= :db/remove operation) (assoc attr :value (CS/difference (:value attr) value))))
@@ -1121,47 +1129,25 @@ is the ``don't care'' variable ``\_" (underscore).
 A clause in a query is composed of three predicates. The following table
 defines what can act as a predicate in our query language:
 
-Name
-
-Meaning
-
-Example
-
-Constant
-
-Is the value of the item in the datom equal to the constant?
-
-:likes
-
-Variable
-
-Bind the value of the item in the datom to the variable and return true.
-
-?e
-
-Don't-care
-
-Always returns true.
-
-\_
-
-Unary operator
-
-Unary operation that takes a variable as its operand. Bind the datom's
-item's value to the variable (unless it's an '\_'). Replace the variable
-with the value of the item in the datom. Return the application of the
-operation.
-
-(birthday-this-month? \_)
-
-Binary operator
-
-A binary operation that must have a variable as one of its operands.
-Bind the datom's item's value to the variable (unless it's an '\_').\\
-Replace the variable with the value of the item in the datom. Return the
-result of the operation.
-
-(\textgreater{} ?age 20)
+\begin{table}
+\centering
+{\footnotesize
+\rowcolors{2}{TableOdd}{TableEven}
+\begin{tabular}{lll}
+\hline
+\textbf{Name} & \textbf{Meaning} & \textbf{Example} \\
+\hline
+Constant & Is the value of the item in the datom equal to the constant? & :likes \\
+Variable & Bind the value of the item in the datom to the variable and return true. & ?e \\
+Don’t-care & Always returns true. & '\_' \\
+Unary operator & \begin{tabular}{@{}l@{}} Unary operation that takes a variable as its operand. \\ Bind the datom's item's value to the variable (unless it's an '\_'). \\  Replace the variable with the value of the item in the datom. \\ Return the application of the operation. \end{tabular} & (birthday-this-month? \_) \\
+Binary operator & \begin{tabular}{@{}l@{}} A binary operation that must have a variable as one of its operands. \\ Bind the datom's item's value to the variable (unless it's an '\_'). \\ Replace the variable with the value of the item in the datom. \\ Return the result of the operation. \end{tabular} & (\&gt; ?age 20) \\
+\hline
+\end{tabular}
+}
+\caption{Predicates}
+\label{500l.functionaldb.predicates}
+\end{table}
 
 \aosasectiii{Limitations of our Query
 Language}\label{limitations-of-our-query-language}

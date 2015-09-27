@@ -189,7 +189,7 @@ In most database systems, indexes are an optional component; for example, in an 
  (defn usage-pred [index] (:usage-pred (meta index)))
 ```
 
-In our database there are four indexes: EAVT (see Figure 2), AVET (see Figure 3), VEAT and VAET. We can access these as a vector of values returned from the `indexes` function.
+In our database there are four indexes: EAVT (see \aosafigref{500l.functionaldb.eavt}), AVET (see \aosafigref{500l.functionaldb.avet}), VEAT and VAET. We can access these as a vector of values returned from the `indexes` function.
 
 ```clojure
 (defn indexes[] [:VAET :AVET :VEAT :EAVT])
@@ -314,6 +314,7 @@ We now have all the components we need to construct our database. Initializing o
 * creating an initial empty layer with no data 
 * creating a set of empty indexes
 * setting its `top-id` and `curr-time` to be 0
+
 ```clojure
 (defn ref? [attr] (= :db/ref (:type (meta attr))))
 
@@ -552,7 +553,7 @@ We use two helper functions to perform the update. `update-attr-modification-tim
 (defn- update-attr-value [attr value operation]
    (cond
       (single? attr)    (assoc attr :value #{value})
-    ; now we're talking about an attribute of multiple values
+      ; now we're talking about an attribute of multiple values
       (= :db/reset-to operation)  (assoc attr :value value)
       (= :db/add operation) (assoc attr :value (CS/union (:value attr) value))
       (= :db/remove operation) (assoc attr :value (CS/difference (:value attr) value))))
@@ -727,6 +728,7 @@ We fulfill both of these requirements using _variables_, which are denoted with 
 <!-- FIXME make sure this table reference makes sense in the final layout (tablemight not immediately follow text -->
 A clause in a query is composed of three predicates. The following table defines what can act as a predicate in our query language:
 
+<markdown>
 <table>
   <tr>
     <td>Name</td>
@@ -765,6 +767,29 @@ A clause in a query is composed of three predicates. The following table defines
     <td>(&gt; ?age 20)</td>
   </tr>
 </table>
+</markdown>
+<latex>
+<latex>
+\begin{table}
+\centering
+{\footnotesize
+\rowcolors{2}{TableOdd}{TableEven}
+\begin{tabular}{lll}
+\hline
+\textbf{Name} & \textbf{Meaning} & \textbf{Example} \\
+\hline
+Constant & Is the value of the item in the datom equal to the constant? & :likes \\
+Variable & Bind the value of the item in the datom to the variable and return true. & ?e \\
+Don’t-care & Always returns true. & \_ \\
+Unary operator & \begin{tabular}{@{}l@{}} Unary operation that takes a variable as its operand. \\ Bind the datom's item's value to the variable (unless it's an '\_'). \\  Replace the variable with the value of the item in the datom. \\ Return the application of the operation. \end{tabular} & (birthday-this-month? \_) \\
+Binary operator & \begin{tabular}{@{}l@{}} A binary operation that must have a variable as one of its operands. \\ Bind the datom's item's value to the variable (unless it's an '\_'). \\ Replace the variable with the value of the item in the datom. \\ Return the result of the operation. \end{tabular} & (\&gt; ?age 20) \\
+\hline
+\end{tabular}
+}
+\caption{Predicates}
+\label{500l.functionaldb.predicates}
+\end{table}
+</latex>
 
 #### Limitations of our Query Language 
 
