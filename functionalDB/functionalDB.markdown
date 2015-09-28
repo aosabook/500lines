@@ -195,7 +195,7 @@ In our database there are four indexes: EAVT (see \aosafigref{500l.functionaldb.
 (defn indexes[] [:VAET :AVET :VEAT :EAVT])
 ```
 
-To demonstrate how all of this comes together, the result of indexing the following five entities is visualized in the table below:
+To demonstrate how all of this comes together, the result of indexing the following five entities is visualized in \aosatblref{500l.functionaldb.indextable}.
 
 1. Julius Caesar (also known as JC) lives in Rome
 2. Brutus (also known as B) lives in Rome
@@ -271,9 +271,8 @@ To demonstrate how all of this comes together, the result of indexing the follow
 </li></ul></td>
   </tr>
 </table>
+: \label{500l.functionaldb.indextable} Indexes
 </markdown>
-
-
 <latex>
 \begin{table}
 \centering
@@ -725,8 +724,7 @@ The description above omits a crucial requirement: how to make different clauses
 
 We fulfill both of these requirements using _variables_, which are denoted with a leading `?`. The only exception to this definition is the "don't care" variable "_"  (underscore).  
 
-<!-- FIXME make sure this table reference makes sense in the final layout (tablemight not immediately follow text -->
-A clause in a query is composed of three predicates. The following table defines what can act as a predicate in our query language:
+A clause in a query is composed of three predicates; \aosatblref{500l.functionaldb.predicates} defines what can act as a predicate in our query language.
 
 <markdown>
 <table>
@@ -767,8 +765,8 @@ A clause in a query is composed of three predicates. The following table defines
     <td>(&gt; ?age 20)</td>
   </tr>
 </table>
+: \label{500l.functionaldb.predicates} Predicates
 </markdown>
-<latex>
 <latex>
 \begin{table}
 \centering
@@ -778,11 +776,11 @@ A clause in a query is composed of three predicates. The following table defines
 \hline
 \textbf{Name} & \textbf{Meaning} & \textbf{Example} \\
 \hline
-Constant & Is the value of the item in the datom equal to the constant? & :likes \\
-Variable & Bind the value of the item in the datom to the variable and return true. & ?e \\
-Don’t-care & Always returns true. & \_ \\
-Unary operator & \begin{tabular}{@{}l@{}} Unary operation that takes a variable as its operand. \\ Bind the datom's item's value to the variable (unless it's an '\_'). \\  Replace the variable with the value of the item in the datom. \\ Return the application of the operation. \end{tabular} & (birthday-this-month? \_) \\
-Binary operator & \begin{tabular}{@{}l@{}} A binary operation that must have a variable as one of its operands. \\ Bind the datom's item's value to the variable (unless it's an '\_'). \\ Replace the variable with the value of the item in the datom. \\ Return the result of the operation. \end{tabular} & (\&gt; ?age 20) \\
+Constant & Is the value of the item in the datom equal to the constant? & \verb|:likes| \\
+Variable & Bind the value of the item in the datom to the variable and return true. & \verb|?e| \\
+Don't-care & Always returns true. & \verb|_| \\
+Unary operator & \begin{tabular}{@{}l@{}} Unary operation that takes a variable as its operand. \\ Bind the datom's item's value to the variable (unless it's an \verb|_|). \\  Replace the variable with the value of the item in the datom. \\ Return the application of the operation. \end{tabular} & \verb|(birthday-this-month? _)| \\
+Binary operator & \begin{tabular}{@{}l@{}} A binary operation that must have a variable as one of its operands. \\ Bind the datom's item's value to the variable (unless it's an \verb|_|). \\ Replace the variable with the value of the item in the datom. \\ Return the result of the operation. \end{tabular} & \verb|(&gt; ?age 20)| \\
 \hline
 \end{tabular}
 }
@@ -873,8 +871,9 @@ At the end of this phase, our example yields the following set for the `:find` p
 #{"?nm" "?bd"} 
 ``` 
 
-and the following structure for the `:where` part. (Each cell in the _Predicate Clause_ column holds the metadata found in its neighbor at the _Meta Clause_ column.)
+and the following structure in \aosatblref{500l.functionaldb.clauses} for the `:where` part. (Each cell in the _Predicate Clause_ column holds the metadata found in its neighbor at the _Meta Clause_ column.)
 
+<markdown>
 <table>
 <tr>
 	<td>Query Clause</td>
@@ -903,6 +902,28 @@ and the following structure for the `:where` part. (Each cell in the _Predicate 
 </td>
 </tr>
 </table>
+: \label{500l.functionaldb.clauses} Clauses
+</markdown>
+<latex>
+\begin{table}
+\centering
+{\footnotesize
+\rowcolors{2}{TableOdd}{TableEven}
+\begin{tabular}{lll}
+\hline
+\textbf{Query Clause} & \textbf{Predicate Clause} & \textbf{Meta Clause} \\
+\hline
+\verb|[?e  :likes "pizza"]| & \verb|[#(= % %)  #(= % :likes)  #(= % "pizza")]| & \verb|["?e" nil nil]| \\
+\verb|[?e  :name  ?nm]| & \verb|[#(= % %)  #(= % :name) #(= % %)]| & \verb|["?e" nil "?nm"]| \\
+\verb|[?e  :speak "English"]| & \verb|[#(= % %) #(= % :speak) #(= % "English")]| & \verb|["?e" nil nil]| \\
+\verb|[?e  :birthday (birthday-this-month? ?bd)]| & \verb|[#(= % %) #(= % :birthday) #(birthday-this-month? %)]| & \verb|["?e" nil "?bd"]| \\
+\hline
+\end{tabular}
+}
+\caption{Clauses}
+\label{500l.functionaldb.clauses}
+\end{table}
+</latex>
 
 This structure acts as the query that is executed in a later phase, once the engine decides on the right plan of execution.
 
