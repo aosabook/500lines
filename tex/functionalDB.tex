@@ -1225,7 +1225,7 @@ given variable names:
 
 The \texttt{:where} part of the query retains its nested vector
 structure. However, each of the terms in each of the clauses is replaced
-with a predicate according to Table 3.
+with a predicate according to \aosatblref{500l.functionaldb.predicates}.
 
 \begin{verbatim}
 (defmacro clause-term-expr [clause-term]
@@ -1315,26 +1315,29 @@ the engine decides on the right plan of execution.
 In this phase, we inspect the query in order to construct a good plan to
 produce the result it describes.
 
-In general, this will involve choosing the appropriate index and
-constructing a plan in the form of a function. We choose the index based
-on the \emph{single} joining variable (that can operate on only a single
-kind of element).
+In general, this will involve choosing the appropriate index
+(\aosatblref{500l.functionaldb.indexselection}) and constructing a plan
+in the form of a function. We choose the index based on the
+\emph{single} joining variable (that can operate on only a single kind
+of element).
 
-Joining variable operates on
-
-Index to use
-
-Entity IDs
-
-AVET
-
-Attribute names
-
-VEAT
-
-Attribute values
-
-EAVT
+\begin{table}
+\centering
+{\footnotesize
+\rowcolors{2}{TableOdd}{TableEven}
+\begin{tabular}{ll}
+\hline
+\textbf{Joining variable operates on} & \textbf{Index to use} \\
+\hline
+Entity IDs & AVET \\
+Attribute names & VEAT \\
+Attribute values & EAVT \\
+\hline
+\end{tabular}
+}
+\caption{Index Selection}
+\label{500l.functionaldb.indexselection}
+\end{table}
 
 The reasoning behind this mapping will become clearer in the next
 section, when we actually execute the plan produced. For now, just note

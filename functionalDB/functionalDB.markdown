@@ -822,7 +822,7 @@ The `:find` part of the query is transformed into a set of the given variable na
 (defmacro symbol-col-to-set [coll] (set (map str coll)))
 ```
 
-The `:where` part of the query retains its nested vector structure. However, each of the terms in each of the clauses is replaced with a predicate according to Table 3. 
+The `:where` part of the query retains its nested vector structure. However, each of the terms in each of the clauses is replaced with a predicate according to \aosatblref{500l.functionaldb.predicates}. 
 
 ```clojure
 (defmacro clause-term-expr [clause-term]
@@ -931,8 +931,9 @@ This structure acts as the query that is executed in a later phase, once the eng
 
 In this phase, we inspect the query in order to construct a good plan to produce the result it describes.
 
-In general, this will involve choosing the appropriate index and constructing a plan in the form of a function.  We choose the index based on the _single_ joining variable (that can operate on only a single kind of element).
+In general, this will involve choosing the appropriate index (\aosatblref{500l.functionaldb.indexselection}) and constructing a plan in the form of a function.  We choose the index based on the _single_ joining variable (that can operate on only a single kind of element).
 
+<markdown>
 <table>
 	<tr>
 		<td>Joining variable operates on</td><td>Index to use</td>
@@ -947,6 +948,27 @@ In general, this will involve choosing the appropriate index and constructing a 
 		<td>Attribute values</td><td>EAVT</td>
 	</tr>
 </table>
+: \label{500l.functionaldb.indexselection} Index Selection
+</markdown>
+<latex>
+\begin{table}
+\centering
+{\footnotesize
+\rowcolors{2}{TableOdd}{TableEven}
+\begin{tabular}{ll}
+\hline
+\textbf{Joining variable operates on} & \textbf{Index to use} \\
+\hline
+Entity IDs & AVET \\
+Attribute names & VEAT \\
+Attribute values & EAVT \\
+\hline
+\end{tabular}
+}
+\caption{Index Selection}
+\label{500l.functionaldb.indexselection}
+\end{table}
+</latex>
 
 The reasoning behind this mapping will become clearer in the next section, when we actually execute the plan produced. For now, just note that the key here is to select an index whose leaves hold the elements that the joining variable operates on.
 
