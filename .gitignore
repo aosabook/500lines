@@ -30,6 +30,8 @@ tex/flow-shop-images
 tex/flow-shop.markdown
 tex/frontmatter-images
 tex/frontmatter.tex
+tex/functionalDB-images
+tex/functionalDB.markdown
 tex/intro.tex
 tex/modeller-images
 tex/modeller.markdown
@@ -43,6 +45,7 @@ tex/sampler-images
 tex/sampler.markdown
 tex/spreadsheet-images
 tex/spreadsheet.markdown
+tex/static-analysis.markdown
 tex/template-engine.markdown
 html/content
 html/cache

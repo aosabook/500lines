@@ -1,6 +1,6 @@
 # FDB
 
-FDB (TODO - find a better name) is an in-memory, no-sql functional database, written in Clojure.
+CircleDB is an in-memory, no-sql functional database, written in Clojure.
 
 It is a modest attempt to provide part of the functionality that the Datomic database provides (the main omitted functionality is the durability part).
 
