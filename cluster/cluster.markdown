@@ -1,6 +1,13 @@
 title: Clustering by Consensus
 author: Dustin J. Mitchell
 
+_Dustin is an open source software developer and release engineer at Mozilla.
+He has worked on projects as varied as a host configuration system in Puppet, a
+Flask-based web framework, unit tests for firewall configurations, and a
+continuous integration framework in Twisted Python. Find him as [\@djmitche](http://github.com/djmitche) on
+GitHub or at [dustin@mozilla.com](mailto:dustin@mozilla.com)._
+
+## Introduction
 
 In this chapter, we'll explore implementation of a network protocol designed to support reliable distributed computation.
 Network protocols can be difficult to implement correctly, so we'll look at some techniques for minimizing bugs and for catching and fixing the remaining few.
