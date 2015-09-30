@@ -1008,8 +1008,9 @@ We saw in the previous phase that the query plan we construct ends by calling `s
    (let [q-res (query-index (indx-at db indx) query)]
      (bind-variables-to-query q-res (indx-at db indx))))
 ```
-To better explain this process we'll demonstrate it using our exemplary query, assuming that our database holds these entities:
+To better explain this process we'll demonstrate it using our exemplary query, assuming that our database holds the entities in \aosatblref{500l.functionaldb.exampleentities}.
 
+<markdown>
 <table>
 <tr>
 	<td>Entity ID</td>
@@ -1056,6 +1057,27 @@ To better explain this process we'll demonstrate it using our exemplary query, a
 	</td>
 </tr>
 </table>
+: \label{500l.functionaldb.exampleentities}
+</markdown>
+<latex>
+\begin{table}
+\centering
+{\footnotesize
+\rowcolors{2}{TableOdd}{TableEven}
+\begin{tabular}{lll}
+\hline
+\textbf{Entity ID} & \textbf{Attribute Name} & \textbf{Attribute Value} \\
+\hline
+1 & \begin{tabular}{@{}l@{}} \verb|:name| \\ \verb|:likes| \\ \verb|:speak| \\ \verb|:birthday| \end{tabular} & \begin{tabular}{@{}l@{}} USA \\ Pizza \\ English \\ July 4, 1776 \end{tabular} \\
+2 & \begin{tabular}{@{}l@{}} \verb|:name| \\ \verb|:likes| \\ \verb|:speak| \\ \verb|:birthday| \end{tabular} & \begin{tabular}{@{}l@{}} France \\ Red wine \\ French \\ July 14, 1789 \end{tabular} \\
+3 & \begin{tabular}{@{}l@{}} \verb|:name| \\ \verb|:likes| \\ \verb|:speak| \\ \verb|:birthday| \end{tabular} & \begin{tabular}{@{}l@{}} Canada \\ Snow \\ English \\ July 1, 1867 \end{tabular} \\
+\hline
+\end{tabular}
+}
+\caption{Example entities}
+\label{500l.functionaldb.exampleentities}
+\end{table}
+</latex>
 
 Now it is time to go deeper into the rabbit hole and take a look at the `query-index` function, where our query finally begins to yield some results:
 
@@ -1089,7 +1111,8 @@ All of this is done in the function `filter-index`.
          :let [res (set (filter lvl3-prd l3-set))] ]
      (with-meta [k1 k2 res] (meta pred-clause))))
 ```
-Assuming the query was executed on July 4th, the results of executing it on the above data are:
+Assuming the query was executed on July 4th, the results of executing it on the above data are seen in \aosatblref{500l.functionaldb.queryresults}.
+<markdown>
 <table>
 <tr>
 <td>Result Clause</td><td>Result Meta</td>
@@ -1119,6 +1142,33 @@ Assuming the query was executed on July 4th, the results of executing it on the 
 <td>[:birthday "July 1, 1867" {3}]</td><td>["?e" nil "?bd"]</td>
 </tr>
 </table>
+: \label{500l.functionaldb.queryresults}
+</markdown>
+<latex>
+\begin{table}
+\centering
+{\footnotesize
+\rowcolors{2}{TableOdd}{TableEven}
+\begin{tabular}{ll}
+\hline
+\textbf{Result Clause} & \textbf{Result Meta} \\
+\hline
+\verb|[:likes Pizza #{1}]| & \verb|["?e" nil nil]| \\
+\verb|[:name USA #{1}]| & \verb|["?e" nil "?nm"]| \\
+\verb|[:speak "English" #{1, 3}]| & \verb|["?e" nil nil]| \\
+\verb|[:birthday "July 4, 1776" #{1}]| & \verb|["?e" nil "?bd"]| \\
+\verb|[:name France #{2}]| & \verb|["?e" nil "?nm"]| \\
+\verb|[:birthday "July 14, 1789" #{2}]| & \verb|["?e" nil "?bd"]| \\
+\verb|[:name Canada #{3}]| & \verb|["?e" nil "?nm"]| \\
+\verb|[:birthday "July 1, 1867" {3}]| & \verb|["?e" nil "?bd"]| \\
+\hline
+\end{tabular}
+}
+\caption{Query results}
+\label{500l.functionaldb.queryresults}
+\end{table}
+</latex>
+
 Once we have produced all of the result clauses, we need to perform an `AND` operation between them. This is done by finding all of the elements that passed all the predicate clauses:
 
 ```clojure
@@ -1141,8 +1191,9 @@ We now have to remove the items that didn’t pass all of the conditions:
      (update-in path [2] CS/intersection relevant-items))
 ```
 
-Finally, we remove all of the result clauses that are "empty" (i.e., their last item is empty). We do this in the last line of the `query-index` function. Our example leaves us with the following items:
+Finally, we remove all of the result clauses that are "empty" (i.e., their last item is empty). We do this in the last line of the `query-index` function. Our example leaves us with the items in \aosatblref{500.functionaldb.filteredqueryresults}.
 
+<markdown>
 <table>
 <tr>
 <td>Result Clause</td><td>Result Meta</td>
@@ -1160,6 +1211,29 @@ Finally, we remove all of the result clauses that are "empty" (i.e., their last 
 <td>[:speak "English" #{1}]</td><td>["?e" nil nil]</td>
 </tr>
 </table>
+: \label{500l.functionaldb.filteredqueryresults}
+</markdown>
+<latex>
+\begin{table}
+\centering
+{\footnotesize
+\rowcolors{2}{TableOdd}{TableEven}
+\begin{tabular}{ll}
+\hline
+\textbf{Result Clause} & \textbf{Result Meta} \\
+\hline
+\verb|[:likes Pizza #{1}]| & \verb|["?e" nil nil]| \\
+\verb|[:name USA #{1}]| & \verb|["?e" nil "?nm"]| \\ 
+\verb|[:birthday "July 4, 1776" #{1}]| & \verb|["?e" nil "?bd"]| \\
+\verb|[:speak "English" #{1}]| & \verb|["?e" nil nil]| \\
+\hline
+\end{tabular}
+}
+\caption{Filtered query results}
+\label{500l.functionaldb.filteredqueryresults}
+\end{table}
+</latex>
+
 We are now ready to report the results. The result clause structure is unwieldy for this purpose, so we will convert it into an an index-like structure (map of maps) --- with a significant twist. 
 
 To understand the twist, we must first introduce the idea of a _binding pair_, which is a pair that matches a variable name to its value. The variable name is the one used at the predicate clauses, and the value is the value found in the result clauses.

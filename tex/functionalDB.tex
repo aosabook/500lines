@@ -1404,31 +1404,26 @@ calling \texttt{single-index-query-plan}. This function will:
 \end{verbatim}
 
 To better explain this process we'll demonstrate it using our exemplary
-query, assuming that our database holds these entities:
+query, assuming that our database holds the entities in
+\aosatblref{500l.functionaldb.exampleentities}.
 
-Entity ID
-
-Attribute Name
-
-Attribute Value
-
-1
-
-:name :likes :speak :birthday
-
-USA Pizza English July 4, 1776
-
-2
-
-:name :likes :speak :birthday
-
-France Red wine French July 14, 1789
-
-3
-
-:name :likes :speak :birthday
-
-Canada Snow English July 1, 1867
+\begin{table}
+\centering
+{\footnotesize
+\rowcolors{2}{TableOdd}{TableEven}
+\begin{tabular}{lll}
+\hline
+\textbf{Entity ID} & \textbf{Attribute Name} & \textbf{Attribute Value} \\
+\hline
+1 & \begin{tabular}{@{}l@{}} \verb|:name| \\ \verb|:likes| \\ \verb|:speak| \\ \verb|:birthday| \end{tabular} & \begin{tabular}{@{}l@{}} USA \\ Pizza \\ English \\ July 4, 1776 \end{tabular} \\
+2 & \begin{tabular}{@{}l@{}} \verb|:name| \\ \verb|:likes| \\ \verb|:speak| \\ \verb|:birthday| \end{tabular} & \begin{tabular}{@{}l@{}} France \\ Red wine \\ French \\ July 14, 1789 \end{tabular} \\
+3 & \begin{tabular}{@{}l@{}} \verb|:name| \\ \verb|:likes| \\ \verb|:speak| \\ \verb|:birthday| \end{tabular} & \begin{tabular}{@{}l@{}} Canada \\ Snow \\ English \\ July 1, 1867 \end{tabular} \\
+\hline
+\end{tabular}
+}
+\caption{Example entities}
+\label{500l.functionaldb.exampleentities}
+\end{table}
 
 Now it is time to go deeper into the rabbit hole and take a look at the
 \texttt{query-index} function, where our query finally begins to yield
@@ -1479,43 +1474,31 @@ All of this is done in the function \texttt{filter-index}.
 \end{verbatim}
 
 Assuming the query was executed on July 4th, the results of executing it
-on the above data are:
+on the above data are seen in
+\aosatblref{500l.functionaldb.queryresults}.
 
-Result Clause
-
-Result Meta
-
-{[}:likes Pizza \#\{1\}{]}
-
-{[}``?e'' nil nil{]}
-
-{[}:name USA \#\{1\}{]}
-
-{[}``?e'' nil ``?nm''{]}
-
-{[}:speak ``English'' \#\{1, 3\}{]}
-
-{[}``?e'' nil nil{]}
-
-{[}:birthday ``July 4, 1776'' \#\{1\}{]}
-
-{[}``?e'' nil ``?bd''{]}
-
-{[}:name France \#\{2\}{]}
-
-{[}``?e'' nil ``?nm''{]}
-
-{[}:birthday ``July 14, 1789'' \#\{2\}{]}
-
-{[}``?e'' nil ``?bd''{]}
-
-{[}:name Canada \#\{3\}{]}
-
-{[}``?e'' nil ``?nm''{]}
-
-{[}:birthday ``July 1, 1867'' \{3\}{]}
-
-{[}``?e'' nil ``?bd''{]}
+\begin{table}
+\centering
+{\footnotesize
+\rowcolors{2}{TableOdd}{TableEven}
+\begin{tabular}{ll}
+\hline
+\textbf{Result Clause} & \textbf{Result Meta} \\
+\hline
+\verb|[:likes Pizza #{1}]| & \verb|["?e" nil nil]| \\
+\verb|[:name USA #{1}]| & \verb|["?e" nil "?nm"]| \\
+\verb|[:speak "English" #{1, 3}]| & \verb|["?e" nil nil]| \\
+\verb|[:birthday "July 4, 1776" #{1}]| & \verb|["?e" nil "?bd"]| \\
+\verb|[:name France #{2}]| & \verb|["?e" nil "?nm"]| \\
+\verb|[:birthday "July 14, 1789" #{2}]| & \verb|["?e" nil "?bd"]| \\
+\verb|[:name Canada #{3}]| & \verb|["?e" nil "?nm"]| \\
+\verb|[:birthday "July 1, 1867" {3}]| & \verb|["?e" nil "?bd"]| \\
+\hline
+\end{tabular}
+}
+\caption{Query results}
+\label{500l.functionaldb.queryresults}
+\end{table}
 
 Once we have produced all of the result clauses, we need to perform an
 \texttt{AND} operation between them. This is done by finding all of the
@@ -1544,28 +1527,27 @@ We now have to remove the items that didn't pass all of the conditions:
 
 Finally, we remove all of the result clauses that are ``empty'' (i.e.,
 their last item is empty). We do this in the last line of the
-\texttt{query-index} function. Our example leaves us with the following
-items:
+\texttt{query-index} function. Our example leaves us with the items in
+\aosatblref{500.functionaldb.filteredqueryresults}.
 
-Result Clause
-
-Result Meta
-
-{[}:likes Pizza \#\{1\}{]}
-
-{[}``?e'' nil nil{]}
-
-{[}:name USA \#\{1\}{]}
-
-{[}``?e'' nil ``?nm''{]}
-
-{[}:birthday ``July 4, 1776'' \#\{1\}{]}
-
-{[}``?e'' nil ``?bd''{]}
-
-{[}:speak ``English'' \#\{1\}{]}
-
-{[}``?e'' nil nil{]}
+\begin{table}
+\centering
+{\footnotesize
+\rowcolors{2}{TableOdd}{TableEven}
+\begin{tabular}{ll}
+\hline
+\textbf{Result Clause} & \textbf{Result Meta} \\
+\hline
+\verb|[:likes Pizza #{1}]| & \verb|["?e" nil nil]| \\
+\verb|[:name USA #{1}]| & \verb|["?e" nil "?nm"]| \\ 
+\verb|[:birthday "July 4, 1776" #{1}]| & \verb|["?e" nil "?bd"]| \\
+\verb|[:speak "English" #{1}]| & \verb|["?e" nil nil]| \\
+\hline
+\end{tabular}
+}
+\caption{Filtered query results}
+\label{500l.functionaldb.filteredqueryresults}
+\end{table}
 
 We are now ready to report the results. The result clause structure is
 unwieldy for this purpose, so we will convert it into an an index-like
