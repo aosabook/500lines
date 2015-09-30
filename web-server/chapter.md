@@ -1,27 +1,24 @@
 # A Simple Web Server
 
-The web has changed society in countless ways over the last two decades.
-Remarkably,
-though,
-its core has changed very little.
+The web has changed society in countless ways over the last two decades,
+but its core has changed very little.
 Most systems still follow the rules that Tim Berners-Lee laid out
-a quarter of a century ago;
-in particular,
+a quarter of a century ago.
+In particular,
 most web servers still handle the same kinds of messages they did then,
 in the same way.
 
 This chapter will explore how they do that.
 At the same time,
 it will explore how developers can create software systems
-that don't need to be recompiled,
-much less rewritten,
-in order to add new capabilities.
+that don't need to be rewritten
+in order to add new features.
 
 ## Background
 
 Pretty much every program on the web
 runs on a family of communication standards called Internet Protocol (IP).
-The particular member of that family which concerns us is the Transmission Control Protocol (TCP/IP),
+The member of that family which concerns us is the Transmission Control Protocol (TCP/IP),
 which makes communication between computers looks like reading and writing files.
 
 Programs using IP communicate through sockets.
@@ -36,20 +33,21 @@ that are easier for human beings to remember.
 
 A port number is just a number in the range 0-65535
 that uniquely identifies the socket on the host machine.
-(If the IP address is like a company's phone number,
-then the port number is the extension.)
+(If an IP address is like a company's phone number,
+then a port number is like an extension.)
 Ports 0-1023 are reserved for the operating system's use;
 anyone else can use the remaining ports.
 
 The Hypertext Transfer Protocol (HTTP) describes one way that
 programs can exchange data over IP.
-In principle,
-HTTP is simple:
+HTTP is deliberately simple:
 the client sends a request specifying what it wants over a socket connection,
 and the server sends some data in response.
 The data may be copied from a file on disk,
 generated dynamically by a program,
 or some mix of the two.
+
+image: http-cycle.png
 
 The most important thing about an HTTP request is that it's just text:
 any program that wants to can create one or parse one.
@@ -57,7 +55,7 @@ In order to be understood,
 though,
 that text must have the following parts:
 
-FIXME: diagram
+image: http-request.png
 
 The HTTP method is almost always either "GET" (to fetch information)
 or "POST" (to submit form data or upload files).
@@ -97,7 +95,7 @@ tells the server how many bytes to expect to read in the body of the request.
 
 HTTP responses are formatted like HTTP requests:
 
-FIXME: diagram
+image: http-response.png
 
 The version, headers, and body have the same form and meaning.
 The status code is a number indicating what happened when the request was processed:
@@ -126,9 +124,7 @@ If an application wants to keep track of something like a user's identity,
 it must do so itself.
 The usual way to do this is with a cookie,
 which is just a short character string that the server sends to the client,
-and the client later returns to the server:
-
-FIXME: diagram
+and the client later returns to the server.
 
 When a user signs in,
 the server creates a new cookie,
@@ -605,6 +601,7 @@ class case_no_file(object):
     def act(self, handler):
         raise ServerException("'{0}' not found".format(handler.path))
 
+
 class case_existing_file(object):
     '''File exists.'''
 
@@ -613,6 +610,7 @@ class case_existing_file(object):
 
     def act(self, handler):
         handler.handle_file(handler.full_path)
+
 
 class case_always_fail(object):
     '''Base case if nothing else worked.'''
@@ -813,6 +811,7 @@ we're just letting them run it
 without worrying about what data it has access to,
 whether it might contain an infinite loop,
 or anything else.
+
 Sweeping that aside,
 the core idea is simple:
 
@@ -831,10 +830,8 @@ those details don't affect the overall architecture of the system...
 for dealing with content.
 We have now added two special cases
 in the form of `list_dir` and `run_cgi`.
-If we draw a feature diagram for our classes,
-it's clear that these three methods don't really belong where they are:
-
-FIXME: feature diagram
+These three methods don't really belong where they are,
+since they're primarily used by others.
 
 The fix is straightforward:
 create a parent class for all our case handlers,
@@ -935,11 +932,8 @@ class case_existing_file(base_case):
 
 ## Discussion
 
-The feature diagram for the refactored code is:
-
-FIXME: feature diagram
-
-The differences between it and our previous feature diagram
+The differences between our original code
+and the refactored version
 reflect two important ideas.
 The first is to think of a class as a collection of related services.
 `RequestHandler` and `case_base` don't make decisions or take actions;
