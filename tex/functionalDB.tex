@@ -607,29 +607,23 @@ database and update the storage in that layer with a new layer. The
 results of this operation are assigned to the
 \texttt{layer-with-updated-storage} local variable.
 
-Finally, we must update the indexes. This means:
+Finally, we must update the indexes. This means, for each of the indexes
+(done by the combination of \texttt{reduce} and the \texttt{partial}-ed
+\texttt{add-entity-to-index} at the \texttt{add-entity} function):
 
 \begin{aosaitemize}
 
 \item
-  For each of the indexes (done by the combination of \texttt{reduce}
-  and the \texttt{partial}-ed \texttt{add-entity-to-index} at the
-  \texttt{add-entity} function)
-
-  \begin{aosaitemize}
-  
-  \item
-    Find the attributes that should be indexed (see the combination of
-    \texttt{filter} with the index's \texttt{usage-pred} that operates
-    on the attributes in \texttt{add-entity-to-index})
-  \item
-    Build an index-path from the the entity's ID (see the combination of
-    the \texttt{partial}-ed \texttt{update-entry-in-index} with
-    \texttt{from-eav} at the \texttt{update-attr-in-index} function)
-  \item
-    Add that path to the index (see the \texttt{update-entry-in-index}
-    function)
-  \end{aosaitemize}
+  Find the attributes that should be indexed (see the combination of
+  \texttt{filter} with the index's \texttt{usage-pred} that operates on
+  the attributes in \texttt{add-entity-to-index})
+\item
+  Build an index-path from the the entity's ID (see the combination of
+  the \texttt{partial}-ed \texttt{update-entry-in-index} with
+  \texttt{from-eav} at the \texttt{update-attr-in-index} function)
+\item
+  Add that path to the index (see the \texttt{update-entry-in-index}
+  function)
 \end{aosaitemize}
 
 \begin{verbatim}
@@ -896,21 +890,19 @@ That transformation occurs in the following transaction call chain:
 transact →  _transact → swap! → transact-on-db
 \end{verbatim}
 
-\begin{aosaitemize}
-\item
-  Users call \texttt{transact} with the \texttt{Atom} (i.e., the
-  database connection) and the operations to perform, which relays its
-  input to \texttt{\_transact}, adding to it the name of the function
-  that updates the \texttt{Atom} (\texttt{swap!}).
+Users call \texttt{transact} with the \texttt{Atom} (i.e., the database
+connection) and the operations to perform, which relays its input to
+\texttt{\_transact}, adding to it the name of the function that updates
+the \texttt{Atom} (\texttt{swap!}).
 
 \begin{verbatim}
 (defmacro transact [db-conn & txs]  `(_transact ~db-conn swap! ~@txs))
 \end{verbatim}
-\item
-  \texttt{\_transact} prepares the call to \texttt{swap!}. It does so by
-  creating a list that begins with \texttt{swap!}, followed by the
-  db-connection (the \texttt{Atom}), then the \texttt{transact-on-db}
-  symbol and the batch of operations.
+
+\texttt{\_transact} prepares the call to \texttt{swap!}. It does so by
+creating a list that begins with \texttt{swap!}, followed by the
+db-connection (the \texttt{Atom}), then the \texttt{transact-on-db}
+symbol and the batch of operations.
 
 \begin{verbatim}
 (defmacro  _transact [db op & txs]
@@ -920,13 +912,10 @@ transact →  _transact → swap! → transact-on-db
            (recur rst-tx# res#  (conj  accum-txs#  (vec frst-tx#)))
            (list* (conj res#  accum-txs#))))))
 \end{verbatim}
-\item
-  \texttt{swap!} invokes \texttt{transact-on-db} within a transaction
-  (with the previously prepared arguments).
-\item
-  \texttt{transact-on-db} creates the new state of the database and
-  returns it.
-\end{aosaitemize}
+
+\texttt{swap!} invokes \texttt{transact-on-db} within a transaction
+(with the previously prepared arguments), and \texttt{transact-on-db}
+creates the new state of the database and returns it.
 
 At this point we can see that with few minor tweaks, we can also provide
 a way to ask ``what if'' questions. This can be done by replacing
@@ -934,29 +923,24 @@ a way to ask ``what if'' questions. This can be done by replacing
 system. This scenario is implemented with the \texttt{what-if} call
 chain:
 
-what-if → \emph{transact → }what-if → transact-on-db
+\texttt{what-if} $\to$ \texttt{\_transact} $\to$ \texttt{\_what-if}
+$\to$ \texttt{transact-on-db}
 
-\begin{aosaitemize}
-\item
-  The user calls \texttt{what-if} with the database value and the
-  operations to perform. It then relays these inputs to
-  \texttt{\_transact}, adding to them a function that mimics
-  \texttt{swap!}'s APIs, without its effect (callled
-  \texttt{\_what-if}).
+The user calls \texttt{what-if} with the database value and the
+operations to perform. It then relays these inputs to
+\texttt{\_transact}, adding to them a function that mimics
+\texttt{swap!}'s APIs, without its effect (callled \texttt{\_what-if}).
 
 \begin{verbatim}
 (defmacro what-if [db & ops]  `(_transact ~db _what-if  ~@ops))
 \end{verbatim}
-\item
-  \texttt{\_transact} prepares the call to \texttt{\_what-if}. It does
-  so by creating a list that begins with \texttt{\_what-if}, followed by
-  the database, then the \texttt{transact-on-db} symbol and the batch of
-  operations.
-\item
-  \texttt{\_what-if} invokes \texttt{transact-on-db}, just like
-  \texttt{swap!} does in the transaction scenario, but does not inflict
-  any change on the system.
-\end{aosaitemize}
+
+\texttt{\_transact} prepares the call to \texttt{\_what-if}. It does so
+by creating a list that begins with \texttt{\_what-if}, followed by the
+database, then the \texttt{transact-on-db} symbol and the batch of
+operations. \texttt{\_what-if} invokes \texttt{transact-on-db}, just
+like \texttt{swap!} does in the transaction scenario, but does not
+inflict any change on the system.
 
 \begin{verbatim}
 (defn- _what-if [db f txs]  (f db txs))

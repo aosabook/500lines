@@ -432,12 +432,11 @@ These latter two helper functions are responsible for finding the next timestamp
 ```
 To add the entity to storage, we locate the most recent layer in the database and update the storage in that layer with a new layer. The results of this operation are assigned to the `layer-with-updated-storage` local variable.
 
-Finally, we must update the indexes. This means:
+Finally, we must update the indexes. This means, for each of the indexes (done by the combination of `reduce` and the `partial`-ed `add-entity-to-index` at the `add-entity` function):
 
-* For each of the indexes (done by the combination of `reduce` and the `partial`-ed `add-entity-to-index` at the `add-entity` function)
-    * Find the attributes that should be indexed (see the combination of `filter` with the index’s `usage-pred` that operates on the attributes in `add-entity-to-index`) 
-    * Build an index-path from the the entity’s ID (see the combination of the `partial`-ed `update-entry-in-index` with `from-eav` at the `update-attr-in-index` function)
-    * Add that path to the index (see the `update-entry-in-index` function)
+* Find the attributes that should be indexed (see the combination of `filter` with the index’s `usage-pred` that operates on the attributes in `add-entity-to-index`) 
+* Build an index-path from the the entity’s ID (see the combination of the `partial`-ed `update-entry-in-index` with `from-eav` at the `update-attr-in-index` function)
+* Add that path to the index (see the `update-entry-in-index` function)
 
 ```clojure
 (defn- add-entity-to-index [ent layer ind-name]
@@ -599,11 +598,14 @@ That transformation occurs in the following transaction call chain:
 transact →  _transact → swap! → transact-on-db
 ```
 
-* Users call `transact` with the `Atom` (i.e., the database connection) and the operations to perform, which relays its input to `_transact`, adding to it the name of the function that updates the `Atom` (`swap!`).
+Users call `transact` with the `Atom` (i.e., the database connection) and the operations to perform, which relays its input to `_transact`, adding to it the name of the function that updates the `Atom` (`swap!`).
+
 ```clojure
 (defmacro transact [db-conn & txs]  `(_transact ~db-conn swap! ~@txs))
 ```
-* `_transact` prepares the call to `swap!`. It does so by creating a list that begins with `swap!`, followed by the db-connection (the `Atom`), then the `transact-on-db` symbol and the batch of operations.
+
+`_transact` prepares the call to `swap!`. It does so by creating a list that begins with `swap!`, followed by the db-connection (the `Atom`), then the `transact-on-db` symbol and the batch of operations.
+
 ```clojure
 (defmacro  _transact [db op & txs]
    (when txs
@@ -612,19 +614,20 @@ transact →  _transact → swap! → transact-on-db
            (recur rst-tx# res#  (conj  accum-txs#  (vec frst-tx#)))
            (list* (conj res#  accum-txs#))))))
 ```
-* `swap!` invokes `transact-on-db` within a transaction (with the previously prepared arguments).
-* `transact-on-db` creates the new state of the database and returns it.
+
+`swap!` invokes `transact-on-db` within a transaction (with the previously prepared arguments), and `transact-on-db` creates the new state of the database and returns it.
 
 At this point we can see that with few minor tweaks, we can also provide a way to ask "what if" questions. This can be done by replacing `swap!` with a function that would not make any change to the system. This scenario is implemented with the `what-if` call chain:
 
-what-if → _transact →   _what-if → transact-on-db
+`what-if` $\to$ `_transact` $\to$ `_what-if` $\to$ `transact-on-db`
 
-* The user calls `what-if` with the database value and the operations to perform. It then relays these inputs to `_transact`, adding to them a function that mimics `swap!`'s APIs, without its effect (callled `_what-if`).  
+The user calls `what-if` with the database value and the operations to perform. It then relays these inputs to `_transact`, adding to them a function that mimics `swap!`'s APIs, without its effect (callled `_what-if`).  
+
 ```clojure
 (defmacro what-if [db & ops]  `(_transact ~db _what-if  ~@ops))
 ```
-* `_transact` prepares the call to `_what-if`. It does so by creating a list that begins with `_what-if`, followed by the database, then the `transact-on-db` symbol and the batch of operations.
-* `_what-if` invokes `transact-on-db`, just like `swap!` does in the transaction scenario, but does not inflict any change on the system.
+
+`_transact` prepares the call to `_what-if`. It does so by creating a list that begins with `_what-if`, followed by the database, then the `transact-on-db` symbol and the batch of operations.  `_what-if` invokes `transact-on-db`, just like `swap!` does in the transaction scenario, but does not inflict any change on the system.
 
 ```clojure
 (defn- _what-if [db f txs]  (f db txs))
@@ -722,7 +725,7 @@ A query is a map with two items:
 
 The description above omits a crucial requirement: how to make different clauses sync on a value (i.e., make a join operation between them), and how to structure the found values in the output (specified by the `:find` part). 
 
-We fulfill both of these requirements using _variables_, which are denoted with a leading `?`. The only exception to this definition is the "don't care" variable "_"  (underscore).  
+We fulfill both of these requirements using _variables_, which are denoted with a leading `?`. The only exception to this definition is the "don't care" variable `_`  (underscore).  
 
 A clause in a query is composed of three predicates; \aosatblref{500l.functionaldb.predicates} defines what can act as a predicate in our query language.
 
@@ -803,7 +806,7 @@ While these design decisions result in a query language that is less rich than D
 
 ### Query Engine Design
 
-While our query language allows the user to specify _what_ they want to access, it hides the details of _how_ this will be accomplished. The `query engine` is the database component responsible for yielding the data for a given query. 
+While our query language allows the user to specify _what_ they want to access, it hides the details of _how_ this will be accomplished. The query engine is the database component responsible for yielding the data for a given query. 
 
 This involves four steps:
 
