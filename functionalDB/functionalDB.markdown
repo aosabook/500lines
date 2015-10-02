@@ -1,5 +1,7 @@
-title: Designing a Database Like an Archaeologist
+title: An Archaeology-Inspired Database
 author: Yoav Rubin
+
+_Yoav Rubin is a Senior Software Engineer at Microsoft, and prior to that was a Research Staff Member and a Master Inventor at IBM Research. He works now in the domain of data security in the cloud, and in the past his work focused on developing cloud or web based development environments. Yoav holds an M.Sc. in Medical Research in the field of Neuroscience and B.Sc in Information Systems Engineering. He goes by [\@yoavrubin](https://twitter.com/yoavrubin) on Twitter, and occasionally blogs at [http://yoavrubin.blogspot.com](http://yoavrubin.blogspot.com)._
 
 Software development is often viewed as a rigorous process, where the inputs are requirements and the output is the working product. However, software developers are people, with their own perspectives and biases which color the outcome of their work. 
 
@@ -15,7 +17,7 @@ If you were to instead ask an archaeologist where the old data can be found, the
 
 (Disclaimer: My understanding of the views of a typical archaeologist is based on visiting a few museums, reading several Wikipedia articles, and watching the entire Indiana Jones series.)
 
-### From Archaeology to Databases
+### Designing a Database Like an Archaeologist
 
 If we were to ask our friendly archaeologist to design a database, we might expect the requirements to reflect what would be found at an excavation site:
 
@@ -189,21 +191,21 @@ In most database systems, indexes are an optional component; for example, in an 
  (defn usage-pred [index] (:usage-pred (meta index)))
 ```
 
-In our database there are four indexes: EAVT (see Figure 2), AVET (see Figure 3), VEAT and VAET. We can access these as a vector of values returned from the `indexes` function.
+In our database there are four indexes: EAVT (see \aosafigref{500l.functionaldb.eavt}), AVET (see \aosafigref{500l.functionaldb.avet}), VEAT and VAET. We can access these as a vector of values returned from the `indexes` function.
 
 ```clojure
 (defn indexes[] [:VAET :AVET :VEAT :EAVT])
 ```
 
-<!-- FIXME: remove colors from this table when typesetting -->
-To demonstrate how all of this comes together, the result of indexing the following five entities is visualized in the table below:
+To demonstrate how all of this comes together, the result of indexing the following five entities is visualized in \aosatblref{500l.functionaldb.indextable}.
 
-1. <span style="background-color:lightblue">Julius Caesar</span> (also known as JC) <span style="background-color:lightgreen">lives in</span> <span style="background-color:pink">Rome</span> 
-2. <span style="background-color:lightblue">Brutus</span> (also known as B) <span style="background-color:lightgreen">lives in</span> <span style="background-color:pink">Rome</span> 
-3. <span style="background-color:lightblue">Cleopatra</span> (also known as Cleo) <span style="background-color:lightgreen">lives in</span> <span style="background-color:pink">Egypt</span>
-4. <span style="background-color:lightblue">Rome</span>’s <span style="background-color:lightgreen">river</span> is the <span style="background-color:pink">Tiber</span>
-5. <span style="background-color:lightblue">Egypt</span>’s <span style="background-color:lightgreen">river</span> is the <span style="background-color:pink">Nile</span>
+1. Julius Caesar (also known as JC) lives in Rome
+2. Brutus (also known as B) lives in Rome
+3. Cleopatra (also known as Cleo) lives in Egypt
+4. Rome’s river is the Tiber
+5. Egypt’s river is the Nile
  
+<markdown>
 <table>
   <tr>
     <td>EAVT index</td>
@@ -271,6 +273,40 @@ To demonstrate how all of this comes together, the result of indexing the follow
 </li></ul></td>
   </tr>
 </table>
+: \label{500l.functionaldb.indextable} Indexes
+</markdown>
+<latex>
+\begin{table}
+\centering
+{\footnotesize
+\rowcolors{2}{TableOdd}{TableEven}
+\begin{tabular}{ll}
+\hline
+\textbf{EAVT index}
+& \textbf{AVET index}
+\\
+\hline
+JC $\Rightarrow$ \{lives-in $\Rightarrow$ \{Rome\}\} & lives-in $\Rightarrow$ \{Rome $\Rightarrow$ \{JC, B\}\}, \{Egypt $\Rightarrow$ \{Cleo\}\} \\
+B $\Rightarrow$ \{lives-in $\Rightarrow$ \{Rome\}\}  & river $\Rightarrow$ \{Rome $\Rightarrow$ \{Tiber\}\}, \{Egypt $\Rightarrow$ \{Nile\}\} \\
+Cleo $\Rightarrow$ \{lives-in $\Rightarrow$ \{Egypt\}\} & \\ 
+Rome $\Rightarrow$ \{river $\Rightarrow$ \{Tiber\}\}  & \\ 
+Egypt $\Rightarrow$ \{river $\Rightarrow$ \{Nile\}\}  & \\
+\hline
+\textbf{VEAT index}
+& \textbf{VAET index}
+\\
+\hline
+Rome $\Rightarrow$ \{JC $\Rightarrow$ \{lives-in\}\}, \{B $\Rightarrow$ \{lives-in\}\} & Rome $\Rightarrow$ \{lives-in $\Rightarrow$ \{JC, B\}\} \\
+Egypt $\Rightarrow$ \{Cleo $\Rightarrow$ \{lives-in\}\}                                & Egypt $\Rightarrow$ \{lives-in $\Rightarrow$ \{Cleo\}\} \\ 
+Tiber $\Rightarrow$ \{Rome $\Rightarrow$ \{river\}\}                                   & Tiber $\Rightarrow$ \{river $\Rightarrow$ \{Rome\}\} \\
+Nile $\Rightarrow$ \{Egypt $\Rightarrow$ \{river\}\}                                   & Nile $\Rightarrow$ \{river $\Rightarrow$ \{Egypt\}\} \\
+\hline
+\end{tabular}
+}
+\caption{Indexes}
+\label{500l.functionaldb.indextable}
+\end{table}
+</latex>
 
 ### Database
 
@@ -279,6 +315,7 @@ We now have all the components we need to construct our database. Initializing o
 * creating an initial empty layer with no data 
 * creating a set of empty indexes
 * setting its `top-id` and `curr-time` to be 0
+
 ```clojure
 (defn ref? [attr] (= :db/ref (:type (meta attr))))
 
@@ -397,12 +434,11 @@ These latter two helper functions are responsible for finding the next timestamp
 ```
 To add the entity to storage, we locate the most recent layer in the database and update the storage in that layer with a new layer. The results of this operation are assigned to the `layer-with-updated-storage` local variable.
 
-Finally, we must update the indexes. This means:
+Finally, we must update the indexes. This means, for each of the indexes (done by the combination of `reduce` and the `partial`-ed `add-entity-to-index` at the `add-entity` function):
 
-* For each of the indexes (done by the combination of `reduce` and the `partial`-ed `add-entity-to-index` at the `add-entity` function)
-    * Find the attributes that should be indexed (see the combination of `filter` with the index’s `usage-pred` that operates on the attributes in `add-entity-to-index`) 
-    * Build an index-path from the the entity’s ID (see the combination of the `partial`-ed `update-entry-in-index` with `from-eav` at the `update-attr-in-index` function)
-    * Add that path to the index (see the `update-entry-in-index` function)
+* Find the attributes that should be indexed (see the combination of `filter` with the index’s `usage-pred` that operates on the attributes in `add-entity-to-index`) 
+* Build an index-path from the the entity’s ID (see the combination of the `partial`-ed `update-entry-in-index` with `from-eav` at the `update-attr-in-index` function)
+* Add that path to the index (see the `update-entry-in-index` function)
 
 ```clojure
 (defn- add-entity-to-index [ent layer ind-name]
@@ -517,7 +553,7 @@ We use two helper functions to perform the update. `update-attr-modification-tim
 (defn- update-attr-value [attr value operation]
    (cond
       (single? attr)    (assoc attr :value #{value})
-    ; now we're talking about an attribute of multiple values
+      ; now we're talking about an attribute of multiple values
       (= :db/reset-to operation)  (assoc attr :value value)
       (= :db/add operation) (assoc attr :value (CS/union (:value attr) value))
       (= :db/remove operation) (assoc attr :value (CS/difference (:value attr) value))))
@@ -564,11 +600,14 @@ That transformation occurs in the following transaction call chain:
 transact →  _transact → swap! → transact-on-db
 ```
 
-* Users call `transact` with the `Atom` (i.e., the database connection) and the operations to perform, which relays its input to `_transact`, adding to it the name of the function that updates the `Atom` (`swap!`).
+Users call `transact` with the `Atom` (i.e., the database connection) and the operations to perform, which relays its input to `_transact`, adding to it the name of the function that updates the `Atom` (`swap!`).
+
 ```clojure
 (defmacro transact [db-conn & txs]  `(_transact ~db-conn swap! ~@txs))
 ```
-* `_transact` prepares the call to `swap!`. It does so by creating a list that begins with `swap!`, followed by the db-connection (the `Atom`), then the `transact-on-db` symbol and the batch of operations.
+
+`_transact` prepares the call to `swap!`. It does so by creating a list that begins with `swap!`, followed by the db-connection (the `Atom`), then the `transact-on-db` symbol and the batch of operations.
+
 ```clojure
 (defmacro  _transact [db op & txs]
    (when txs
@@ -577,19 +616,20 @@ transact →  _transact → swap! → transact-on-db
            (recur rst-tx# res#  (conj  accum-txs#  (vec frst-tx#)))
            (list* (conj res#  accum-txs#))))))
 ```
-* `swap!` invokes `transact-on-db` within a transaction (with the previously prepared arguments).
-* `transact-on-db` creates the new state of the database and returns it.
+
+`swap!` invokes `transact-on-db` within a transaction (with the previously prepared arguments), and `transact-on-db` creates the new state of the database and returns it.
 
 At this point we can see that with few minor tweaks, we can also provide a way to ask "what if" questions. This can be done by replacing `swap!` with a function that would not make any change to the system. This scenario is implemented with the `what-if` call chain:
 
-what-if → _transact →   _what-if → transact-on-db
+`what-if` $\to$ `_transact` $\to$ `_what-if` $\to$ `transact-on-db`
 
-* The user calls `what-if` with the database value and the operations to perform. It then relays these inputs to `_transact`, adding to them a function that mimics `swap!`'s APIs, without its effect (callled `_what-if`).  
+The user calls `what-if` with the database value and the operations to perform. It then relays these inputs to `_transact`, adding to them a function that mimics `swap!`'s APIs, without its effect (callled `_what-if`).  
+
 ```clojure
 (defmacro what-if [db & ops]  `(_transact ~db _what-if  ~@ops))
 ```
-* `_transact` prepares the call to `_what-if`. It does so by creating a list that begins with `_what-if`, followed by the database, then the `transact-on-db` symbol and the batch of operations.
-* `_what-if` invokes `transact-on-db`, just like `swap!` does in the transaction scenario, but does not inflict any change on the system.
+
+`_transact` prepares the call to `_what-if`. It does so by creating a list that begins with `_what-if`, followed by the database, then the `transact-on-db` symbol and the batch of operations.  `_what-if` invokes `transact-on-db`, just like `swap!` does in the transaction scenario, but does not inflict any change on the system.
 
 ```clojure
 (defn- _what-if [db f txs]  (f db txs))
@@ -687,11 +727,11 @@ A query is a map with two items:
 
 The description above omits a crucial requirement: how to make different clauses sync on a value (i.e., make a join operation between them), and how to structure the found values in the output (specified by the `:find` part). 
 
-We fulfill both of these requirements using _variables_, which are denoted with a leading `?`. The only exception to this definition is the "don't care" variable "_"  (underscore).  
+We fulfill both of these requirements using _variables_, which are denoted with a leading `?`. The only exception to this definition is the "don't care" variable `_`  (underscore).  
 
-<!-- FIXME make sure this table reference makes sense in the final layout (tablemight not immediately follow text -->
-A clause in a query is composed of three predicates. The following table defines what can act as a predicate in our query language:
+A clause in a query is composed of three predicates; \aosatblref{500l.functionaldb.predicates} defines what can act as a predicate in our query language.
 
+<markdown>
 <table>
   <tr>
     <td>Name</td>
@@ -730,6 +770,29 @@ A clause in a query is composed of three predicates. The following table defines
     <td>(&gt; ?age 20)</td>
   </tr>
 </table>
+: \label{500l.functionaldb.predicates} Predicates
+</markdown>
+<latex>
+\begin{table}
+\centering
+{\footnotesize
+\rowcolors{2}{TableOdd}{TableEven}
+\begin{tabular}{lll}
+\hline
+\textbf{Name} & \textbf{Meaning} & \textbf{Example} \\
+\hline
+Constant & Is the value of the item in the datom equal to the constant? & \verb|:likes| \\
+Variable & Bind the value of the item in the datom to the variable and return true. & \verb|?e| \\
+Don't-care & Always returns true. & \verb|_| \\
+Unary operator & \begin{tabular}{@{}l@{}} Unary operation that takes a variable as its operand. \\ Bind the datom's item's value to the variable (unless it's an \verb|_|). \\  Replace the variable with the value of the item in the datom. \\ Return the application of the operation. \end{tabular} & \verb|(birthday-this-month? _)| \\
+Binary operator & \begin{tabular}{@{}l@{}} A binary operation that must have a variable as one of its operands. \\ Bind the datom's item's value to the variable (unless it's an \verb|_|). \\ Replace the variable with the value of the item in the datom. \\ Return the result of the operation. \end{tabular} & \verb|(&gt; ?age 20)| \\
+\hline
+\end{tabular}
+}
+\caption{Predicates}
+\label{500l.functionaldb.predicates}
+\end{table}
+</latex>
 
 #### Limitations of our Query Language 
 
@@ -745,7 +808,7 @@ While these design decisions result in a query language that is less rich than D
 
 ### Query Engine Design
 
-While our query language allows the user to specify _what_ they want to access, it hides the details of _how_ this will be accomplished. The `query engine` is the database component responsible for yielding the data for a given query. 
+While our query language allows the user to specify _what_ they want to access, it hides the details of _how_ this will be accomplished. The query engine is the database component responsible for yielding the data for a given query. 
 
 This involves four steps:
 
@@ -764,7 +827,7 @@ The `:find` part of the query is transformed into a set of the given variable na
 (defmacro symbol-col-to-set [coll] (set (map str coll)))
 ```
 
-The `:where` part of the query retains its nested vector structure. However, each of the terms in each of the clauses is replaced with a predicate according to Table 3. 
+The `:where` part of the query retains its nested vector structure. However, each of the terms in each of the clauses is replaced with a predicate according to \aosatblref{500l.functionaldb.predicates}. 
 
 ```clojure
 (defmacro clause-term-expr [clause-term]
@@ -813,8 +876,9 @@ At the end of this phase, our example yields the following set for the `:find` p
 #{"?nm" "?bd"} 
 ``` 
 
-and the following structure for the `:where` part. (Each cell in the _Predicate Clause_ column holds the metadata found in its neighbor at the _Meta Clause_ column.)
+and the following structure in \aosatblref{500l.functionaldb.clauses} for the `:where` part. (Each cell in the _Predicate Clause_ column holds the metadata found in its neighbor at the _Meta Clause_ column.)
 
+<markdown>
 <table>
 <tr>
 	<td>Query Clause</td>
@@ -843,6 +907,28 @@ and the following structure for the `:where` part. (Each cell in the _Predicate 
 </td>
 </tr>
 </table>
+: \label{500l.functionaldb.clauses} Clauses
+</markdown>
+<latex>
+\begin{table}
+\centering
+{\footnotesize
+\rowcolors{2}{TableOdd}{TableEven}
+\begin{tabular}{lll}
+\hline
+\textbf{Query Clause} & \textbf{Predicate Clause} & \textbf{Meta Clause} \\
+\hline
+\verb|[?e  :likes "pizza"]| & \verb|[#(= % %)  #(= % :likes)  #(= % "pizza")]| & \verb|["?e" nil nil]| \\
+\verb|[?e  :name  ?nm]| & \verb|[#(= % %)  #(= % :name) #(= % %)]| & \verb|["?e" nil "?nm"]| \\
+\verb|[?e  :speak "English"]| & \verb|[#(= % %) #(= % :speak) #(= % "English")]| & \verb|["?e" nil nil]| \\
+\verb|[?e  :birthday (birthday-this-month? ?bd)]| & \verb|[#(= % %) #(= % :birthday) #(birthday-this-month? %)]| & \verb|["?e" nil "?bd"]| \\
+\hline
+\end{tabular}
+}
+\caption{Clauses}
+\label{500l.functionaldb.clauses}
+\end{table}
+</latex>
 
 This structure acts as the query that is executed in a later phase, once the engine decides on the right plan of execution.
 
@@ -850,8 +936,9 @@ This structure acts as the query that is executed in a later phase, once the eng
 
 In this phase, we inspect the query in order to construct a good plan to produce the result it describes.
 
-In general, this will involve choosing the appropriate index and constructing a plan in the form of a function.  We choose the index based on the _single_ joining variable (that can operate on only a single kind of element).
+In general, this will involve choosing the appropriate index (\aosatblref{500l.functionaldb.indexselection}) and constructing a plan in the form of a function.  We choose the index based on the _single_ joining variable (that can operate on only a single kind of element).
 
+<markdown>
 <table>
 	<tr>
 		<td>Joining variable operates on</td><td>Index to use</td>
@@ -866,6 +953,27 @@ In general, this will involve choosing the appropriate index and constructing a 
 		<td>Attribute values</td><td>EAVT</td>
 	</tr>
 </table>
+: \label{500l.functionaldb.indexselection} Index Selection
+</markdown>
+<latex>
+\begin{table}
+\centering
+{\footnotesize
+\rowcolors{2}{TableOdd}{TableEven}
+\begin{tabular}{ll}
+\hline
+\textbf{Joining variable operates on} & \textbf{Index to use} \\
+\hline
+Entity IDs & AVET \\
+Attribute names & VEAT \\
+Attribute values & EAVT \\
+\hline
+\end{tabular}
+}
+\caption{Index Selection}
+\label{500l.functionaldb.indexselection}
+\end{table}
+</latex>
 
 The reasoning behind this mapping will become clearer in the next section, when we actually execute the plan produced. For now, just note that the key here is to select an index whose leaves hold the elements that the joining variable operates on.
 
@@ -905,8 +1013,9 @@ We saw in the previous phase that the query plan we construct ends by calling `s
    (let [q-res (query-index (indx-at db indx) query)]
      (bind-variables-to-query q-res (indx-at db indx))))
 ```
-To better explain this process we'll demonstrate it using our exemplary query, assuming that our database holds these entities:
+To better explain this process we'll demonstrate it using our exemplary query, assuming that our database holds the entities in \aosatblref{500l.functionaldb.exampleentities}.
 
+<markdown>
 <table>
 <tr>
 	<td>Entity ID</td>
@@ -953,6 +1062,27 @@ To better explain this process we'll demonstrate it using our exemplary query, a
 	</td>
 </tr>
 </table>
+: \label{500l.functionaldb.exampleentities}
+</markdown>
+<latex>
+\begin{table}
+\centering
+{\footnotesize
+\rowcolors{2}{TableOdd}{TableEven}
+\begin{tabular}{lll}
+\hline
+\textbf{Entity ID} & \textbf{Attribute Name} & \textbf{Attribute Value} \\
+\hline
+1 & \begin{tabular}{@{}l@{}} \verb|:name| \\ \verb|:likes| \\ \verb|:speak| \\ \verb|:birthday| \end{tabular} & \begin{tabular}{@{}l@{}} USA \\ Pizza \\ English \\ July 4, 1776 \end{tabular} \\
+2 & \begin{tabular}{@{}l@{}} \verb|:name| \\ \verb|:likes| \\ \verb|:speak| \\ \verb|:birthday| \end{tabular} & \begin{tabular}{@{}l@{}} France \\ Red wine \\ French \\ July 14, 1789 \end{tabular} \\
+3 & \begin{tabular}{@{}l@{}} \verb|:name| \\ \verb|:likes| \\ \verb|:speak| \\ \verb|:birthday| \end{tabular} & \begin{tabular}{@{}l@{}} Canada \\ Snow \\ English \\ July 1, 1867 \end{tabular} \\
+\hline
+\end{tabular}
+}
+\caption{Example entities}
+\label{500l.functionaldb.exampleentities}
+\end{table}
+</latex>
 
 Now it is time to go deeper into the rabbit hole and take a look at the `query-index` function, where our query finally begins to yield some results:
 
@@ -986,7 +1116,8 @@ All of this is done in the function `filter-index`.
          :let [res (set (filter lvl3-prd l3-set))] ]
      (with-meta [k1 k2 res] (meta pred-clause))))
 ```
-Assuming the query was executed on July 4th, the results of executing it on the above data are:
+Assuming the query was executed on July 4th, the results of executing it on the above data are seen in \aosatblref{500l.functionaldb.queryresults}.
+<markdown>
 <table>
 <tr>
 <td>Result Clause</td><td>Result Meta</td>
@@ -1016,6 +1147,33 @@ Assuming the query was executed on July 4th, the results of executing it on the 
 <td>[:birthday "July 1, 1867" {3}]</td><td>["?e" nil "?bd"]</td>
 </tr>
 </table>
+: \label{500l.functionaldb.queryresults}
+</markdown>
+<latex>
+\begin{table}
+\centering
+{\footnotesize
+\rowcolors{2}{TableOdd}{TableEven}
+\begin{tabular}{ll}
+\hline
+\textbf{Result Clause} & \textbf{Result Meta} \\
+\hline
+\verb|[:likes Pizza #{1}]| & \verb|["?e" nil nil]| \\
+\verb|[:name USA #{1}]| & \verb|["?e" nil "?nm"]| \\
+\verb|[:speak "English" #{1, 3}]| & \verb|["?e" nil nil]| \\
+\verb|[:birthday "July 4, 1776" #{1}]| & \verb|["?e" nil "?bd"]| \\
+\verb|[:name France #{2}]| & \verb|["?e" nil "?nm"]| \\
+\verb|[:birthday "July 14, 1789" #{2}]| & \verb|["?e" nil "?bd"]| \\
+\verb|[:name Canada #{3}]| & \verb|["?e" nil "?nm"]| \\
+\verb|[:birthday "July 1, 1867" {3}]| & \verb|["?e" nil "?bd"]| \\
+\hline
+\end{tabular}
+}
+\caption{Query results}
+\label{500l.functionaldb.queryresults}
+\end{table}
+</latex>
+
 Once we have produced all of the result clauses, we need to perform an `AND` operation between them. This is done by finding all of the elements that passed all the predicate clauses:
 
 ```clojure
@@ -1038,8 +1196,9 @@ We now have to remove the items that didn’t pass all of the conditions:
      (update-in path [2] CS/intersection relevant-items))
 ```
 
-Finally, we remove all of the result clauses that are "empty" (i.e., their last item is empty). We do this in the last line of the `query-index` function. Our example leaves us with the following items:
+Finally, we remove all of the result clauses that are "empty" (i.e., their last item is empty). We do this in the last line of the `query-index` function. Our example leaves us with the items in \aosatblref{500.functionaldb.filteredqueryresults}.
 
+<markdown>
 <table>
 <tr>
 <td>Result Clause</td><td>Result Meta</td>
@@ -1057,6 +1216,29 @@ Finally, we remove all of the result clauses that are "empty" (i.e., their last 
 <td>[:speak "English" #{1}]</td><td>["?e" nil nil]</td>
 </tr>
 </table>
+: \label{500l.functionaldb.filteredqueryresults}
+</markdown>
+<latex>
+\begin{table}
+\centering
+{\footnotesize
+\rowcolors{2}{TableOdd}{TableEven}
+\begin{tabular}{ll}
+\hline
+\textbf{Result Clause} & \textbf{Result Meta} \\
+\hline
+\verb|[:likes Pizza #{1}]| & \verb|["?e" nil nil]| \\
+\verb|[:name USA #{1}]| & \verb|["?e" nil "?nm"]| \\ 
+\verb|[:birthday "July 4, 1776" #{1}]| & \verb|["?e" nil "?bd"]| \\
+\verb|[:speak "English" #{1}]| & \verb|["?e" nil nil]| \\
+\hline
+\end{tabular}
+}
+\caption{Filtered query results}
+\label{500l.functionaldb.filteredqueryresults}
+\end{table}
+</latex>
+
 We are now ready to report the results. The result clause structure is unwieldy for this purpose, so we will convert it into an an index-like structure (map of maps) --- with a significant twist. 
 
 To understand the twist, we must first introduce the idea of a _binding pair_, which is a pair that matches a variable name to its value. The variable name is the one used at the predicate clauses, and the value is the value found in the result clauses.

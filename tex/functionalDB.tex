@@ -33,8 +33,8 @@ found, the answer would be ``hopefully, it's just buried underneath''.
 based on visiting a few museums, reading several Wikipedia articles, and
 watching the entire Indiana Jones series.)
 
-\aosasectii{From Archaeology to
-Databases}\label{from-archaeology-to-databases}
+\aosasectii{Designing a Database Like an
+Archaeologist}\label{designing-a-database-like-an-archaeologist}
 
 If we were to ask our friendly archaeologist to design a database, we
 might expect the requirements to reflect what would be found at an
@@ -66,16 +66,15 @@ This analogy is visualized in \aosafigref{500l.functionaldb.exc}:
 \item
   Each ring is a \emph{layer} (here numbered from 0 to 4).
 \item
-  Each slice is a labeled artifact (`a' through `e').
+  Each slice is a labeled artifact (`A' through `E').
 \item
-  Each artifact has a `color' attribute (where white means that no
+  Each artifact has a `symbol' attribute (where a blank means that no
   update was made).
 \item
-  Black arrows denote a change in color between layers (e.g., from
-  c.color @t2 to c.color @t0).
+  Solid arrows denote a change in symbol between layers
 \item
-  Light blue arrows are arbitrary relationships of interest between
-  artifacts (e.g., from `b' to `d').
+  Dotted arrows are arbitrary relationships of interest between
+  artifacts (e.g., from `E' to `A').
 \end{aosaitemize}
 
 \aosafigure[240pt]{functionalDB-images/image_0.png}{The Excavation Site}{500l.functionaldb.exc}
@@ -290,12 +289,11 @@ For example, let's look at at the index sketched in
 \begin{aosaitemize}
 
 \item
-  The first level stores entity-IDs (the blueish area).
+  The first level stores entity-IDs
 \item
-  The second level stores the related attribute-names (the greenish
-  area).
+  The second level stores the related attribute-names
 \item
-  The third level stores the related value (the pinkish area).
+  The third level stores the related value
 \end{aosaitemize}
 
 This index is named EAVT, as the top level map holds Entity IDs, the
@@ -350,70 +348,64 @@ in this index or not.
  (defn usage-pred [index] (:usage-pred (meta index)))
 \end{verbatim}
 
-In our database there are four indexes: EAVT (see Figure 2), AVET (see
-Figure 3), VEAT and VAET. We can access these as a vector of values
-returned from the \texttt{indexes} function.
+In our database there are four indexes: EAVT (see
+\aosafigref{500l.functionaldb.eavt}), AVET (see
+\aosafigref{500l.functionaldb.avet}), VEAT and VAET. We can access these
+as a vector of values returned from the \texttt{indexes} function.
 
 \begin{verbatim}
 (defn indexes[] [:VAET :AVET :VEAT :EAVT])
 \end{verbatim}
 
 To demonstrate how all of this comes together, the result of indexing
-the following five entities is visualized in the table below (the color
-coding follows the color coding of Figure 2 and Figure 3).
+the following five entities is visualized in
+\aosatblref{500l.functionaldb.indextable}.
 
 \begin{aosaenumerate}
 \def\labelenumi{\arabic{enumi}.}
 
 \item
-  {Julius Caesar} (also known as JC) {lives in} {Rome}
+  Julius Caesar (also known as JC) lives in Rome
 \item
-  {Brutus} (also known as B) {lives in} {Rome}
+  Brutus (also known as B) lives in Rome
 \item
-  {Cleopatra} (also known as Cleo) {lives in} {Egypt}
+  Cleopatra (also known as Cleo) lives in Egypt
 \item
-  {Rome}'s {river} is the {Tiber}
+  Rome's river is the Tiber
 \item
-  {Egypt}'s {river} is the {Nile}
+  Egypt's river is the Nile
 \end{aosaenumerate}
 
-EAVT index
-
-AVET index
-
-{JC} ⇒ \{{lives-in} ⇒ \{{Rome}\}\}
-
-{B} ⇒ \{{lives-in} ⇒ \{{Rome}\}\}
-
-{Cleo} ⇒ \{{lives-in} ⇒ \{{Egypt}\}\}
-
-{Rome} ⇒ \{{river} ⇒ \{{Tiber}\}\}
-
-{Egypt} ⇒ \{{river} ⇒ \{{Nile}\}\}
-
-{lives-in} ⇒ \{{Rome} ⇒ \{{JC, B}\}\} \{{Egypt} ⇒ \{{Cleo}\}\}
-
-{river} ⇒ \{{Rome} ⇒ \{{Tiber}\}\} \{{Egypt} ⇒ \{{Nile}\}\}
-
-VEAT index
-
-VAET index
-
-{Rome} ⇒ \{{JC} ⇒ \{{lives-in}\}\} \{{B} ⇒ \{{lives-in}\}\}
-
-{Egypt} ⇒ \{{Cleo} ⇒ \{{lives-in}\}\}
-
-{Tiber} ⇒ \{{Rome} ⇒ \{{river}\}\}
-
-{Nile} ⇒ \{{Egypt} ⇒ \{{river}\}\}
-
-{Rome} ⇒ \{{lives-in} ⇒ \{{JC, B}\}\}
-
-{Egypt} ⇒ \{{lives-in} ⇒ \{{Cleo}\}\}
-
-{Tiber} ⇒ \{{river} ⇒ \{{Rome}\}\}
-
-{Nile} ⇒ \{{river} ⇒ \{{Egypt}\}\}
+\begin{table}
+\centering
+{\footnotesize
+\rowcolors{2}{TableOdd}{TableEven}
+\begin{tabular}{ll}
+\hline
+\textbf{EAVT index}
+& \textbf{AVET index}
+\\
+\hline
+JC $\Rightarrow$ \{lives-in $\Rightarrow$ \{Rome\}\} & lives-in $\Rightarrow$ \{Rome $\Rightarrow$ \{JC, B\}\}, \{Egypt $\Rightarrow$ \{Cleo\}\} \\
+B $\Rightarrow$ \{lives-in $\Rightarrow$ \{Rome\}\}  & river $\Rightarrow$ \{Rome $\Rightarrow$ \{Tiber\}\}, \{Egypt $\Rightarrow$ \{Nile\}\} \\
+Cleo $\Rightarrow$ \{lives-in $\Rightarrow$ \{Egypt\}\} & \\ 
+Rome $\Rightarrow$ \{river $\Rightarrow$ \{Tiber\}\}  & \\ 
+Egypt $\Rightarrow$ \{river $\Rightarrow$ \{Nile\}\}  & \\
+\hline
+\textbf{VEAT index}
+& \textbf{VAET index}
+\\
+\hline
+Rome $\Rightarrow$ \{JC $\Rightarrow$ \{lives-in\}\}, \{B $\Rightarrow$ \{lives-in\}\} & Rome $\Rightarrow$ \{lives-in $\Rightarrow$ \{JC, B\}\} \\
+Egypt $\Rightarrow$ \{Cleo $\Rightarrow$ \{lives-in\}\}                                & Egypt $\Rightarrow$ \{lives-in $\Rightarrow$ \{Cleo\}\} \\ 
+Tiber $\Rightarrow$ \{Rome $\Rightarrow$ \{river\}\}                                   & Tiber $\Rightarrow$ \{river $\Rightarrow$ \{Rome\}\} \\
+Nile $\Rightarrow$ \{Egypt $\Rightarrow$ \{river\}\}                                   & Nile $\Rightarrow$ \{river $\Rightarrow$ \{Egypt\}\} \\
+\hline
+\end{tabular}
+}
+\caption{Indexes}
+\label{500l.functionaldb.indextable}
+\end{table}
 
 \aosasectii{Database}\label{database}
 
@@ -427,22 +419,29 @@ Initializing our database means:
 \item
   creating a set of empty indexes
 \item
-  setting its \texttt{top-id} and \texttt{curr-time} to be 0 ```clojure
-  (defn ref? {[}attr{]} (= :db/ref (:type (meta attr))))
+  setting its \texttt{top-id} and \texttt{curr-time} to be 0
 \end{aosaitemize}
 
-(defn always{[}\& more{]} true)
+\begin{verbatim}
+(defn ref? [attr] (= :db/ref (:type (meta attr))))
 
-(defn make-db {[}{]} (atom (Database. {[}(Layer. (fdb.storage.InMemory.)
-; storage (make-index \#(vector \%3 \%2 \%1) \#(vector \%3 \%2 \%1)
-\#(ref? \%)); VAET\\ (make-index \#(vector \%2 \%3 \%1) \#(vector \%3
-\%1 \%2) always); AVET\\ (make-index \#(vector \%3 \%1 \%2) \#(vector
-\%2 \%3 \%1) always); VEAT\\ (make-index \#(vector \%1 \%2 \%3)
-\#(vector \%1 \%2 \%3) always); EAVT ){]} 0 0))) ``` There is one snag,
-though: all collections in Clojure are immutable. Since write operations
-are pretty critical in a database, we define our structure to be an
-\emph{Atom}, which is a Clojure reference type that provides the
-capability of atomic writes.
+(defn always[& more] true)
+
+(defn make-db []
+   (atom 
+       (Database. [(Layer.
+                   (fdb.storage.InMemory.) ; storage
+                   (make-index #(vector %3 %2 %1) #(vector %3 %2 %1) #(ref? %)); VAET                     
+                   (make-index #(vector %2 %3 %1) #(vector %3 %1 %2) always); AVET                        
+                   (make-index #(vector %3 %1 %2) #(vector %2 %3 %1) always); VEAT                       
+                   (make-index #(vector %1 %2 %3) #(vector %1 %2 %3) always); EAVT
+                  )] 0 0)))
+\end{verbatim}
+
+There is one snag, though: all collections in Clojure are immutable.
+Since write operations are pretty critical in a database, we define our
+structure to be an \emph{Atom}, which is a Clojure reference type that
+provides the capability of atomic writes.
 
 You may be wondering why we use the \texttt{always} function for the
 AVET, VEAT and EAVT indexes, and the \texttt{ref?} predicate for the
@@ -608,29 +607,23 @@ database and update the storage in that layer with a new layer. The
 results of this operation are assigned to the
 \texttt{layer-with-updated-storage} local variable.
 
-Finally, we must update the indexes. This means:
+Finally, we must update the indexes. This means, for each of the indexes
+(done by the combination of \texttt{reduce} and the \texttt{partial}-ed
+\texttt{add-entity-to-index} at the \texttt{add-entity} function):
 
 \begin{aosaitemize}
 
 \item
-  For each of the indexes (done by the combination of \texttt{reduce}
-  and the \texttt{partial}-ed \texttt{add-entity-to-index} at the
-  \texttt{add-entity} function)
-
-  \begin{aosaitemize}
-  
-  \item
-    Find the attributes that should be indexed (see the combination of
-    \texttt{filter} with the index's \texttt{usage-pred} that operates
-    on the attributes in \texttt{add-entity-to-index})
-  \item
-    Build an index-path from the the entity's ID (see the combination of
-    the \texttt{partial}-ed \texttt{update-entry-in-index} with
-    \texttt{from-eav} at the \texttt{update-attr-in-index} function)
-  \item
-    Add that path to the index (see the \texttt{update-entry-in-index}
-    function)
-  \end{aosaitemize}
+  Find the attributes that should be indexed (see the combination of
+  \texttt{filter} with the index's \texttt{usage-pred} that operates on
+  the attributes in \texttt{add-entity-to-index})
+\item
+  Build an index-path from the the entity's ID (see the combination of
+  the \texttt{partial}-ed \texttt{update-entry-in-index} with
+  \texttt{from-eav} at the \texttt{update-attr-in-index} function)
+\item
+  Add that path to the index (see the \texttt{update-entry-in-index}
+  function)
 \end{aosaitemize}
 
 \begin{verbatim}
@@ -792,7 +785,7 @@ creation of the black arrows in Figure 1:
 (defn- update-attr-value [attr value operation]
    (cond
       (single? attr)    (assoc attr :value #{value})
-    ; now we're talking about an attribute of multiple values
+      ; now we're talking about an attribute of multiple values
       (= :db/reset-to operation)  (assoc attr :value value)
       (= :db/add operation) (assoc attr :value (CS/union (:value attr) value))
       (= :db/remove operation) (assoc attr :value (CS/difference (:value attr) value))))
@@ -897,21 +890,19 @@ That transformation occurs in the following transaction call chain:
 transact →  _transact → swap! → transact-on-db
 \end{verbatim}
 
-\begin{aosaitemize}
-\item
-  Users call \texttt{transact} with the \texttt{Atom} (i.e., the
-  database connection) and the operations to perform, which relays its
-  input to \texttt{\_transact}, adding to it the name of the function
-  that updates the \texttt{Atom} (\texttt{swap!}).
+Users call \texttt{transact} with the \texttt{Atom} (i.e., the database
+connection) and the operations to perform, which relays its input to
+\texttt{\_transact}, adding to it the name of the function that updates
+the \texttt{Atom} (\texttt{swap!}).
 
 \begin{verbatim}
 (defmacro transact [db-conn & txs]  `(_transact ~db-conn swap! ~@txs))
 \end{verbatim}
-\item
-  \texttt{\_transact} prepares the call to \texttt{swap!}. It does so by
-  creating a list that begins with \texttt{swap!}, followed by the
-  db-connection (the \texttt{Atom}), then the \texttt{transact-on-db}
-  symbol and the batch of operations.
+
+\texttt{\_transact} prepares the call to \texttt{swap!}. It does so by
+creating a list that begins with \texttt{swap!}, followed by the
+db-connection (the \texttt{Atom}), then the \texttt{transact-on-db}
+symbol and the batch of operations.
 
 \begin{verbatim}
 (defmacro  _transact [db op & txs]
@@ -921,13 +912,10 @@ transact →  _transact → swap! → transact-on-db
            (recur rst-tx# res#  (conj  accum-txs#  (vec frst-tx#)))
            (list* (conj res#  accum-txs#))))))
 \end{verbatim}
-\item
-  \texttt{swap!} invokes \texttt{transact-on-db} within a transaction
-  (with the previously prepared arguments).
-\item
-  \texttt{transact-on-db} creates the new state of the database and
-  returns it.
-\end{aosaitemize}
+
+\texttt{swap!} invokes \texttt{transact-on-db} within a transaction
+(with the previously prepared arguments), and \texttt{transact-on-db}
+creates the new state of the database and returns it.
 
 At this point we can see that with few minor tweaks, we can also provide
 a way to ask ``what if'' questions. This can be done by replacing
@@ -935,29 +923,24 @@ a way to ask ``what if'' questions. This can be done by replacing
 system. This scenario is implemented with the \texttt{what-if} call
 chain:
 
-what-if → \emph{transact → }what-if → transact-on-db
+\texttt{what-if} $\to$ \texttt{\_transact} $\to$ \texttt{\_what-if}
+$\to$ \texttt{transact-on-db}
 
-\begin{aosaitemize}
-\item
-  The user calls \texttt{what-if} with the database value and the
-  operations to perform. It then relays these inputs to
-  \texttt{\_transact}, adding to them a function that mimics
-  \texttt{swap!}'s APIs, without its effect (callled
-  \texttt{\_what-if}).
+The user calls \texttt{what-if} with the database value and the
+operations to perform. It then relays these inputs to
+\texttt{\_transact}, adding to them a function that mimics
+\texttt{swap!}'s APIs, without its effect (callled \texttt{\_what-if}).
 
 \begin{verbatim}
 (defmacro what-if [db & ops]  `(_transact ~db _what-if  ~@ops))
 \end{verbatim}
-\item
-  \texttt{\_transact} prepares the call to \texttt{\_what-if}. It does
-  so by creating a list that begins with \texttt{\_what-if}, followed by
-  the database, then the \texttt{transact-on-db} symbol and the batch of
-  operations.
-\item
-  \texttt{\_what-if} invokes \texttt{transact-on-db}, just like
-  \texttt{swap!} does in the transaction scenario, but does not inflict
-  any change on the system.
-\end{aosaitemize}
+
+\texttt{\_transact} prepares the call to \texttt{\_what-if}. It does so
+by creating a list that begins with \texttt{\_what-if}, followed by the
+database, then the \texttt{transact-on-db} symbol and the batch of
+operations. \texttt{\_what-if} invokes \texttt{transact-on-db}, just
+like \texttt{swap!} does in the transaction scenario, but does not
+inflict any change on the system.
 
 \begin{verbatim}
 (defn- _what-if [db f txs]  (f db txs))
@@ -989,7 +972,7 @@ which becomes:
 (swap! db-conn transact-on-db [[add-entity e1][update-entity e2 atr2 val2 :db/add]])
 \end{verbatim}
 
-The what-if user call:
+For what-if, the user call:
 
 \begin{verbatim}
 (what-if my-db (add-entity e3) (remove-entity e4))
@@ -1047,7 +1030,7 @@ extract all the outgoing references from that entity. This is done by
 the \texttt{outgoing-refs} function.
 
 \begin{verbatim}
-(defn outgoing-refs [db ts ent-id & needed-keys]
+(defn outgoing-refs [db ts ent-id & ref-names]
    (let [val-filter-fn (if ref-names #(vals (select-keys ref-names %)) vals)]
    (if-not ent-id []
      (->> (entity-at db ts ent-id)
@@ -1128,50 +1111,29 @@ We fulfill both of these requirements using \emph{variables}, which are
 denoted with a leading \texttt{?}. The only exception to this definition
 is the ``don't care'' variable ``\_" (underscore).
 
-A clause in a query is composed of three predicates. The following table
-defines what can act as a predicate in our query language:
+A clause in a query is composed of three predicates;
+\aosatblref{500l.functionaldb.predicates} defines what can act as a
+predicate in our query language.
 
-Name
-
-Meaning
-
-Example
-
-Constant
-
-Is the value of the item in the datom equal to the constant?
-
-:likes
-
-Variable
-
-Bind the value of the item in the datom to the variable and return true.
-
-?e
-
-Don't-care
-
-Always returns true.
-
-\_
-
-Unary operator
-
-Unary operation that takes a variable as its operand. Bind the datom's
-item's value to the variable (unless it's an '\_'). Replace the variable
-with the value of the item in the datom. Return the application of the
-operation.
-
-(birthday-this-month? \_)
-
-Binary operator
-
-A binary operation that must have a variable as one of its operands.
-Bind the datom's item's value to the variable (unless it's an '\_').\\
-Replace the variable with the value of the item in the datom. Return the
-result of the operation.
-
-(\textgreater{} ?age 20)
+\begin{table}
+\centering
+{\footnotesize
+\rowcolors{2}{TableOdd}{TableEven}
+\begin{tabular}{lll}
+\hline
+\textbf{Name} & \textbf{Meaning} & \textbf{Example} \\
+\hline
+Constant & Is the value of the item in the datom equal to the constant? & \verb|:likes| \\
+Variable & Bind the value of the item in the datom to the variable and return true. & \verb|?e| \\
+Don't-care & Always returns true. & \verb|_| \\
+Unary operator & \begin{tabular}{@{}l@{}} Unary operation that takes a variable as its operand. \\ Bind the datom's item's value to the variable (unless it's an \verb|_|). \\  Replace the variable with the value of the item in the datom. \\ Return the application of the operation. \end{tabular} & \verb|(birthday-this-month? _)| \\
+Binary operator & \begin{tabular}{@{}l@{}} A binary operation that must have a variable as one of its operands. \\ Bind the datom's item's value to the variable (unless it's an \verb|_|). \\ Replace the variable with the value of the item in the datom. \\ Return the result of the operation. \end{tabular} & \verb|(&gt; ?age 20)| \\
+\hline
+\end{tabular}
+}
+\caption{Predicates}
+\label{500l.functionaldb.predicates}
+\end{table}
 
 \aosasectiii{Limitations of our Query
 Language}\label{limitations-of-our-query-language}
@@ -1247,7 +1209,7 @@ given variable names:
 
 The \texttt{:where} part of the query retains its nested vector
 structure. However, each of the terms in each of the clauses is replaced
-with a predicate according to Table 3.
+with a predicate according to \aosatblref{500l.functionaldb.predicates}.
 
 \begin{verbatim}
 (defmacro clause-term-expr [clause-term]
@@ -1305,39 +1267,29 @@ At the end of this phase, our example yields the following set for the
 #{"?nm" "?bd"} 
 \end{verbatim}
 
-and the following structure for the \texttt{:where} part. (Each cell in
-the \emph{Predicate Clause} column holds the metadata found in its
-neighbor at the \emph{Meta Clause} column.)
+and the following structure in \aosatblref{500l.functionaldb.clauses}
+for the \texttt{:where} part. (Each cell in the \emph{Predicate Clause}
+column holds the metadata found in its neighbor at the \emph{Meta
+Clause} column.)
 
-Query Clause
-
-Predicate Clause
-
-Meta Clause
-
-{[}?e~~:likes ``pizza''{]}
-
-{[}\#(= \% \%) \#(= \% :likes) \#(= \% ``pizza''){]}
-
-{[}``?e'' nil nil{]}
-
-{[}?e~~:name~~?nm{]}
-
-{[}\#(= \% \%) \#(= \% :name) \#(= \% \%){]}
-
-{[}``?e'' nil ``?nm''{]}
-
-{[}?e~~:speak ``English''{]}
-
-{[}\#(= \% \%) \#(= \% :speak) \#(= \% ``English''){]}
-
-{[}``?e'' nil nil{]}
-
-{[}?e~~:birthday (birthday-this-month? ?bd){]}
-
-{[}\#(= \% \%) \#(= \% :birthday) \#(birthday-this-month? \%){]}
-
-{[}``?e'' nil ``?bd''{]}
+\begin{table}
+\centering
+{\footnotesize
+\rowcolors{2}{TableOdd}{TableEven}
+\begin{tabular}{lll}
+\hline
+\textbf{Query Clause} & \textbf{Predicate Clause} & \textbf{Meta Clause} \\
+\hline
+\verb|[?e  :likes "pizza"]| & \verb|[#(= % %)  #(= % :likes)  #(= % "pizza")]| & \verb|["?e" nil nil]| \\
+\verb|[?e  :name  ?nm]| & \verb|[#(= % %)  #(= % :name) #(= % %)]| & \verb|["?e" nil "?nm"]| \\
+\verb|[?e  :speak "English"]| & \verb|[#(= % %) #(= % :speak) #(= % "English")]| & \verb|["?e" nil nil]| \\
+\verb|[?e  :birthday (birthday-this-month? ?bd)]| & \verb|[#(= % %) #(= % :birthday) #(birthday-this-month? %)]| & \verb|["?e" nil "?bd"]| \\
+\hline
+\end{tabular}
+}
+\caption{Clauses}
+\label{500l.functionaldb.clauses}
+\end{table}
 
 This structure acts as the query that is executed in a later phase, once
 the engine decides on the right plan of execution.
@@ -1347,26 +1299,29 @@ the engine decides on the right plan of execution.
 In this phase, we inspect the query in order to construct a good plan to
 produce the result it describes.
 
-In general, this will involve choosing the appropriate index and
-constructing a plan in the form of a function. We choose the index based
-on the \emph{single} joining variable (that can operate on only a single
-kind of element).
+In general, this will involve choosing the appropriate index
+(\aosatblref{500l.functionaldb.indexselection}) and constructing a plan
+in the form of a function. We choose the index based on the
+\emph{single} joining variable (that can operate on only a single kind
+of element).
 
-Joining variable operates on
-
-Index to use
-
-Entity IDs
-
-AVET
-
-Attribute names
-
-VEAT
-
-Attribute values
-
-EAVT
+\begin{table}
+\centering
+{\footnotesize
+\rowcolors{2}{TableOdd}{TableEven}
+\begin{tabular}{ll}
+\hline
+\textbf{Joining variable operates on} & \textbf{Index to use} \\
+\hline
+Entity IDs & AVET \\
+Attribute names & VEAT \\
+Attribute values & EAVT \\
+\hline
+\end{tabular}
+}
+\caption{Index Selection}
+\label{500l.functionaldb.indexselection}
+\end{table}
 
 The reasoning behind this mapping will become clearer in the next
 section, when we actually execute the plan produced. For now, just note
@@ -1433,31 +1388,26 @@ calling \texttt{single-index-query-plan}. This function will:
 \end{verbatim}
 
 To better explain this process we'll demonstrate it using our exemplary
-query, assuming that our database holds these entities:
+query, assuming that our database holds the entities in
+\aosatblref{500l.functionaldb.exampleentities}.
 
-Entity ID
-
-Attribute Name
-
-Attribute Value
-
-1
-
-:name :likes :speak :birthday
-
-USA Pizza English July 4, 1776
-
-2
-
-:name :likes :speak :birthday
-
-France Red wine French July 14, 1789
-
-3
-
-:name :likes :speak :birthday
-
-Canada Snow English July 1, 1867
+\begin{table}
+\centering
+{\footnotesize
+\rowcolors{2}{TableOdd}{TableEven}
+\begin{tabular}{lll}
+\hline
+\textbf{Entity ID} & \textbf{Attribute Name} & \textbf{Attribute Value} \\
+\hline
+1 & \begin{tabular}{@{}l@{}} \verb|:name| \\ \verb|:likes| \\ \verb|:speak| \\ \verb|:birthday| \end{tabular} & \begin{tabular}{@{}l@{}} USA \\ Pizza \\ English \\ July 4, 1776 \end{tabular} \\
+2 & \begin{tabular}{@{}l@{}} \verb|:name| \\ \verb|:likes| \\ \verb|:speak| \\ \verb|:birthday| \end{tabular} & \begin{tabular}{@{}l@{}} France \\ Red wine \\ French \\ July 14, 1789 \end{tabular} \\
+3 & \begin{tabular}{@{}l@{}} \verb|:name| \\ \verb|:likes| \\ \verb|:speak| \\ \verb|:birthday| \end{tabular} & \begin{tabular}{@{}l@{}} Canada \\ Snow \\ English \\ July 1, 1867 \end{tabular} \\
+\hline
+\end{tabular}
+}
+\caption{Example entities}
+\label{500l.functionaldb.exampleentities}
+\end{table}
 
 Now it is time to go deeper into the rabbit hole and take a look at the
 \texttt{query-index} function, where our query finally begins to yield
@@ -1508,43 +1458,31 @@ All of this is done in the function \texttt{filter-index}.
 \end{verbatim}
 
 Assuming the query was executed on July 4th, the results of executing it
-on the above data are:
+on the above data are seen in
+\aosatblref{500l.functionaldb.queryresults}.
 
-Result Clause
-
-Result Meta
-
-{[}:likes Pizza \#\{1\}{]}
-
-{[}``?e'' nil nil{]}
-
-{[}:name USA \#\{1\}{]}
-
-{[}``?e'' nil ``?nm''{]}
-
-{[}:speak ``English'' \#\{1, 3\}{]}
-
-{[}``?e'' nil nil{]}
-
-{[}:birthday ``July 4, 1776'' \#\{1\}{]}
-
-{[}``?e'' nil ``?bd''{]}
-
-{[}:name France \#\{2\}{]}
-
-{[}``?e'' nil ``?nm''{]}
-
-{[}:birthday ``July 14, 1789'' \#\{2\}{]}
-
-{[}``?e'' nil ``?bd''{]}
-
-{[}:name Canada \#\{3\}{]}
-
-{[}``?e'' nil ``?nm''{]}
-
-{[}:birthday ``July 1, 1867'' \{3\}{]}
-
-{[}``?e'' nil ``?bd''{]}
+\begin{table}
+\centering
+{\footnotesize
+\rowcolors{2}{TableOdd}{TableEven}
+\begin{tabular}{ll}
+\hline
+\textbf{Result Clause} & \textbf{Result Meta} \\
+\hline
+\verb|[:likes Pizza #{1}]| & \verb|["?e" nil nil]| \\
+\verb|[:name USA #{1}]| & \verb|["?e" nil "?nm"]| \\
+\verb|[:speak "English" #{1, 3}]| & \verb|["?e" nil nil]| \\
+\verb|[:birthday "July 4, 1776" #{1}]| & \verb|["?e" nil "?bd"]| \\
+\verb|[:name France #{2}]| & \verb|["?e" nil "?nm"]| \\
+\verb|[:birthday "July 14, 1789" #{2}]| & \verb|["?e" nil "?bd"]| \\
+\verb|[:name Canada #{3}]| & \verb|["?e" nil "?nm"]| \\
+\verb|[:birthday "July 1, 1867" {3}]| & \verb|["?e" nil "?bd"]| \\
+\hline
+\end{tabular}
+}
+\caption{Query results}
+\label{500l.functionaldb.queryresults}
+\end{table}
 
 Once we have produced all of the result clauses, we need to perform an
 \texttt{AND} operation between them. This is done by finding all of the
@@ -1573,28 +1511,27 @@ We now have to remove the items that didn't pass all of the conditions:
 
 Finally, we remove all of the result clauses that are ``empty'' (i.e.,
 their last item is empty). We do this in the last line of the
-\texttt{query-index} function. Our example leaves us with the following
-items:
+\texttt{query-index} function. Our example leaves us with the items in
+\aosatblref{500.functionaldb.filteredqueryresults}.
 
-Result Clause
-
-Result Meta
-
-{[}:likes Pizza \#\{1\}{]}
-
-{[}``?e'' nil nil{]}
-
-{[}:name USA \#\{1\}{]}
-
-{[}``?e'' nil ``?nm''{]}
-
-{[}:birthday ``July 4, 1776'' \#\{1\}{]}
-
-{[}``?e'' nil ``?bd''{]}
-
-{[}:speak ``English'' \#\{1\}{]}
-
-{[}``?e'' nil nil{]}
+\begin{table}
+\centering
+{\footnotesize
+\rowcolors{2}{TableOdd}{TableEven}
+\begin{tabular}{ll}
+\hline
+\textbf{Result Clause} & \textbf{Result Meta} \\
+\hline
+\verb|[:likes Pizza #{1}]| & \verb|["?e" nil nil]| \\
+\verb|[:name USA #{1}]| & \verb|["?e" nil "?nm"]| \\ 
+\verb|[:birthday "July 4, 1776" #{1}]| & \verb|["?e" nil "?bd"]| \\
+\verb|[:speak "English" #{1}]| & \verb|["?e" nil nil]| \\
+\hline
+\end{tabular}
+}
+\caption{Filtered query results}
+\label{500l.functionaldb.filteredqueryresults}
+\end{table}
 
 We are now ready to report the results. The result clause structure is
 unwieldy for this purpose, so we will convert it into an an index-like
