@@ -325,10 +325,10 @@ We now have all the components we need to construct our database. Initializing o
    (atom 
        (Database. [(Layer.
                    (fdb.storage.InMemory.) ; storage
-                   (make-index #(vector %3 %2 %1) #(vector %3 %2 %1) #(ref? %)); VAET                     
-                   (make-index #(vector %2 %3 %1) #(vector %3 %1 %2) always); AVET                        
-                   (make-index #(vector %3 %1 %2) #(vector %2 %3 %1) always); VEAT                       
-                   (make-index #(vector %1 %2 %3) #(vector %1 %2 %3) always); EAVT
+                   (make-index #(vector %3 %2 %1) #(vector %3 %2 %1) #(ref? %));VAET                     
+                   (make-index #(vector %2 %3 %1) #(vector %3 %1 %2) always);AVET                        
+                   (make-index #(vector %3 %1 %2) #(vector %2 %3 %1) always);VEAT                       
+                   (make-index #(vector %1 %2 %3) #(vector %1 %2 %3) always);EAVT
                   )] 0 0)))
 ```
 There is one snag, though: all collections in Clojure are immutable. Since write operations are pretty critical in a database, we define our structure to be an *Atom*, which is a Clojure reference type that provides the capability of atomic writes. 
@@ -447,13 +447,18 @@ Finally, we must update the indexes. This means, for each of the indexes (done b
          all-attrs  (vals (:attrs ent))
          relevant-attrs (filter #((usage-pred index) %) all-attrs)
          add-in-index-fn (fn [ind attr] 
-                                 (update-attr-in-index ind ent-id (:name attr) (:value attr) :db/add))]
+                                 (update-attr-in-index ind ent-id (:name attr) 
+                                                                  (:value attr) 
+                                                                  :db/add))]
         (assoc layer ind-name  (reduce add-in-index-fn index relevant-attrs))))
 
 (defn- update-attr-in-index [index ent-id attr-name target-val operation]
    (let [colled-target-val (collify target-val)
-         update-entry-fn (fn [indx vl] 
-                                 (update-entry-in-index indx ((from-eav index) ent-id attr-name vl) operation))]
+         update-entry-fn (fn [ind vl] 
+                             (update-entry-in-index 
+                                ind 
+                                ((from-eav index) ent-id attr-name vl) 
+                                operation))]
      (reduce update-entry-fn index colled-target-val)))
      
 (defn- update-entry-in-index [index path operation]
@@ -522,14 +527,15 @@ As with `add-entity` and `remove-entity`, we won't actually be modifying our ent
 ```clojure
 (defn update-entity
    ([db ent-id attr-name new-val]
-    (update-entity db ent-id attr-name new-val :db/reset-to ))
+    (update-entity db ent-id attr-name new-val :db/reset-to))
    ([db ent-id attr-name new-val operation]
       (let [update-ts (next-ts db)
             layer (last (:layers db))
             attr (attr-at db ent-id attr-name)
             updated-attr (update-attr attr new-val update-ts operation)
-            fully-updated-layer (update-layer layer ent-id attr 
-                                                          updated-attr new-val operation)]
+            fully-updated-layer (update-layer layer ent-id 
+                                              attr updated-attr 
+                                              new-val operation)]
         (update-in db [:layers] conj fully-updated-layer))))
 ```
 To update an attribute, we locate it with `attr-at` and then use `update-attr` to perform the actual update. 
@@ -554,9 +560,12 @@ We use two helper functions to perform the update. `update-attr-modification-tim
    (cond
       (single? attr)    (assoc attr :value #{value})
       ; now we're talking about an attribute of multiple values
-      (= :db/reset-to operation)  (assoc attr :value value)
-      (= :db/add operation) (assoc attr :value (CS/union (:value attr) value))
-      (= :db/remove operation) (assoc attr :value (CS/difference (:value attr) value))))
+      (= :db/reset-to operation) 
+        (assoc attr :value value)
+      (= :db/add operation) 
+        (assoc attr :value (CS/union (:value attr) value))
+      (= :db/remove operation)
+        (assoc attr :value (CS/difference (:value attr) value))))
 ```
 All that remains is to remove the old value from the indexes and add the new one to them, and then construct the new layer with all of our updated components. Luckily, we can leverage the code we wrote for adding and removing entities to do this.
 
@@ -581,7 +590,9 @@ All this is done in the `transact-on-db` function, which receives the initial va
           (recur rst-ops (apply (first op) transacted (rest op)))
           (let [initial-layer  (:layers initial-db)
                 new-layer (last (:layers transacted))]
-            (assoc initial-db :layers (conj  initial-layer new-layer) :curr-time (next-ts initial-db) :top-id (:top-id transacted))))))
+            (assoc initial-db :layers (conj initial-layer new-layer) 
+                              :curr-time (next-ts initial-db) 
+                              :top-id (:top-id transacted))))))
 ``` 
 Note here that we used the term _value_, meaning that only the caller to this function is exposed to the updated state; all other users of the database are unaware of this change (as a database is a value, and therefore cannot change). 
 In order to have a system where users can be exposed to state changes performed by others, users do not interact directly with the database, but rather refer to it using another level of indirection. This additional level is implemented using Clojure's `Atom`, a reference type. Here we leverage the main three key features of an `Atom`, which are:
@@ -683,7 +694,9 @@ The information found in the VAET index can be leveraged to extract all the inco
 (defn incoming-refs [db ts ent-id & ref-names]
    (let [vaet (indx-at db :VAET ts)
          all-attr-map (vaet ent-id)
-         filtered-map (if ref-names (select-keys ref-names all-attr-map) all-attr-map)]
+         filtered-map (if ref-names 
+                          (select-keys ref-names all-attr-map) 
+                          all-attr-map)]
       (reduce into #{} (vals filtered-map))))
 ```
 We can also go through all of a given entity’s attributes and collect all the values of attributes of type `:db/ref`, and by that extract all the outgoing references from that entity. This is done by the `outgoing-refs` function.
@@ -832,11 +845,16 @@ The `:where` part of the query retains its nested vector structure. However, eac
 ```clojure
 (defmacro clause-term-expr [clause-term]
    (cond
-    (variable? (str clause-term)) #(= % %) ; variable
-    (not (coll? clause-term)) `#(= % ~clause-term) ; constant
-    (= 2 (count clause-term)) `#(~(first clause-term) %) ; unary operator
-    (variable? (str (second clause-term))) `#(~(first clause-term) % ~(last clause-term)) ; binary operator, first operand is a variable
-    (variable? (str (last clause-term))) `#(~(first clause-term) ~(second clause-term) %))) ; binary operator, second operand is variable
+    (variable? (str clause-term)) ;variable
+      #(= % %) 
+    (not (coll? clause-term)) ;constant 
+      `#(= % ~clause-term) 
+    (= 2 (count clause-term)) ;unary operator
+      `#(~(first clause-term) %) 
+    (variable? (str (second clause-term)));binary operator, 1st operand is variable
+      `#(~(first clause-term) % ~(last clause-term))
+    (variable? (str (last clause-term)));binary operator, 2nd operand is variable
+      `#(~(first clause-term) ~(second clause-term) %)))
 ```
 
 Also, for each clause, a vector with the names of the variables used in that clause is set as its metadata. 
@@ -1091,7 +1109,8 @@ Now it is time to go deeper into the rabbit hole and take a look at the `query-i
    (let [result-clauses (filter-index index pred-clauses)
          relevant-items (items-that-answer-all-conditions (map last result-clauses) 
                                                           (count pred-clauses))
-         cleaned-result-clauses (map (partial mask-path-leaf-with-items relevant-items)
+         cleaned-result-clauses (map (partial mask-path-leaf-with-items 
+                                              relevant-items)
                                      result-clauses)] 
      (filter #(not-empty (last %)) cleaned-result-clauses)))
 ```
@@ -1181,7 +1200,7 @@ Once we have produced all of the result clauses, we need to perform an `AND` ope
    (->> items-seq ; take the items-seq
          (map vec) ; make each collection (actually a set) into a vector
          (reduce into []) ;reduce all the vectors into one vector
-         (frequencies) ; count for each item in how many collections (sets) it was in
+         (frequencies) ;count for each item in how many collections (sets) it was in
          (filter #(<= num-of-conditions (last %))) ;items that answered all conditions
          (map first) ; take from the duos the items themselves
          (set))) ; return it as set
@@ -1247,7 +1266,8 @@ The twist to the index structure is that now we hold a binding pair of the entit
 
 ```clojure
 (defn bind-variables-to-query [q-res index]
-   (let [seq-res-path (mapcat (partial combine-path-and-meta (from-eav index)) q-res)         
+   (let [seq-res-path (mapcat (partial combine-path-and-meta (from-eav index)) 
+                               q-res)         
          res-path (map #(->> %1 (partition 2)(apply (to-eav index))) seq-res-path)] 
      (reduce #(assoc-in %1  (butlast %2) (last %2)) {} res-path)))
      
@@ -1304,11 +1324,11 @@ We've finally built all of the components we need for our user-facing query mech
 ```clojure
 (defmacro q
   [db query]
-  `(let [pred-clauses#  (q-clauses-to-pred-clauses ~(:where query)) ; transforming the clauses of the query to an internal representation structure called query-clauses
-           needed-vars# (symbol-col-to-set  ~(:find query))  ; extracting from the query the variables that needs to be reported out as a set
-           query-plan# (build-query-plan pred-clauses#) ; extracting a query plan based on the query-clauses
-           query-internal-res# (query-plan# ~db)] ;executing the plan on the database
-     (unify query-internal-res# needed-vars#)));unifying the query result with the needed variables to report out what the user asked for
+  `(let [pred-clauses#  (q-clauses-to-pred-clauses ~(:where query)) 
+         needed-vars# (symbol-col-to-set  ~(:find query))
+         query-plan# (build-query-plan pred-clauses#)
+         query-internal-res# (query-plan# ~db)]
+     (unify query-internal-res# needed-vars#)))
 ```  
 ## Summary
 
