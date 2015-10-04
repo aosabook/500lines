@@ -809,7 +809,7 @@ Binary operator & \begin{tabular}{@{}l@{}} A binary operation that must have a v
 
 #### Limitations of our Query Language 
 
-Engineering is all about managing tradeoffs, and designing our query engine is no different. In our case, the first tradeoff we must make is feature-richness versus complexity. Resolving this tradeoff requires us to look at common use-cases of the system, and from there deciding what limitations would be acceptable. 
+Engineering is all about managing tradeoffs, and designing our query engine is no different. In our case, the main tradeoff we must address is feature-richness versus complexity. Resolving this tradeoff requires us to look at common use-cases of the system, and from there deciding what limitations would be acceptable. 
 
 In our database, we decided to build a query engine with the following limitations:
 
