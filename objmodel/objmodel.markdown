@@ -1,6 +1,12 @@
 title: A Simple Object Model
 author: Carl Friedrich Bolz
 
+_Carl Friedrich Bolz is a researcher at King's College London and is broadly
+interested in the implementation and optimization of all kinds of dynamic
+languages. He is one of the core authors of PyPy/RPython and has worked on
+implementations of Prolog, Racket, Smalltalk, PHP and Ruby. He's
+[\@cfbolz](https://twitter.com/cfbolz) on Twitter._
+
 ## Introduction
 
 Object-oriented programming is one of the major programming paradigms in use
