@@ -729,7 +729,7 @@ The ``__get__`` method is called on the ``FahrenheitGetter`` instance after that
 has been looked up in the class of ``obj``. The arguments to ``__get__`` are the
 instance where the lookup was done[^secondarg]. 
 
-[^secondarg] In Python the second argument is the class where the attribute was
+[^secondarg]: In Python the second argument is the class where the attribute was
 found, though we will ignore that here.
 
 Implementing this behaviour is easy. We simply need to change ``_is_bindable``
