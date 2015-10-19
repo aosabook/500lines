@@ -8,11 +8,48 @@ class ServerException(Exception):
 
 #-------------------------------------------------------------------------------
 
+class case_no_file(object):
+    '''File or directory does not exist.'''
+
+    def test(self, handler):
+        return not os.path.exists(handler.full_path)
+
+    def act(self, handler):
+        raise ServerException("'{0}' not found".format(handler.path))
+
+#-------------------------------------------------------------------------------
+
+class case_existing_file(object):
+    '''File exists.'''
+
+    def test(self, handler):
+        return os.path.isfile(handler.full_path)
+
+    def act(self, handler):
+        handler.handle_file(handler.full_path)
+
+#-------------------------------------------------------------------------------
+
+class case_always_fail(object):
+    '''Base case if nothing else worked.'''
+
+    def test(self, handler):
+        return True
+
+    def act(self, handler):
+        raise ServerException("Unknown object '{0}'".format(handler.path))
+
+#-------------------------------------------------------------------------------
+
 class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     '''
     If the requested path maps to a file, that file is served.
     If anything goes wrong, an error page is constructed.
     '''
+
+    Cases = [case_no_file(),
+             case_existing_file(),
+             case_always_fail()]
 
     # How to display an error.
     Error_Page = """\
@@ -29,19 +66,13 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         try:
 
             # Figure out what exactly is being requested.
-            full_path = os.getcwd() + self.path
+            self.full_path = os.getcwd() + self.path
 
-            # It doesn't exist...
-            if not os.path.exists(full_path):
-                raise ServerException("'{0}' not found".format(self.path))
-
-            # ...it's a file...
-            elif os.path.isfile(full_path):
-                self.handle_file(full_path)
-
-            # ...it's something we don't handle.
-            else:
-                raise ServerException("Unknown object '{0}'".format(self.path))
+            # Figure out how to handle it.
+            for case in self.Cases:
+                if case.test(self):
+                    case.act(self)
+                    break
 
         # Handle errors.
         except Exception as msg:
@@ -59,11 +90,11 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     # Handle unknown objects.
     def handle_error(self, msg):
         content = self.Error_Page.format(path=self.path, msg=msg)
-        self.send_content(content)
+        self.send_content(content, 404)
 
     # Send actual content.
-    def send_content(self, content):
-        self.send_response(200)
+    def send_content(self, content, status=200):
+        self.send_response(status)
         self.send_header("Content-type", "text/html")
         self.send_header("Content-Length", str(len(content)))
         self.end_headers()

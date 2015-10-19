@@ -1,5 +1,7 @@
 import BaseHTTPServer
 
+#-------------------------------------------------------------------------------
+
 class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     '''Respond to HTTP requests with info about the request.'''
 
@@ -8,12 +10,12 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 <html>
 <body>
 <table>
-<tr>  <td>Header</td>         <td>Value</td>           </tr>
-<tr>  <td>Date and time</td>  <td>%(date_time)s</td>   </tr>
-<tr>  <td>Client host</td>    <td>%(client_host)s</td> </tr>
-<tr>  <td>Client port</td>    <td>%(client_port)s</td> </tr>
-<tr>  <td>Command</td>        <td>%(command)s</td>     </tr>
-<tr>  <td>Path</td>           <td>%(path)s</td>        </tr>
+<tr>  <td>Header</td>         <td>Value</td>          </tr>
+<tr>  <td>Date and time</td>  <td>{date_time}</td>    </tr>
+<tr>  <td>Client host</td>    <td>{client_host}</td>  </tr>
+<tr>  <td>Client port</td>    <td>{client_port}s</td> </tr>
+<tr>  <td>Command</td>        <td>{command}</td>      </tr>
+<tr>  <td>Path</td>           <td>{path}</td>         </tr>
 </table>
 </body>
 </html>
@@ -34,7 +36,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             'command'     : self.command,
             'path'        : self.path
         }
-        page = self.Page % values
+        page = self.Page.format(**values)
         return page
 
     # Send the created page.
@@ -45,7 +47,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(page)
 
-#----------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 
 if __name__ == '__main__':
     serverAddress = ('', 8080)
