@@ -1080,8 +1080,8 @@ To better explain this process we'll demonstrate it using our exemplary query, a
 		July 1, 1867
 	</td>
 </tr>
-</table>
-: \label{500l.functionaldb.exampleentities}
+</table> 
+: \label{500l.functionaldb.exampleentities} Example entities
 </markdown>
 <latex>
 \begin{table}
@@ -1167,7 +1167,7 @@ Assuming the query was executed on July 4th, the results of executing it on the 
 <td>[:birthday "July 1, 1867" {3}]</td><td>["?e" nil "?bd"]</td>
 </tr>
 </table>
-: \label{500l.functionaldb.queryresults}
+: \label{500l.functionaldb.queryresults} Query results
 </markdown>
 <latex>
 \begin{table}
@@ -1236,7 +1236,7 @@ Finally, we remove all of the result clauses that are "empty" (i.e., their last 
 <td>[:speak "English" #{1}]</td><td>["?e" nil nil]</td>
 </tr>
 </table>
-: \label{500l.functionaldb.filteredqueryresults}
+: \label{500l.functionaldb.filteredqueryresults} Filtered query results
 </markdown>
 <latex>
 \begin{table}
