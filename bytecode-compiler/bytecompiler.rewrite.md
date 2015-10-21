@@ -395,6 +395,7 @@ actual start was pretty close to what we're going to see below, but
 the above code about reading in a file and setting up the global
 environment, that was skipped: what I did instead was
 
+    # in other.py:
     ast5 = ast.parse("print(2+3)")
     code5 = CodeGen().compile(ast5)
     dis.dis(code5)
