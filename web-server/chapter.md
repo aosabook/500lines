@@ -19,7 +19,7 @@ in order to add new features.
 Pretty much every program on the web
 runs on a family of communication standards called Internet Protocol (IP).
 The member of that family which concerns us is the Transmission Control Protocol (TCP/IP),
-which makes communication between computers looks like reading and writing files.
+which makes communication between computers look like reading and writing files.
 
 Programs using IP communicate through sockets.
 Each socket is one end of a point-to-point communication channel,
@@ -358,7 +358,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.wfile.write(page)
 ~~~
 
-The template for the page we want to display is
+The template[^templates] for the page we want to display is
 just a string containing an HTML table
 with some formatting placeholders:
 
@@ -394,6 +394,8 @@ and the method that fills this in is:
         return page
 ~~~
 
+[^templates]: You can find a full treatment of templates in \aosachapref{s:template-engine}.
+
 The main body of the program is unchanged:
 as before,
 it creates an instance of the `HTTPServer` class
@@ -410,7 +412,7 @@ we get:
   Path           /something.html
 
 Notice that we do *not* get a 404 error,
-even though the page `something.html` doesn't exist.
+even though the page `something.html` doesn't exist as a file on disk.
 That's because a web server is just a program,
 and can do whatever it wants when it gets a request:
 send back the file named in the previous request,
@@ -419,7 +421,7 @@ or whatever else we program it to.
 
 ## Serving Static Pages
 
-The obvious next step is to start serving pages off the disk
+The obvious next step is to start serving pages from the disk
 instead of generating them on the fly.
 We'll start by rewriting `do_GET`:
 
@@ -516,6 +518,7 @@ we need to modify `handle_error` and `send_content` as follows:
     # Handle unknown objects.
     def handle_error(self, msg):
         content = self.Error_Page.format(path=self.path, msg=msg)
+        # This should be sending more than just 404?
         self.send_content(content, 404)
 
     # Send actual content.
@@ -810,7 +813,9 @@ if someone knows the path to a Python file on our server,
 we're just letting them run it
 without worrying about what data it has access to,
 whether it might contain an infinite loop,
-or anything else.
+or anything else.[^popen]
+
+[^popen]: Our code also uses the `popen2` library function, which has been deprecated in favor of the `subprocess` module. However, `popen2` was the less distracting tool to use in this example.
 
 Sweeping that aside,
 the core idea is simple:
@@ -952,3 +957,6 @@ they can ignore most lower-level details,
 just as the authors of the `BaseHTTPRequestHandler` class
 have allowed us to ignore the details of handling socket connections
 and parsing HTTP requests.
+
+These ideas are generally useful; 
+see if you can find the opportunity to use them in your own projects. 
