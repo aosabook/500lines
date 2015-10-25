@@ -518,7 +518,6 @@ we need to modify `handle_error` and `send_content` as follows:
     # Handle unknown objects.
     def handle_error(self, msg):
         content = self.Error_Page.format(path=self.path, msg=msg)
-        # This should be sending more than just 404?
         self.send_content(content, 404)
 
     # Send actual content.
@@ -539,7 +538,9 @@ The error page created by `handle_error`,
 on the other hand,
 appears when the *user* got something wrong,
 i.e.,
-sent us the URL of a file that doesn't exist.
+sent us the URL of a file that doesn't exist. [^handleerror]
+
+[^handleerror]: We're going to use `handle_error` several times throughout this chapter, including several cases where the status code `404` isn't appropriate. As you read on, try to think of how you would extend this program so that the status response code can be supplied easily in each case.
 
 ## Listing Directories
 
