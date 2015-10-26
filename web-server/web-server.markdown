@@ -60,7 +60,7 @@ In order to be understood,
 though,
 that text must have the parts shown in \aosafigref{500l.web-server.request}.
 
-\aosafigure{web-server-images/http-request.png}{An HTTP Request}{500l.web-server.cycle}
+\aosafigure{web-server-images/http-request.png}{An HTTP Request}{500l.web-server.request}
 
 The HTTP method is almost always either "GET" (to fetch information)
 or "POST" (to submit form data or upload files).
@@ -108,17 +108,6 @@ The status code is a number indicating what happened when the request was proces
 404 means "not found",
 and other codes have other meanings.
 The status phrase repeats that information in a human-readable phrase like "OK" or "not found".
-
-  Code   Name                    Meaning
-  ------ ----------------------- ---------------------------------------------------------------------------
-  200    OK                      The request has succeeded
-  301    Moved Permanently       The requested resource has moved to a new permanent location
-  400    Bad Request             The request is badly formatted
-  401    Unauthorized            The request requires authentication
-  404    Not Found               The requested resource could not be found
-  418    I'm a teapot            No, really
-  500    Internal Server Error   An error occurred in the server that prevented it fulfilling the request
-  601    Connection Timed Out    The server did not respond before the connection timed out
 
 For the purposes of this chapter
 there are only two other things we need to know about HTTP
@@ -173,22 +162,6 @@ and replaces spaces with the '+' character.
 Thus,
 to search Google for "grade&nbsp;=&nbsp;A+" (with the spaces),
 we would use the URL `http://www.google.ca/search?q=grade+%3D+A%2B`.
-
-  Character Encoding
-  --------- --------
-  #         %23
-  $         %24
-  %         %25
-  &amp;     %26
-  +         %2B
-  ,         %2C
-  /         %2F
-  :         %3A
-  ;         %3B
-  =         %3D
-  ?         %3F
-  @         %40
-
 
 Opening sockets, constructing HTTP requests, and parsing responses is tedious,
 so most people use libraries to do most of the work.
