@@ -1,7 +1,7 @@
 title: DBDB: Dog Bed Database
 author: Taavi Burns
 
-_As the newest bass (and sometimes tenor) in Countermeasure, Taavi strives to break the mould... sometimes just by ignoring its existence. This is certainly true through the diversity of workplaces in his career: IBM (doing C and Perl), FreshBooks (all the things), Points.com (doing Python), and now at PagerDuty (doing Scala).  Aside from that—when not gliding along on his Brompton folding bike—you might find him playing Minecraft with his son or engaging in parkour (or rock climbing, or other adventures) with his wife. He knits continental._
+_As the newest bass (and sometimes tenor) in [Countermeasure](http://www.countermeasuremusic.com), Taavi strives to break the mould... sometimes just by ignoring its existence. This is certainly true through the diversity of workplaces in his career: IBM (doing C and Perl), FreshBooks (all the things), Points.com (doing Python), and now at PagerDuty (doing Scala).  Aside from that—when not gliding along on his Brompton folding bike—you might find him playing Minecraft with his son or engaging in parkour (or rock climbing, or other adventures) with his wife. He knits continental._
 
 ## Introduction
 
@@ -101,10 +101,18 @@ DBDB provides no consistency guarantees
 as there are no constraints on the data stored.
 Isolation is likewise not implemented.
 
+<latex>
 Application code can, of course, impose its own consistency guarantees, but
 proper isolation requires a transaction manager. We won't attempt that here;
 however, you can learn more about transaction management in the CircleDB
-chapter (\aosachapref{s:functionaldb}). 
+chapter (\aosachapref{s:functionalDB}). 
+</latex>
+
+<markdown>
+Application code can, of course, impose its own consistency guarantees, but
+proper isolation requires a transaction manager. We won't attempt that here;
+however, you can learn more about transaction management in the [CircleDB chapter](http://aosabook.org/en/500L/an-archaeology-inspired-database.html). 
+</markdown>
 
 We also have other system-maintenance problems to think about. 
 Stale data is not reclaimed in this implementation,
@@ -724,18 +732,16 @@ Each lookup is a random access,
 which is incredibly expensive for hard disks with spinning platters.
 SSDs help with the latency, but the savings in I/O still stand.
 
-By default, values are stored by ``ValueRef``
+By default, values are stored by `ValueRef`
 which expects bytes as values
-(to be passed directly to ``Storage``).
+(to be passed directly to `Storage`).
 The binary tree nodes themselves
-are just a sublcass of ``ValueRef``.
+are just a sublcass of `ValueRef`.
 Storing richer data
-(via [``json``](http://json.org)
-or [``msgpack``](http://msgpack.org))
-is a matter of writing your own
-and setting it as the ``value_ref_class``.
-``BinaryNodeRef`` is an example of using
-[``pickle``](https://docs.python.org/3.4/library/pickle.html)
+via <a href="http://json.org">json</a> or <a href="http://msgpack.org">msgpack</a> is a matter of writing your own
+and setting it as the `value_ref_class`.
+`BinaryNodeRef` is an example of using
+[pickle](https://docs.python.org/3.4/library/pickle.html)
 to serialise data.
 
 Database compaction is another interesting exercise.
