@@ -1,6 +1,8 @@
 title: A 3D Modeller
 author: Erick Dransch
 
+_Erick is a software developer and 2D and 3D computer graphics enthusiast. He has worked on video games, 3D special effects software, and computer aided design tools. If it involves simulating reality, chances are he'd like to learn more about it. You can find him online at [erickdransch.com](http://erickdransch.com)._
+
 ## Introduction
 Humans are innately creative. We continuously design and build novel, useful, and interesting things. In modern times, we write software to assist in the design and creation process. 
 Computer-aided design (CAD) software allows creators to design buildings, bridges, video game art, 
@@ -67,7 +69,7 @@ Finally, `init_interaction` registers callbacks for user interaction, as we'll d
 After initializing `Viewer`, we call `glutMainLoop` to transfer program execution to GLUT. This function never returns. The callbacks we have registered
 on GLUT events will be called when those events occur.
 
-`````````````````````````````````````````` {.python}
+```python
 class Viewer(object):
     def __init__(self):
         """ Initialize the viewer. """
@@ -138,7 +140,7 @@ class Viewer(object):
 if __name__ == "__main__":
     viewer = Viewer()
     viewer.main_loop()
-``````````````````````````````````````````
+```
 Before we dive into the `render` function, we should discuss a little bit of linear algebra.
 
 ### Coordinate Space
@@ -180,7 +182,7 @@ The `render` function begins by setting up any of the OpenGL state that needs to
 We disable OpenGL's lighting before rendering the grid. With lighting disabled, OpenGL renders items with solid colors, rather than simulating a light source. This way, the grid has visual differentiation from the scene.
 Finally, `glFlush` signals to the graphics driver that we are ready for the buffer to be flushed and displayed to the screen.
 
-`````````````````````````````````````````` {.python}
+```python
     # class Viewer
     def render(self):
         """ The render pass for the scene """
@@ -226,7 +228,7 @@ Finally, `glFlush` signals to the graphics driver that we are ready for the buff
         gluPerspective(70, aspect_ratio, 0.1, 1000.0)
         glTranslated(0, 0, -15)
 
-``````````````````````````````````````````
+```
 ### What to Render: The Scene
 Now that we've initialized the rendering pipeline to handle drawing in the world coordinate space, what are we going to render? Recall that our goal is 
 to have a design consisting of 3D models. We need a data structure to contain the design, and we need use this data structure to render the design.
@@ -236,7 +238,8 @@ The `Scene` class is the interface to the data structure we use to represent the
 necessary interface functions required to interact with the design, including functions to render, add items, and manipulate items. There is one `Scene` object, owned by the viewer.
 The `Scene` instance keeps a list of all of the items in the scene, called `node_list`. It also keeps track of the selected item.
 The `render` function on the scene simply calls `render` on each of the members of `node_list`.
-`````````````````````````````````````````` {.python}
+
+```python
 class Scene(object):
 
     # the default depth from the camera to place an object at
@@ -257,7 +260,7 @@ class Scene(object):
         """ Render the scene. This function simply calls the render function for each node. """
         for node in self.node_list:
             node.render()
-``````````````````````````````````````````
+```
 
 ### Nodes
 In the Scene's `render` function, we call `render` on each of the items in the Scene's `node_list`. But what are the elements
@@ -273,7 +276,8 @@ its scaling matrix gives the transformation matrix from the node's model coordin
 The node also stores an axis-aligned bounding box (AABB). We'll see more about AABBs when we discuss selection below.
 
 The simplest concrete implementation of `Node` is a *primitive*. A primitive is a single solid shape that can be added the scene. In this project, the primitives are `Cube` and `Sphere`. 
-`````````````````````````````````````````` {.python}
+
+```python
 class Node(object):
     """ Base class for scene elements """
     def __init__(self):
@@ -323,7 +327,7 @@ class Cube(Primitive):
     def __init__(self):
         super(Cube, self).__init__()
         self.call_list = G_OBJ_CUBE
-``````````````````````````````````````````
+```
 
 Rendering nodes is based on the transformation matrices that each node stores. The transformation matrix for a node is the combination of its scaling matrix and its translation matrix. Regardless of the type of node, the first step to rendering is to set the 
 OpenGL ModelView matrix to the transformation matrix to convert from the model coordinate space to the view coordinate space.
@@ -339,7 +343,7 @@ An OpenGL call list is a series of OpenGL calls that are defined once and bundle
 The calls can be dispatched with `glCallList(LIST_NAME)`. Each primitive (`Sphere` and `Cube`) defines the call list required to render it (not shown).
 
 For example, the call list for a cube draws the 6 faces of the cube, with the center at the origin and the edges exactly 1 unit long.
-``````````````````````````````````````````
+```
 # Pseudocode Cube definition
 # Left face
 ((-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, 0.5), (-0.5, 0.5, -0.5)),
@@ -353,7 +357,7 @@ For example, the call list for a cube draws the 6 faces of the cube, with the ce
 ((-0.5, -0.5, 0.5), (-0.5, -0.5, -0.5), (0.5, -0.5, -0.5), (0.5, -0.5, 0.5)),
 # Top face
 ((-0.5, 0.5, -0.5), (-0.5, 0.5, 0.5), (0.5, 0.5, 0.5), (0.5, 0.5, -0.5))
-``````````````````````````````````````````
+```
 
 Using only primitives would be quite limiting for modelling applications. 3D models are generally made up of multiple primitives
 (or triangular meshes, which are outside the scope of this project). 
@@ -370,7 +374,7 @@ Now, defining the snow figure is as simple as specifying the shapes that compris
 \aosafigure[240pt]{modeller-images/nodes.jpg}{Hierarchy of `Node` subclasses}{500l.modeller.hierarchy}
 
 
-`````````````````````````````````````````` {.python}
+```python
 class HierarchicalNode(Node):
     def __init__(self):
         super(HierarchicalNode, self).__init__()
@@ -395,7 +399,7 @@ class SnowFigure(HierarchicalNode):
         for child_node in self.child_nodes:
             child_node.color_index = color.MIN_COLOR
         self.aabb = AABB([0.0, 0.0, 0.0], [0.5, 1.1, 0.5])
-``````````````````````````````````````````
+```
 You might observe that the `Node` objects form a tree data structure. The `render` function, through hierarchical nodes, does a depth-first traversal through the 
 tree. As it traverses, it keeps a stack of `ModelView` matrices, used for conversion into the world space.
 At each step, it pushes the current `ModelView` matrix onto the stack, and when it completes rendering of all child nodes,
@@ -421,7 +425,7 @@ The `Viewer` class we wrote earlier owns the single instance of `Interaction`.
 We will use the GLUT callback mechanism to register functions to be called when a mouse button is pressed (`glutMouseFunc`), when the mouse is moved (`glutMotionFunc`), when a keyboard button is pressed (`glutKeyboardFunc`), and when the arrow keys are pressed (`glutSpecialFunc`).
 We'll see the functions that handle input events shortly.
 
-`````````````````````````````````````````` {.python}
+```python
 class Interaction(object):
     def __init__(self):
         """ Handles user interaction """
@@ -445,14 +449,14 @@ class Interaction(object):
         glutKeyboardFunc(self.handle_keystroke)
         glutSpecialFunc(self.handle_keystroke)
 
-``````````````````````````````````````````
+```
 
 #### Operating System Callbacks
 In order to meaningfully interpret user input,
 we need to combine knowledge of the mouse position, mouse buttons, and keyboard. Because interpreting user input into meaningful actions requires many lines of code, we encapsulate it in a separate class, away from the main code path.
 The `Interaction` class hides unrelated complexity from the rest of the codebase and translates operating system events into application-level events.
 
-`````````````````````````````````````````` {.python}
+```python
     # class Interaction 
     def translate(self, x, y, z):
         """ translate the camera """
@@ -517,7 +521,7 @@ The `Interaction` class hides unrelated complexity from the rest of the codebase
         elif key == GLUT_KEY_RIGHT:
             self.trigger('rotate_color', forward=False)
         glutPostRedisplay()
-``````````````````````````````````````````
+```
 
 #### Internal Callbacks
 In the code snippet above, you will notice that when the `Interaction` instance interprets a user action, it calls `self.trigger` with a string describing
@@ -525,19 +529,19 @@ the action type. The `trigger` function on the `Interaction` class is part of a 
 events.
 Recall that the `init_interaction` function on the `Viewer` class registers callbacks on the `Interaction` instance by calling `register_callback`.
 
-`````````````````````````````````````````` {.python}
+```python
     # class Interaction
     def register_callback(self, name, func):
         self.callbacks[name].append(func)
-``````````````````````````````````````````
+```
 When user interface code needs to trigger an event on the scene, the `Interaction` class calls all of the saved callbacks it has for that specific event:
 
-`````````````````````````````````````````` {.python}
+```python
     # class Interaction
     def trigger(self, name, *args, **kwargs):
         for func in self.callbacks[name]:
             func(*args, **kwargs)
-``````````````````````````````````````````
+```
 
 This application-level callback system abstracts away the need for the rest of the system to know about operating system input. Each application-level callback represents a meaningful request within the application.
 The `Interaction` class acts as a translator between operating system events and application-level events.
@@ -615,9 +619,10 @@ In this project, we use a trackball implementation provided as part of [Glumpy](
 
 We interact with the trackball using the `drag_to` function, with the current location of the mouse as the starting location and the change in mouse location as parameters.
 
-`````````````````````````````````````````` {.python}
+```python
 self.trackball.drag_to(self.mouse_loc[0], self.mouse_loc[1], dx, dy)
-``````````````````````````````````````````
+```
+
 The resulting rotation matrix is retrieved as `trackball.matrix` in the viewer when the scene is rendered.
 
 #### Aside: Quaternions
@@ -652,7 +657,7 @@ In our implementation, each node stores an axis-aligned bounding box (AABB), whi
 To test whether a ray intersects with a node, we test whether the ray intersects with the node's AABB. This implementation means that all nodes share
 the same code for intersection tests, and it means that the performance cost is constant and small for all node types.
 
-`````````````````````````````````````````` {.python}
+```python
     # class Viewer
     def get_ray(self, x, y):
         """ 
@@ -681,11 +686,11 @@ the same code for intersection tests, and it means that the performance cost is 
         """ Execute pick of an object. Selects an object in the scene. """
         start, direction = self.get_ray(x, y)
         self.scene.pick(start, direction, self.modelView)
-``````````````````````````````````````````
+```
 
 To determine which node was clicked on, we traverse the scene to test whether the ray hits any nodes. We deselect the currently selected node and then choose the node with the intersection closest to the ray origin.
 
-`````````````````````````````````````````` {.python}
+```python
     # class Scene
     def pick(self, start, direction, mat):
         """ 
@@ -712,13 +717,13 @@ To determine which node was clicked on, we traverse the scene to test whether th
             closest_node.depth = mindist
             closest_node.selected_loc = start + direction * mindist
             self.selected_node = closest_node
-``````````````````````````````````````````
+```
 Within the `Node` class, the `pick` function tests whether the ray intersects with the axis-aligned bounding box of the `Node`.
 If a node is selected, the `select` function toggles the selected state of the node.
 Notice that the AABB's `ray_hit` function accepts the transformation matrix between the box's coordinate space and the
 ray's coordinate space as the third parameter. Each node applies its own transformation to the matrix before making the `ray_hit` function call.
 
-`````````````````````````````````````````` {.python}
+```python
     # class Node
     def pick(self, start, direction, mat):
         """ 
@@ -744,7 +749,7 @@ ray's coordinate space as the third parameter. Each node applies its own transfo
        else:
            self.selected = not self.selected
     
-``````````````````````````````````````````
+```
 
 The ray-AABB selection approach is very simple to understand and implement. However, the results are wrong in certain situations.
 
@@ -762,7 +767,7 @@ When the user inputs a command to manipulate a node, the `Interaction` class con
 
 When the `Viewer` receives a callback for one of these events, it calls the appropriate function on the `Scene`, which in turn applies the transformation to the currently selected `Node`.
 
-`````````````````````````````````````````` {.python}
+```python
     # class Viewer
     def move(self, x, y):
         """ Execute a move command on the scene. """
@@ -779,22 +784,23 @@ When the `Viewer` receives a callback for one of these events, it calls the appr
     def scale(self, up):
         """ Scale the selected Node. Boolean up indicates scaling larger."""
         self.scene.scale_selected(up)
-``````````````````````````````````````````
+```
 
 #### Changing Color
 Manipulating color is accomplished with a list of possible colors. The user can cycle through the list with the arrow keys. The scene dispatches the color change command to
 the currently selected node.
 
-`````````````````````````````````````````` {.python}
+```python
     # class Scene
     def rotate_selected_color(self, forwards):
         """ Rotate the color of the currently selected node """
         if self.selected_node is None: return
         self.selected_node.rotate_color(forwards)
-``````````````````````````````````````````
+```
+
 Each node stores its current color. The `rotate_color` function simply modifies the current color of the node. The color is passed to OpenGL with `glColor` when the node is rendered. 
 
-`````````````````````````````````````````` {.python}
+```python
     # class Node
     def rotate_color(self, forwards):
         self.color_index += 1 if forwards else -1
@@ -802,18 +808,20 @@ Each node stores its current color. The `rotate_color` function simply modifies 
             self.color_index = color.MIN_COLOR
         if self.color_index < color.MIN_COLOR:
             self.color_index = color.MAX_COLOR
-``````````````````````````````````````````
+```
 
 #### Scaling Nodes
 As with color, the scene dispatches any scaling modifications to the selected node, if there is one.
-`````````````````````````````````````````` {.python}
+
+```python
     # class Scene
     def scale_selected(self, up):
         """ Scale the current selection """
         if self.selected_node is None: return
         self.selected_node.scale(up)
     
-``````````````````````````````````````````
+```
+
 Each node stores a current matrix that stores its scale. A matrix that scales by parameters $x$, $y$ and $z$ in those respective directions is:
 
 <latex>
@@ -838,15 +846,18 @@ $$
 </markdown>
 
 When the user modifies the scale of a node, the resulting scaling matrix is multiplied into the current scaling matrix for the node.
-`````````````````````````````````````````` {.python}
+
+```python
     # class Node
     def scale(self, up):
         s =  1.1 if up else 0.9
         self.scaling_matrix = numpy.dot(self.scaling_matrix, scaling([s, s, s]))
         self.aabb.scale(s)
-``````````````````````````````````````````
+```
+
 The function `scaling` returns such a matrix, given a list representing the $x$, $y$, and $z$ scaling factors.
-`````````````````````````````````````````` {.python}
+
+```python
 def scaling(scale):
     s = numpy.identity(4)
     s[0, 0] = scale[0]
@@ -854,7 +865,7 @@ def scaling(scale):
     s[2, 2] = scale[2]
     s[3, 3] = 1
     return s
-``````````````````````````````````````````
+```
 
 #### Moving Nodes
 In order to translate a node, we use the same ray calculation we used for picking. We pass the ray that represents the current mouse location in to the scene's
@@ -864,7 +875,7 @@ from the camera when it was selected (in the `pick` function), we can use that d
 We find the point that is the same distance from the camera along the target ray and we calculate the vector difference between the new and old locations.
 We then translate the node by the resulting vector.
 
-`````````````````````````````````````````` {.python}
+```python
     # class Scene
     def move_selected(self, start, direction, inv_modelview):
         """ 
@@ -892,7 +903,8 @@ We then translate the node by the resulting vector.
         # translate the node and track its location
         node.translate(translation[0], translation[1], translation[2])
         node.selected_loc = newloc
-``````````````````````````````````````````
+```
+
 Notice that the new and old locations are defined in the camera coordinate space. We need our translation to be defined in the world coordinate space.
 Thus, we convert the camera space translation into a world space translation by multiplying by the inverse of the modelview matrix.
 
@@ -910,36 +922,40 @@ $$
 When the node is translated, we construct a new translation matrix for the current translation, and multiply it into the node's
 translation matrix for use during rendering.
 
-`````````````````````````````````````````` {.python}
+```python
     # class Node
     def translate(self, x, y, z):
         self.translation_matrix = numpy.dot(self.translation_matrix, translation([x, y, z]))
-``````````````````````````````````````````
+```
+
 The `translation` function returns a translation matrix given a list representing the $x$, $y$, and $z$ translation distances.
 
-`````````````````````````````````````````` {.python}
+```python
 def translation(displacement):
     t = numpy.identity(4)
     t[0, 3] = displacement[0]
     t[1, 3] = displacement[1]
     t[2, 3] = displacement[2]
     return t
-``````````````````````````````````````````
+```
 
 #### Placing Nodes
 Node placement uses techniques from both picking and translation. We use the same ray calculation for the current mouse location to determine where to place the node.
-`````````````````````````````````````````` {.python}
+
+```python
     # class Viewer
     def place(self, shape, x, y):
         """ Execute a placement of a new primitive into the scene. """
         start, direction = self.get_ray(x, y)
         self.scene.place(shape, start, direction, self.inverseModelView)
-``````````````````````````````````````````
+```
+
 To place a new node, we first create the new instance of the corresponding type of node and add it to the scene.
 We want to place the node underneath the user's cursor, so we find a point on the ray, at a fixed distance from the camera.
 Again, the ray is represented in camera space, so we convert the resulting translation vector into the world coordinate space by multiplying it by the inverse modelview matrix.
 Finally, we translate the new node by the calculated vector.
-`````````````````````````````````````````` {.python}
+
+```python
     # class Scene
     def place(self, shape, start, direction, inv_modelview):
         """ 
@@ -965,7 +981,7 @@ Finally, we translate the new node by the calculated vector.
         translation = inv_modelview.dot(pre_tran)
     
         new_node.translate(translation[0], translation[1], translation[2])
-``````````````````````````````````````````
+```
 
 ## Summary
 Congratulations! We've successfully implemented a tiny 3D modeller!
