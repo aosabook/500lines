@@ -1,5 +1,5 @@
-<!-- American spelling -->
-# A Python Interpreter Written in Python
+title: A Python Interpreter Written in Python
+author: Allison Kaptur
 
 ## Introduction
 
@@ -40,19 +40,21 @@ To make this concrete, let's start with a very minimal interpreter. This interpr
 Since we're not concerned with the lexer, parser, and compiler in this chapter, it doesn't matter how the instruction sets are produced.  You can imagine writing `7 + 5` and having a compiler emit a combination of these three instructions. Or, if you have the right compiler, you can write Lisp syntax that's turned into the same combination of instructions. The interpreter doesn't care. All that matters is that our interpreter is given a well-formed arrangement of the instructions.
 
 Suppose that
-~~~~
+
+```python
 7 + 5
-~~~~
+```
+
 produces this instruction set:
 
-~~~~
+```python
 what_to_execute = {
     "instructions": [("LOAD_VALUE", 0),  # the first number
                      ("LOAD_VALUE", 1),  # the second number
                      ("ADD_TWO_VALUES", None),
                      ("PRINT_ANSWER", None)],
     "numbers": [7, 5] }
-~~~~
+```
 
 The Python interpreter is a _stack machine_, so it must manipulate stacks to add two numbers. The interpreter will begin by executing the first instruction, `LOAD_VALUE`, and pushing the first number onto the stack. Next it will push the second number onto the stack. For the third instruction, `ADD_TWO_VALUES`, it will pop both numbers off, add them together, and push the result onto the stack. Finally, it will pop the answer back off the stack and print it.
 
@@ -73,7 +75,7 @@ You may be wondering why instructions other than `ADD_TWO_VALUES` were needed at
 
 Now let's start to write the interpreter itself. The interpreter object has a stack, which we'll represent with a list. The object also has a method describing how to execute each instruction. For example, for `LOAD_VALUE`, the interpreter will push the value onto the stack.
 
-~~~~
+```python
 class Interpreter:
     def __init__(self):
         self.stack = []
@@ -90,11 +92,11 @@ class Interpreter:
         second_num = self.stack.pop()
         total = first_num + second_num
         self.stack.append(total)
-~~~~
+```
 
 These three functions implement the three instructions our interpreter understands. The interpreter needs one more piece: a way to tie everything together and actually execute it. This method, `run_code`, takes the `what_to_execute` dictionary defined above as an argument. It loops over each instruction, processes the arguments to that instruction if there are any, and then calls the corresponding method on the interpreter object.
 
-~~~~.py
+```python
     def run_code(self, what_to_execute):
         instructions = what_to_execute["instructions"]
         numbers = what_to_execute["numbers"]
@@ -107,14 +109,14 @@ These three functions implement the three instructions our interpreter understan
                 self.ADD_TWO_VALUES()
             elif instruction == "PRINT_ANSWER":
                 self.PRINT_ANSWER()
-~~~~
+```
 
 To test it out, we can create an instance of the object and then call the `run_code` method with the instruction set for adding 7 + 5 defined above.
 
-~~~~
+```python
     interpreter = Interpreter()
     interpreter.run_code(what_to_execute)
-~~~~
+```
 
 Sure enough, it prints the answer: 12.
 
@@ -126,7 +128,7 @@ Second, notice that the instruction for `ADD_TWO_VALUES` did not require any arg
 
 Remember that given valid instruction sets, without any changes to our interpreter, we can add more than two numbers at a time. Consider the instruction set below. What do you expect to happen? If you had a friendly compiler, what code could you write to generate this instruction set?
 
-~~~~
+```python
     what_to_execute = {
         "instructions": [("LOAD_VALUE", 0),
                          ("LOAD_VALUE", 1),
@@ -135,7 +137,7 @@ Remember that given valid instruction sets, without any changes to our interpret
                          ("ADD_TWO_VALUES", None),
                          ("PRINT_ANSWER", None)],
         "numbers": [7, 5, 8] }
-~~~~
+```
 
 At this point, we can begin to see how this structure is extensible: we can add methods on the interpreter object that describe many more operations (as long as we have a compiler to hand us well-formed instruction sets).
 
@@ -143,7 +145,7 @@ At this point, we can begin to see how this structure is extensible: we can add 
 
 Next let's add variables to our interpreter. Variables require an instruction for storing the value of a variable, `STORE_NAME`; an instruction for retrieving it, `LOAD_NAME`; and a mapping from variable names to values. For now, we'll ignore namespaces and scoping, so we can store the variable mapping on the interpreter object itself. Finally, we'll have to make sure that `what_to_execute` has a list of the variable names, in addition to its list of constants.
 
-~~~~
+```python
 >>> def s():
 ...     a = 1
 ...     b = 2
@@ -160,13 +162,13 @@ Next let's add variables to our interpreter. Variables require an instruction fo
                          ("PRINT_ANSWER", None)],
         "numbers": [1, 2],
         "names":   ["a", "b"] }
-~~~~
+```
 
 Our new implementation is below. To keep track of what names are bound to what values, we'll add an `environment` dictionary to the `__init__` method. We'll also add `STORE_NAME` and `LOAD_NAME`. These methods first look up the variable name in question and then use the dictionary to store or retrieve its value.
 
 The arguments to an instruction can now mean two different things: They can either be an index into the "numbers" list, or they can be an index into the "names" list. The interpreter knows which it should be by checking what instruction it's executing. We'll break out this logic --- and the mapping of instructions to what their arguments mean --- into a separate method.
 
-~~~~
+```python
 class Interpreter:
     def __init__(self):
         self.stack = []
@@ -208,11 +210,11 @@ class Interpreter:
                 self.STORE_NAME(argument)
             elif instruction == "LOAD_NAME":
                 self.LOAD_NAME(argument)
-~~~~
+```
 
 Even with just five instructions, the `run_code` method is starting to get tedious. If we kept this structure, we'd need one branch of the `if` statement for each instruction. Here, we can make use of Python's dynamic method lookup. We'll always define a method called `FOO` to execute the instruction called `FOO`, so we can use Python's `getattr` function to look up the method on the fly instead of using the big `if` statement. The `run_code` method then looks like this:
 
-```
+```python
     def execute(self, what_to_execute):
         instructions = what_to_execute["instructions"]
         for each_step in instructions:
@@ -229,7 +231,7 @@ Even with just five instructions, the `run_code` method is starting to get tedio
 
 At this point, we'll abandon our toy instruction sets and switch to real Python bytecode. The structure of bytecode is similar to our toy interpreter's verbose instruction sets, except that it uses one byte instead of a long name to identify each instruction. To understand this structure, we'll walk through the bytecode of a short function. Consider the example below:
 
-``` python
+```python
 >>> def cond():
 ...     x = 3
 ...     if x < 5:
@@ -241,7 +243,7 @@ At this point, we'll abandon our toy instruction sets and switch to real Python 
 
 Python exposes a boatload of its internals at run time, and we can access them right from the REPL. For the function object `cond`, `cond.__code__` is the code object associated it, and `cond.__code__.co_code` is the bytecode. There's almost never a good reason to use these attributes directly when you're writing Python code, but they do allow us to get up to all sorts of mischief --- and to look at the internals in order to understand them.
 
-```
+```python
 >>> cond.__code__.co_code  # the bytecode as raw bytes
 b'd\x01\x00}\x00\x00|\x00\x00d\x02\x00k\x00\x00r\x16\x00d\x03\x00Sd\x04\x00Sd\x00\x00S'
 >>> list(cond.__code__.co_code)  # the bytecode as numbers
@@ -252,7 +254,7 @@ When we just print the bytecode, it looks unintelligible --- all we can tell is 
 
 `dis` is a bytecode disassembler. A disassembler takes low-level code that is written for machines, like assembly code or bytecode, and prints it in a human-readable way. When we run `dis.dis`, it outputs an explanation of the bytecode it has passed.
 
-~~~ python
+```python
 >>> dis.dis(cond)
   2           0 LOAD_CONST               1 (3)
               3 STORE_FAST               0 (x)
@@ -269,18 +271,18 @@ When we just print the bytecode, it looks unintelligible --- all we can tell is 
              25 RETURN_VALUE
              26 LOAD_CONST               0 (None)
              29 RETURN_VALUE
-~~~
+```
 
 The first column shows the line numbers in our Python source code. The second column is an index into the bytecode, telling us that the `LOAD_FAST` instruction appears at position zero.  The third column is the instruction itself, mapped to its human-readable name. The fourth column, when present, is the argument to that instruction.  The fifth column, when present, is a hint about what the argument means.
 
 Consider the first few bytes of this bytecode: [100, 1, 0, 125, 0, 0]. These six bytes represent two instructions with their arguments. We can use `dis.opname`, a mapping from bytes to intelligible strings, to find out what instructions 100 and 125 map to:
 
-~~~
+```python
 >>> dis.opname[100]
 'LOAD_CONST'
 >>> dis.opname[125]
 'STORE_FAST'
-~~~
+```
 
 The second and third bytes --- 1, 0 --- are arguments to `LOAD_CONST`, while the fifth and sixth bytes --- 0, 0 --- are arguments to `STORE_FAST`. Just like in our toy example, `LOAD_CONST` needs to know where to find its constant to load, and `STORE_FAST` needs to find the name to store. (Python's `LOAD_CONST` is the same as our toy interpreter's `LOAD_VALUE`, and `LOAD_FAST` is the same as `LOAD_NAME`.) So these six bytes represent the first line of code, `x = 3`. (Why use two bytes for each argument? If Python used just one byte to locate constants and names instead of two, you could only have 256 names/constants associated with a single code object. Using two bytes, you can have up to 256 squared, or 65,536.)
 
@@ -288,7 +290,7 @@ The second and third bytes --- 1, 0 --- are arguments to `LOAD_CONST`, while the
 
 So far, the interpreter has executed code simply by stepping through the instructions one by one. This is a problem; often, we want to execute certain instructions many times, or skip them under certain conditions. To allow us to write loops and if statements in our code, the interpreter must be able to jump around in the instruction set. In a sense, Python handles loops and conditionals with `GOTO` statements in the bytecode! Look at the disassembly of the function `cond` again:
 
-~~~ python
+```python
 >>> dis.dis(cond)
   2           0 LOAD_CONST               1 (3)
               3 STORE_FAST               0 (x)
@@ -305,7 +307,7 @@ So far, the interpreter has executed code simply by stepping through the instruc
              25 RETURN_VALUE
              26 LOAD_CONST               0 (None)
              29 RETURN_VALUE
-~~~
+```
 
 The conditional `if x < 5` on line 3 of the code is compiled into four instructions: `LOAD_FAST`, `LOAD_CONST`, `COMPARE_OP`, and `POP_JUMP_IF_FALSE`. `x < 5` generates code to load `x`, load 5, and compare the two values. The instruction `POP_JUMP_IF_FALSE` is responsible for implementing the `if`. This instruction will pop the top value off the interpreter's stack. If the value is true, then nothing happens. (The value can be "truthy" --- it doesn't have to be the literal `True` object.) If the value is false, then the interpreter will jump to another instruction.
 
@@ -313,7 +315,7 @@ The instruction to land on is called the jump target, and it's provided as the a
 
 Python loops also rely on jumping. In the bytecode below, notice that the line `while x < 5` generates almost identical bytecode to `if x < 10`. In both cases, the comparison is calculated and then `POP_JUMP_IF_FALSE` controls which instruction is executed next. At the end of line 4 --- the end of the loop's body --- the instruction `JUMP_ABSOLUTE` always sends the interpreter back to instruction 9 at the top of the loop. When x < 10 becomes false, then `POP_JUMP_IF_FALSE` jumps the interpreter past the end of the loop, to instruction 34. (The instructions `SETUP_LOOP` and `POP_BLOCK` are responsible for setting up and cleaning up the loop.)
 
-~~~~
+```python
 >>> def loop():
 ...      x = 1
 ...      while x < 5:
@@ -339,7 +341,7 @@ Python loops also rely on jumping. In the bytecode below, notice that the line `
 
   5     >>   35 LOAD_FAST                0 (x)
              38 RETURN_VALUE
-~~~~
+```
 
 ### Explore Bytecode
 
@@ -409,7 +411,7 @@ There are four kinds of objects in Byterun:
 
 Only one instance of `VirtualMachine` will be created each time the program is run, because we only have one Python interpreter. `VirtualMachine` stores the call stack, the exception state, and return values while they're being passed between frames. The entry point for executing code is the method `run_code`, which takes a compiled code object as an argument. It starts by setting up and running a frame. This frame may create other frames; the call stack will grow and shrink as the program executes. When the first frame eventually returns, execution is finished.
 
-``` python
+```python
 class VirtualMachineError(Exception):
     pass
 
@@ -431,7 +433,7 @@ class VirtualMachine(object):
 
 Next we'll write the `Frame` object. The frame is a collection of attributes with no methods. As mentioned above, the attributes include the code object created by the compiler; the local, global, and builtin namespaces; a reference to the previous frame; a data stack; a block stack; and the last instruction executed. (We have to do a little extra work to get to the builtin namespace because Python treats this namespace differently in different modules; this detail is not important to the virtual machine.)
 
-``` python
+```python
 class Frame(object):
     def __init__(self, code_obj, global_names, local_names, prev_frame):
         self.code_obj = code_obj
@@ -452,7 +454,7 @@ class Frame(object):
 
 Next, we'll add frame manipulation to the virtual machine. There are three helper functions for frames: one to create new frames (which is responsible for sorting out the namespaces for the new frame) and one each to push and pop frames on and off the frame stack. A fourth function, `run_frame`, does the main work of executing a frame. We'll come back to this soon.
 
-``` python
+```python
 class VirtualMachine(object):
     [... snip ...]
 
@@ -494,7 +496,7 @@ class VirtualMachine(object):
 
 The implementation of the `Function` object is somewhat twisty, and most of the details aren't critical to understanding the interpreter. The important thing to notice is that calling a function --- invoking the `__call__` method --- creates a new `Frame` object and starts running it.
 
-```
+```python
 class Function(object):
     """Create a realistic function object, defining the things the interpreter expects."""
     __slots__ = [
@@ -542,7 +544,7 @@ def make_cell(value):
 
 Next, back on the `VirtualMachine` object, we'll add some helper methods for data stack manipulation. The bytecodes that manipulate the stack always operate on the current frame's data stack. This will make our implementations of `POP_TOP`, `LOAD_FAST`, and all the other instructions that touch the stack more readable.
 
-```
+```python
 class VirtualMachine(object):
     [... snip ...]
 
@@ -574,7 +576,7 @@ The first, `parse_byte_and_args`, takes a bytecode, checks if it has arguments, 
 
 Some instructions use simple numbers as their arguments. For others, the virtual machine has to do a little work to discover what the arguments mean.  The `dis` module in the standard library exposes a cheatsheet explaining what arguments have what meaning, which makes our code more compact.  For example, the list `dis.hasname` tells us that the arguments to `LOAD_NAME`, `IMPORT_NAME`, `LOAD_GLOBAL`, and nine other instructions have the same meaning: for these instructions, the argument represents an index into the list of names on the code object.
 
-``` python
+```python
 class VirtualMachine(object):
     [... snip ...]
 
@@ -608,7 +610,7 @@ class VirtualMachine(object):
 The next method is `dispatch`, which looks up the operations for a given instruction and executes them. In the CPython interpreter, this dispatch is done with a giant switch statement that spans 1,500 lines!  Luckily, since we're writing Python, we can be more compact.  We'll define a method for each byte name and then use `getattr` to look it up. Like in the toy interpreter above, if our instruction is named `FOO_BAR`, the corresponding method would be named `byte_FOO_BAR`. For the moment, we'll leave the content of these methods as a black box.  Each bytecode method will return either `None` or a string, called `why`, which is an extra piece of state the interpreter needs in some cases.  These return values of the individual instruction methods are used only as internal indicators of interpreter state --- don't confuse these with return values from executing frames.
 
 
-``` python
+```python
 class VirtualMachine(object):
     [... snip ...]
 
@@ -675,7 +677,7 @@ To keep track of this extra piece of information, the interpreter sets a flag to
 
 The precise details of block manipulation are rather fiddly, and we won't spend more time on this, but interested readers are encouraged to take a careful look.
 
-```
+```python
 Block = collections.namedtuple("Block", "type, handler, stack_height")
 
 class VirtualMachine(object):
@@ -745,7 +747,7 @@ class VirtualMachine(object):
 
 All that's left is to implement the dozens of methods for instructions: `byte_LOAD_FAST`, `byte_BINARY_MODULO`, and so on. The actual instructions are the least interesting part of the interpreter, so we show only a handful here, but the full implementation is available at github.com/nedbat/FIXME. (Enough instructions are included here to execute all the code samples that we disassembled above.)
 
-``` python
+```python
 class VirtualMachine(object):
     [... snip ...]
 
@@ -936,7 +938,7 @@ One thing you've probably heard is that Python is a "dynamic" language --- parti
 
 One of the things "dynamic" means in this context is that a lot of work is done at run time. We saw earlier that the Python compiler doesn't have much information about what the code actually does. For example, consider the short function `mod` below. `mod` takes two arguments and returns the first modulo the second. In the bytecode, we see that the variables `a` and `b` are loaded, then the bytecode `BINARY_MODULO` performs the modulo operation itself.
 
-```
+```python
 >>> def mod(a, b):
 ...    return a % b
 >>> dis.dis(mod)
@@ -947,12 +949,16 @@ One of the things "dynamic" means in this context is that a lot of work is done 
 >>> mod(19, 5)
 4
 ```
+
 Calculating 19 `%` 5 yields 4 --- no surprise there. What happens if we call it with different kinds of arguments?
-```
+
+```python
 >>> mod("by%sde", "teco")
 'bytecode'
 ```
+
 What just happened? You've probably seen this syntax before, but in a different context: string formatting.
+
 ```
 >>> print("by%sde" % "teco")
 bytecode
@@ -966,7 +972,7 @@ The compiler's ignorance is one of the challenges to optimizing Python or analyz
 
 Just looking at the following code, the first calculation of `a % b` seems wasteful.
 
-```
+```python
 def mod(a,b):
     a % b
     return a %b
