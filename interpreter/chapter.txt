@@ -141,7 +141,7 @@ At this point, we can begin to see how this structure is extensible: we can add 
 
 #### Variables
 
-Next let's add variables to our interpreter. Variables require four pieces: an instruction for storing the value of a variable, `STORE_NAME`; an instruction for retrieving it, `LOAD_NAME`; and a mapping from variable names to values. For now, we'll ignore namespaces and scoping, so we can store the variable mapping on the interpreter object itself. Finally, we'll have to make sure that `what_to_execute` has a list of the variable names, in addition to its list of constants.
+Next let's add variables to our interpreter. Variables require an instruction for storing the value of a variable, `STORE_NAME`; an instruction for retrieving it, `LOAD_NAME`; and a mapping from variable names to values. For now, we'll ignore namespaces and scoping, so we can store the variable mapping on the interpreter object itself. Finally, we'll have to make sure that `what_to_execute` has a list of the variable names, in addition to its list of constants.
 
 ~~~~
 >>> def s():
@@ -311,7 +311,7 @@ The conditional `if x < 5` on line 3 of the code is compiled into four instructi
 
 The instruction to land on is called the jump target, and it's provided as the argument to the `POP_JUMP` instruction. Here, the jump target is 22. The instruction at index 22 is `LOAD_CONST` on line 6. (`dis` marks jump targets with `>>`.) If the result of `x < 5` is False, then the interpreter will jump straight to line 6 (`return "no"`), skipping line 4 (`return "yes"`). Thus, the interpreter uses jump instructions to selectively skip over parts of the instruction set.
 
-Python loops also rely on jumping. In the bytecode below, notice that the line `while x < 5` generates almost identical bytecode to `if x < 10`. In both cases, the comparison is calculated and then `POP_JUMP_IF_FALSE` controls which instruction is executed next. At the end of line 4 --- the end of the loop's body --- the instruction `JUMP_ABSOLUTE` always sends the interpreter back to instruction 9 at the top of the loop. When x < 10 becomes false, then `POP_JUMP_IF_FALSE` jumps the interpreter past the end of the loop, to instruction 34. (The instructions `SETUP_LOOP` and `POP_BLOCK` are responsible for setting up and cleaning up the loop, and we'll touch on them later when we discuss blocks.)
+Python loops also rely on jumping. In the bytecode below, notice that the line `while x < 5` generates almost identical bytecode to `if x < 10`. In both cases, the comparison is calculated and then `POP_JUMP_IF_FALSE` controls which instruction is executed next. At the end of line 4 --- the end of the loop's body --- the instruction `JUMP_ABSOLUTE` always sends the interpreter back to instruction 9 at the top of the loop. When x < 10 becomes false, then `POP_JUMP_IF_FALSE` jumps the interpreter past the end of the loop, to instruction 34. (The instructions `SETUP_LOOP` and `POP_BLOCK` are responsible for setting up and cleaning up the loop.)
 
 ~~~~
 >>> def loop():
