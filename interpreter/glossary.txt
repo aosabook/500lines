@@ -1,6 +1,0 @@
-Virtual Machine / interpreter
-compiled vs interpreted
-Frame
-code object
-stack
-bytecode
