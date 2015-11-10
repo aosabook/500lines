@@ -1,6 +1,8 @@
 title: A Python Interpreter Written in Python
 author: Allison Kaptur
 
+_Allison is an engineer at Dropbox, where she helps maintain one of the largest networks of Python clients in the world. Before Dropbox, she was a facilitator at the Recurse Center, a writers retreat for programmers in New York. She's spoken at PyCon North America about Python internals and loves weird bugs. She blogs at [akaptur.com](http://akaptur.com)._
+
 ## Introduction
 
 Byterun is a Python interpreter implemented in Python. Through my work on Byterun, I was surprised and delighted to discover that the fundamental structure of the Python interpreter fits easily into the 500-line size restriction. This chapter will walk through the structure of the interpreter and give you enough context to explore it further. The goal is not to explain everything there is to know about interpreters --- like so many interesting areas of programming and computer science, you could devote years to developing a deep understanding of the topic.
@@ -313,7 +315,7 @@ The conditional `if x < 5` on line 3 of the code is compiled into four instructi
 
 The instruction to land on is called the jump target, and it's provided as the argument to the `POP_JUMP` instruction. Here, the jump target is 22. The instruction at index 22 is `LOAD_CONST` on line 6. (`dis` marks jump targets with `>>`.) If the result of `x < 5` is False, then the interpreter will jump straight to line 6 (`return "no"`), skipping line 4 (`return "yes"`). Thus, the interpreter uses jump instructions to selectively skip over parts of the instruction set.
 
-Python loops also rely on jumping. In the bytecode below, notice that the line `while x < 5` generates almost identical bytecode to `if x < 10`. In both cases, the comparison is calculated and then `POP_JUMP_IF_FALSE` controls which instruction is executed next. At the end of line 4 --- the end of the loop's body --- the instruction `JUMP_ABSOLUTE` always sends the interpreter back to instruction 9 at the top of the loop. When x < 10 becomes false, then `POP_JUMP_IF_FALSE` jumps the interpreter past the end of the loop, to instruction 34. (The instructions `SETUP_LOOP` and `POP_BLOCK` are responsible for setting up and cleaning up the loop.)
+Python loops also rely on jumping. In the bytecode below, notice that the line `while x < 5` generates almost identical bytecode to `if x < 10`. In both cases, the comparison is calculated and then `POP_JUMP_IF_FALSE` controls which instruction is executed next. At the end of line 4 --- the end of the loop's body --- the instruction `JUMP_ABSOLUTE` always sends the interpreter back to instruction 9 at the top of the loop. When x < 10 becomes false, then `POP_JUMP_IF_FALSE` jumps the interpreter past the end of the loop, to instruction 34. 
 
 ```python
 >>> def loop():
