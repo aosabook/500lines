@@ -64,6 +64,7 @@ def main(chapters=[], epub=False, pdf=False, html=False, mobi=False, pandoc_epub
     ]
 
     image_paths = [
+        './interpreter/interpreter-images',
         './web-server/web-server-images',
         './functionalDB/functionalDB-images',
         './flow-shop/flow-shop-images',

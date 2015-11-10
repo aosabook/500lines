@@ -58,16 +58,9 @@ what_to_execute = {
     "numbers": [7, 5] }
 ```
 
-The Python interpreter is a _stack machine_, so it must manipulate stacks to add two numbers. The interpreter will begin by executing the first instruction, `LOAD_VALUE`, and pushing the first number onto the stack. Next it will push the second number onto the stack. For the third instruction, `ADD_TWO_VALUES`, it will pop both numbers off, add them together, and push the result onto the stack. Finally, it will pop the answer back off the stack and print it.
+The Python interpreter is a _stack machine_, so it must manipulate stacks to add two numbers (\aosafigref{500l.interpreter.stackmachine}.) The interpreter will begin by executing the first instruction, `LOAD_VALUE`, and pushing the first number onto the stack. Next it will push the second number onto the stack. For the third instruction, `ADD_TWO_VALUES`, it will pop both numbers off, add them together, and push the result onto the stack. Finally, it will pop the answer back off the stack and print it.
 
-~~~
-       1.                2.                 3.               4.                 5.
-                                      --------------
-                                     |  second num  |
-                  --------------      --------------    --------------
-                 |  first num   |    |  first num   |  |   result     |
-  --------------  --------------      --------------    --------------     --------------
-~~~
+\aosafigure[240pt]{interpreter-images/interpreter-stack.png}{A stack machine}{500l.interpreter.stackmachine}
 
 The `LOAD_VALUE` instruction tells the interpreter to push a number on to the stack, but the instruction alone doesn't specify which number. Each instruction needs an extra piece of information, telling the interpreter where to find the number to load. So our instruction set has two pieces: the instructions themselves, plus a list of constants the instructions will need. (In Python, what we're calling "instructions" is the bytecode, and the entire "what to execute" object below is the _code object_.)
 
@@ -377,24 +370,15 @@ Let's make this concrete with an example. Suppose the Python interpreter is curr
 3
 ```
 
-```
-c   ---------------------
-a  | bar Frame           | -> block stack: []
-l  |     (newest)        | -> data stack: [2, 3]
-l   ---------------------
-   | foo Frame           | -> block stack: []
-s  |                     | -> data stack: [1]
-t   ---------------------
-a  | main (module) Frame | -> block stack: []
-c  |       (oldest)      | -> data stack: []
-k   ---------------------
-```
+\aosafigure[240pt]{interpreter-images/interpreter-callstack.png}{The call stack}{500l.interpreter.callstack}
 
-At this point, the interpreter is in the middle of the function call to `bar`. There are three frames on the call stack: one for the module level, one for the function `foo`, and one for `bar`. Once `bar` returns, the frame associated with it is popped off the call stack and discarded.
+At this point, the interpreter is in the middle of the function call to `bar`. There are three frames on the call stack: one for the module level, one for the function `foo`, and one for `bar` (\aosafigref{500l.interpreter.callstack}.) Once `bar` returns, the frame associated with it is popped off the call stack and discarded.
 
 The bytecode instruction `RETURN_VALUE` tells the interpreter to pass a value between frames. First it will pop the top value off the data stack of the top frame on the call stack. Then it pops the entire frame off the call stack and throws it away. Finally, the value is pushed onto the data stack on the next frame down.
 
-When Ned Batchelder and I were working on Byterun, for a long time we had a significant error in our implementation. Instead of having one data stack on each frame, we had just one data stack on the entire virtual machine. We had dozens of tests made up of little snippets of Python code which we ran through Byterun and through the real Python interpreter to make sure the same thing happened in both interpreters. Nearly all of these tests were passing. The only thing we couldn't get working was generators. Finally, reading the CPython code more carefully, we realized the mistake.[FIXME: footnote: My thanks to Michael Arntzenius for his insight on this bug.] Moving a data stack onto each frame fixed the problem.
+When Ned Batchelder and I were working on Byterun, for a long time we had a significant error in our implementation. Instead of having one data stack on each frame, we had just one data stack on the entire virtual machine. We had dozens of tests made up of little snippets of Python code which we ran through Byterun and through the real Python interpreter to make sure the same thing happened in both interpreters. Nearly all of these tests were passing. The only thing we couldn't get working was generators. Finally, reading the CPython code more carefully, we realized the mistake[^thanks]. Moving a data stack onto each frame fixed the problem.
+
+[^thanks]: My thanks to Michael Arntzenius for his insight on this bug. 
 
 Looking back on this bug, I was amazed at how little of Python relied on each frame having a different data stack. Nearly all operations in the Python interpreter carefully clean up the data stack, so the fact that the frames were sharing the same stack didn't matter. In the example above, when `bar` finishes executing, it'll leave its data stack empty. Even if `foo` shared the same stack, the values would be lower down. However, with generators, a key feature is the ability to pause a frame, return to some other frame, and then return to the generator frame later and have it be in exactly the same state that you left it.
 
@@ -747,7 +731,7 @@ class VirtualMachine(object):
 
 ## The Instructions
 
-All that's left is to implement the dozens of methods for instructions: `byte_LOAD_FAST`, `byte_BINARY_MODULO`, and so on. The actual instructions are the least interesting part of the interpreter, so we show only a handful here, but the full implementation is available at github.com/nedbat/FIXME. (Enough instructions are included here to execute all the code samples that we disassembled above.)
+All that's left is to implement the dozens of methods for instructions: `byte_LOAD_FAST`, `byte_BINARY_MODULO`, and so on. The actual instructions are the least interesting part of the interpreter, so we show only a handful here, but the full implementation is available at https://github.com/nedbat/byterun. (Enough instructions are included here to execute all the code samples that we disassembled above.)
 
 ```python
 class VirtualMachine(object):
@@ -986,7 +970,7 @@ Unfortunately, a static analysis of this code --- the kind of you can do without
 
 Byterun is a compact Python interpreter that's easier to understand than CPython. Byterun replicates CPython's primary structural details: a stack-based interpreter operating on instruction sets called bytecode. It steps or jumps through these instructions, pushing to and popping from a stack of data. The interpreter creates, destroys, and jumps between frames as it calls into and returns from functions and generators. Byterun shares the real interpreter's limitations, too: because Python uses dynamic typing, the interpreter must work hard at run time to determine the correct behavior for any series of instructions.
 
-I encourage you to disassemble your own programs and to run them using Byterun. You'll quickly run into instructions that this shorter version of Byterun doesn't implement. The full implementation can be found at github.com/nedbat/FIXME --- or, by carefully reading the real CPython interpreter's `ceval.c`, you can implement it yourself!
+I encourage you to disassemble your own programs and to run them using Byterun. You'll quickly run into instructions that this shorter version of Byterun doesn't implement. The full implementation can be found at https://github.com/nedbat/byterun --- or, by carefully reading the real CPython interpreter's `ceval.c`, you can implement it yourself!
 
 ## Acknowledgements
 
