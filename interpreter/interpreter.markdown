@@ -240,9 +240,11 @@ Python exposes a boatload of its internals at run time, and we can access them r
 
 ```python
 >>> cond.__code__.co_code  # the bytecode as raw bytes
-b'd\x01\x00}\x00\x00|\x00\x00d\x02\x00k\x00\x00r\x16\x00d\x03\x00Sd\x04\x00Sd\x00\x00S'
+b'd\x01\x00}\x00\x00|\x00\x00d\x02\x00k\x00\x00r\x16\x00d\x03\x00Sd\x04\x00Sd\x00
+   \x00S'
 >>> list(cond.__code__.co_code)  # the bytecode as numbers
-[100, 1, 0, 125, 0, 0, 124, 0, 0, 100, 2, 0, 107, 0, 0, 114, 22, 0, 100, 3, 0, 83, 100, 4, 0, 83, 100, 0, 0, 83]
+[100, 1, 0, 125, 0, 0, 124, 0, 0, 100, 2, 0, 107, 0, 0, 114, 22, 0, 100, 3, 0, 83, 
+ 100, 4, 0, 83, 100, 0, 0, 83]
 ```
 
 When we just print the bytecode, it looks unintelligible --- all we can tell is that it's a series of bytes. Luckily, there's a powerful tool we can use to understand it: the `dis` module in the Python standard library. 
@@ -410,7 +412,8 @@ class VirtualMachine(object):
 
     def run_code(self, code, global_names=None, local_names=None):
         """ An entry point to execute code using the virtual machine."""
-        frame = self.make_frame(code, global_names=global_names, local_names=local_names)
+        frame = self.make_frame(code, global_names=global_names, 
+                                local_names=local_names)
         self.run_frame(frame)
 
 ```
@@ -484,7 +487,9 @@ The implementation of the `Function` object is somewhat twisty, and most of the 
 
 ```python
 class Function(object):
-    """Create a realistic function object, defining the things the interpreter expects."""
+    """
+    Create a realistic function object, defining the things the interpreter expects.
+    """
     __slots__ = [
         'func_code', 'func_name', 'func_defaults', 'func_globals',
         'func_locals', 'func_dict', 'func_closure',
@@ -515,7 +520,8 @@ class Function(object):
     def __call__(self, *args, **kwargs):
         """When calling a Function, make a new frame and run it."""
         callargs = inspect.getcallargs(self._func, *args, **kwargs)
-        # Use callargs to provide a mapping of arguments: values to pass into the new frame.
+        # Use callargs to provide a mapping of arguments: values to pass into the new 
+        # frame.
         frame = self._vm.make_frame(
             self.func_code, callargs, self.func_globals, {}
         )
@@ -573,7 +579,8 @@ class VirtualMachine(object):
         f.last_instruction += 1
         byte_name = dis.opname[byteCode]
         if byteCode >= dis.HAVE_ARGUMENT:
-            arg = f.code_obj.co_code[f.last_instruction:f.last_instruction+2]  # index into the bytecode
+            # index into the bytecode
+            arg = f.code_obj.co_code[f.last_instruction:f.last_instruction+2]  
             f.last_instruction += 2   # advance the instruction pointer
             arg_val = arg[0] + (arg[1] * 256)
             if byteCode in dis.hasconst:   # Look up a constant
@@ -680,7 +687,8 @@ class VirtualMachine(object):
     def unwind_block(self, block):
         """Unwind the values on the data stack corresponding to a given block."""
         if block.type == 'except-handler':
-            offset = 3  # The exception itself is on the stack as type, value, and traceback.
+            # The exception itself is on the stack as type, value, and traceback.
+            offset = 3  
         else:
             offset = 0
 
