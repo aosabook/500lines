@@ -270,7 +270,7 @@ When we just print the bytecode, it looks unintelligible --- all we can tell is 
              29 RETURN_VALUE
 ```
 
-The first column shows the line numbers in our Python source code. The second column is an index into the bytecode, telling us that the `LOAD_CONST` instruction appears at position zero.  The third column is the instruction itself, mapped to its human-readable name. The fourth column, when present, is the argument to that instruction.  The fifth column, when present, is a hint about what the argument means.
+What does all this mean? Let's look at the first instruction `LOAD_CONST` as an example. The number in the first column (`2`) shows the line number in our Python source code. The second column is an index into the bytecode, telling us that the `LOAD_CONST` instruction appears at position zero.  The third column is the instruction itself, mapped to its human-readable name. The fourth column, when present, is the argument to that instruction.  The fifth column, when present, is a hint about what the argument means.
 
 Consider the first few bytes of this bytecode: [100, 1, 0, 125, 0, 0]. These six bytes represent two instructions with their arguments. We can use `dis.opname`, a mapping from bytes to intelligible strings, to find out what instructions 100 and 125 map to:
 
