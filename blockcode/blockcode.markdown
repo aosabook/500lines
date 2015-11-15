@@ -77,15 +77,20 @@ The `createBlock(name, value, contents)` function returns a block as a DOM eleme
 
 ```javascript
     function createBlock(name, value, contents){
-        var item = elem('div', {'class': 'block', draggable: true, 'data-name': name}, [name]);
+        var item = elem('div', 
+            {'class': 'block', draggable: true, 'data-name': name}, 
+            [name]
+        );
         if (value !== undefined && value !== null){
             item.appendChild(elem('input', {type: 'number', value: value}));
         }
         if (Array.isArray(contents)){
-            item.appendChild(elem('div', {'class': 'container'}, contents.map(function(block){
+            item.appendChild(
+                elem('div', {'class': 'container'}, contents.map(function(block){
                 return createBlock.apply(null, block);
             })));
-        }else if (typeof contents === 'string'){ // Add units (degrees, etc.) specifier
+        }else if (typeof contents === 'string'){ 
+            // Add units (degrees, etc.) specifier
             item.appendChild(document.createTextNode(' ' + contents));
         }
         return item;
@@ -111,7 +116,9 @@ We have some utilities for handling blocks as DOM elements:
     }
 
     function blockUnits(block){
-        if (block.children.length > 1 && block.lastChild.nodeType === Node.TEXT_NODE && block.lastChild.textContent){
+        if (block.children.length > 1 && 
+            block.lastChild.nodeType === Node.TEXT_NODE && 
+            block.lastChild.textContent){
             return block.lastChild.textContent.slice(1);
         }
     }
@@ -167,8 +174,10 @@ During the `dragStart(evt)` handler we start tracking whether the block is being
         }
         evt.target.classList.add('dragging');
         dragTarget = evt.target;
-        scriptBlocks = [].slice.call(document.querySelectorAll('.script .block:not(.dragging)'));
-        // For dragging to take place in Firefox, we have to set this, even if we don't use it
+        scriptBlocks = [].slice.call(
+            document.querySelectorAll('.script .block:not(.dragging)'));
+        // For dragging to take place in Firefox, we have to set this, even if
+        // we don't use it
         evt.dataTransfer.setData('text/html', evt.target.outerHTML);
         if (matches(evt.target, '.menu .block')){
             evt.dataTransfer.effectAllowed = 'copy';
@@ -182,10 +191,14 @@ While we are dragging, the `dragenter`, `dragover`, and `dragout` events give us
 
 ```javascript
     function dragOver(evt){
-        if (!matches(evt.target, '.menu, .menu *, .script, .script *, .content')) return;
-        if (evt.preventDefault) { evt.preventDefault(); } // Necessary. Allows us to drop.
+        if (!matches(evt.target, '.menu, .menu *, .script, .script *, .content')) {
+            return;
+        }
+        // Necessary. Allows us to drop.
+        if (evt.preventDefault) { evt.preventDefault(); } 
         if (dragType === 'menu'){
-            evt.dataTransfer.dropEffect = 'copy';  // See the section on the DataTransfer object.
+            // See the section on the DataTransfer object.
+            evt.dataTransfer.dropEffect = 'copy';  
         }else{
             evt.dataTransfer.dropEffect = 'move';
         }
@@ -198,16 +211,19 @@ When we release the mouse, we get a `drop` event. This is where the magic happen
 ```javascript
     function drop(evt){
         if (!matches(evt.target, '.menu, .menu *, .script, .script *')) return;
-        var dropTarget = closest(evt.target, '.script .container, .script .block, .menu, .script');
+        var dropTarget = closest(
+            evt.target, '.script .container, .script .block, .menu, .script');
         var dropType = 'script';
         if (matches(dropTarget, '.menu')){ dropType = 'menu'; }
-        if (evt.stopPropagation) { evt.stopPropagation(); } // stops the browser from redirecting.
+        // stops the browser from redirecting.
+        if (evt.stopPropagation) { evt.stopPropagation(); } 
         if (dragType === 'script' && dropType === 'menu'){
             trigger('blockRemoved', dragTarget.parentElement, dragTarget);
             dragTarget.parentElement.removeChild(dragTarget);
         }else if (dragType ==='script' && dropType === 'script'){
             if (matches(dropTarget, '.block')){
-                dropTarget.parentElement.insertBefore(dragTarget, dropTarget.nextSibling);
+                dropTarget.parentElement.insertBefore(
+                    dragTarget, dropTarget.nextSibling);
             }else{
                 dropTarget.insertBefore(dragTarget, dropTarget.firstChildElement);
             }
@@ -216,7 +232,8 @@ When we release the mouse, we get a `drop` event. This is where the magic happen
             var newNode = dragTarget.cloneNode(true);
             newNode.classList.remove('dragging');
             if (matches(dropTarget, '.block')){
-                dropTarget.parentElement.insertBefore(newNode, dropTarget.nextSibling);
+                dropTarget.parentElement.insertBefore(
+                    newNode, dropTarget.nextSibling);
             }else{
                 dropTarget.insertBefore(newNode, dropTarget.firstChildElement);
             }
@@ -273,7 +290,8 @@ The `requestAnimationFrame` method below is provided by the browser for animatio
         if (scriptDirty){
             scriptDirty = false;
             Block.trigger('beforeRun', script);
-            var blocks = [].slice.call(document.querySelectorAll('.script > .block'));
+            var blocks = [].slice.call(
+                document.querySelectorAll('.script > .block'));
             Block.run(blocks);
             Block.trigger('afterRun', script);
         }else{
