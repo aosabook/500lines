@@ -14,6 +14,7 @@ def main(chapters=[], epub=False, pdf=False, html=False, mobi=False, pandoc_epub
             run('rm {}'.format(f))
 
     chapter_dirs = [
+        'blockcode',
         'interpreter',
         'web-server',
         'static-analysis',
@@ -64,6 +65,7 @@ def main(chapters=[], epub=False, pdf=False, html=False, mobi=False, pandoc_epub
     ]
 
     image_paths = [
+        './blockcode/blockcode-images',
         './interpreter/interpreter-images',
         './web-server/web-server-images',
         './functionalDB/functionalDB-images',
