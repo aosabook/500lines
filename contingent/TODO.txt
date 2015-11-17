@@ -1,2 +1,0 @@
-
-* Add cycle detection to rebuild(), so that it does not run forever.
