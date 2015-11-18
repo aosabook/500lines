@@ -1,6 +1,24 @@
 title: Contingent: A Fully Dynamic Build System
 author: Brandon Rhodes and Daniel Rocco
 
+_Brandon Rhodes started using Python in the late 1990s, and for 17 years has
+maintained the PyEphem library for amateur astronomers. He works at
+Dropbox, has taught Python programming courses for corporate clients,
+consulted on projects like the New England Wildflower Society's “Go
+Botany” Django site, and will be the chair of the PyCon conference in
+2016 and 2017. Brandon believes that well-written code is a form of
+literature, that beautifully formatted code is a work of graphic design,
+and that correct code is one of the most transparent forms of thought._
+
+_Daniel Rocco loves Python, coffee, craft, stout, object and system design,
+bourbon, teaching, trees, and Latin guitar. Thrilled that he gets to write
+Python for a living, he is always on the lookout for opportunities to learn
+from others in the community and to contribute back by sharing knowledge. He is
+a frequent speaker at PyAtl on introductory topics, testing, design, and shiny
+things; he loves seeing the spark of wonder and delight in people's eyes when
+someone shares a novel, surprising, or beautiful idea. Daniel lives in Atlanta
+with a microbiologist and four aspiring rocketeers._
+
 Introduction
 ============
 
@@ -342,52 +360,52 @@ by simply typing their literal representation into your source code,
 and their four type objects are available as built-in symbols
 that can be used without being imported.
 
-* The **tuple** is a read-only sequence
-  used to hold heterogeneous data —
-  each slot in a tuple typically means something different.
-  Here, a tuple (e.g. holds together a hostname and port number,
-  and would lose its meaning if the elements were re-ordered:
+The **tuple** is a read-only sequence
+used to hold heterogeneous data —
+each slot in a tuple typically means something different.
+Here, a tuple (e.g. holds together a hostname and port number,
+and would lose its meaning if the elements were re-ordered:
 
-  ```python
-    ('dropbox.com', 443)
-  ```
+```python
+('dropbox.com', 443)
+```
 
-* The **list** is a mutable sequence
-  used to hold homogenous data —
-  each item usually has the same structure and meaning as its peers.
-  Lists can be used either to preserve data’s original input order,
-  or can be rearranged or sorted
-  to establish a new and more useful order.
+The **list** is a mutable sequence
+used to hold homogenous data —
+each item usually has the same structure and meaning as its peers.
+Lists can be used either to preserve data’s original input order,
+or can be rearranged or sorted
+to establish a new and more useful order.
 
-  ```python
-    ['C', 'Awk', 'TCL', 'Python', 'JavaScript']
-  ```
+```python
+['C', 'Awk', 'TCL', 'Python', 'JavaScript']
+```
 
-* The **set** does not preserve order.
-  Sets remember only whether a given value has been added,
-  not how many times,
-  and are therefore the go-to data structure
-  for removing duplicates from a data stream.
-  For example, the following two sets, once the language has built them,
-  will each have three elements:
+The **set** does not preserve order.
+Sets remember only whether a given value has been added,
+not how many times,
+and are therefore the go-to data structure
+for removing duplicates from a data stream.
+For example, the following two sets, once the language has built them,
+will each have three elements:
 
-  ```python
-    {3, 4, 5}
-    {3, 4, 5, 4, 4, 3, 5, 4, 5, 3, 4, 5}
-  ```
+```python
+{3, 4, 5}
+{3, 4, 5, 4, 4, 3, 5, 4, 5, 3, 4, 5}
+```
 
-* The **dict** is an associative data structure for storing values
-  accessible by a key.
-  Dicts let the programmer chose the key
-  by which each value is indexed,
-  instead of using automatic integer indexing like the tuple and list.
-  The lookup is backed by a hash table,
-  which means that dict key lookup runs at the same speed
-  whether the dict has a dozen or a million keys!
+The **dict** is an associative data structure for storing values
+accessible by a key.
+Dicts let the programmer chose the key
+by which each value is indexed,
+instead of using automatic integer indexing like the tuple and list.
+The lookup is backed by a hash table,
+which means that dict key lookup runs at the same speed
+whether the dict has a dozen or a million keys!
 
-  ```python
-    {'ssh': 22, 'telnet': 23, 'domain': 53, 'http': 80}
-  ```
+```python
+{'ssh': 22, 'telnet': 23, 'domain': 53, 'http': 80}
+```
 
 A key to Python’s flexibility
 is that these four data structures are composable.
@@ -945,119 +963,119 @@ to construct a graph of the relationships between all the tasks.
 A build system for the example given at the beginning of the chapter
 might involve a few basic tasks.
 
-* Our `read()` task will pretend to read the files from disk.
-  Since we really defined the source text in variables,
-  all it needs to do is convert from a filename
-  to the corresponding text.
+Our `read()` task will pretend to read the files from disk.
+Since we really defined the source text in variables,
+all it needs to do is convert from a filename
+to the corresponding text.
 
-  ```python
-    >>> filesystem = {'index.txt': index,
-    ...               'tutorial.txt': tutorial,
-    ...               'api.txt': api}
-    ...
-    >>> @task
-    ... def read(filename):
-    ...     return filesystem[filename]
-  ```
+```python
+  >>> filesystem = {'index.txt': index,
+  ...               'tutorial.txt': tutorial,
+  ...               'api.txt': api}
+  ...
+  >>> @task
+  ... def read(filename):
+  ...     return filesystem[filename]
+```
 
-* The `parse()` task interprets the raw text of the file contents
-  according to the specification of our document format.
-  Our format is very simple:
-  the title of the document appears on the first line,
-  and the rest of the content is considered the document's body.
+The `parse()` task interprets the raw text of the file contents
+according to the specification of our document format.
+Our format is very simple:
+the title of the document appears on the first line,
+and the rest of the content is considered the document's body.
 
-  ```python
-    >>> @task
-    ... def parse(filename):
-    ...     lines = read(filename).strip().splitlines()
-    ...     title = lines[0]
-    ...     body = '\n'.join(lines[2:])
-    ...     return title, body
-  ```
+```python
+  >>> @task
+  ... def parse(filename):
+  ...     lines = read(filename).strip().splitlines()
+  ...     title = lines[0]
+  ...     body = '\n'.join(lines[2:])
+  ...     return title, body
+```
 
-  Because the format is so simple,
-  the parser is a little silly, admittedly,
-  but it illustrates the interpretive responsibilities
-  that parsers are required to carry out.
-  Parsing in general is a very interesting subject
-  and many books have been written
-  either partially or completely dedicated to it.
-  In a system like Sphinx,
-  the parser must understand the many markup tokens,
-  directives, and commands defined by the system,
-  transforming the input text into something
-  the rest of the system can work with.
+Because the format is so simple,
+the parser is a little silly, admittedly,
+but it illustrates the interpretive responsibilities
+that parsers are required to carry out.
+Parsing in general is a very interesting subject
+and many books have been written
+either partially or completely dedicated to it.
+In a system like Sphinx,
+the parser must understand the many markup tokens,
+directives, and commands defined by the system,
+transforming the input text into something
+the rest of the system can work with.
 
-  Notice the connection point between
-  `parse()` and `read()` —
-  the first task in parsing is to pass the filename it has been given
-  to `read()`, which finds and returns the contents of that file.
+Notice the connection point between
+`parse()` and `read()` —
+the first task in parsing is to pass the filename it has been given
+to `read()`, which finds and returns the contents of that file.
 
-* The `title_of()` task, given a source file name,
-  returns the document's title:
+The `title_of()` task, given a source file name,
+returns the document's title:
 
-  ```python
-    >>> @task
-    ... def title_of(filename):
-    ...     title, body = parse(filename)
-    ...     return title
-  ```
+```python
+  >>> @task
+  ... def title_of(filename):
+  ...     title, body = parse(filename)
+  ...     return title
+```
 
-  This task nicely illustrates the
-  separation of responsibilities between
-  the parts of a document processing system.
-  The `title_of()` function works directly
-  from an in-memory representation of a document —
-  in this case, a tuple —
-  instead of taking it upon itself to re-parse
-  the entire document again just to find the title.
-  The `parse()` function alone produces the in-memory representation,
-  in accordance with the contract of the system specification,
-  and the rest of the blog builder processing functions
-  like `title_of()` simply use its output as their authority.
+This task nicely illustrates the
+separation of responsibilities between
+the parts of a document processing system.
+The `title_of()` function works directly
+from an in-memory representation of a document —
+in this case, a tuple —
+instead of taking it upon itself to re-parse
+the entire document again just to find the title.
+The `parse()` function alone produces the in-memory representation,
+in accordance with the contract of the system specification,
+and the rest of the blog builder processing functions
+like `title_of()` simply use its output as their authority.
 
-  If you are coming from an orthodox object-oriented tradition,
-  this function-oriented design may look a little weird.
-  In an OO solution,
-  `parse()` would return some sort of `Document` object
-  that has `title_of()` as a method or property.
-  In fact, Sphinx works exactly this way:
-  its `Parser` subsystem produces a “Docutils document tree” object
-  for the other parts of the system to use.
+If you are coming from an orthodox object-oriented tradition,
+this function-oriented design may look a little weird.
+In an OO solution,
+`parse()` would return some sort of `Document` object
+that has `title_of()` as a method or property.
+In fact, Sphinx works exactly this way:
+its `Parser` subsystem produces a “Docutils document tree” object
+for the other parts of the system to use.
 
-  Contingent is not opinionated
-  with regard to these differing design paradigms
-  and supports either approach equally well.
-  For this chapter we are keeping things simple.
+Contingent is not opinionated
+with regard to these differing design paradigms
+and supports either approach equally well.
+For this chapter we are keeping things simple.
 
-* The final task,
-  `render()`,
-  turns the in-memory representation of a document
-  into an output form.
-  It is, in effect, the inverse of `parse()`.
-  Whereas `parse()` takes an input document
-  conforming to a specification
-  and converts it to an in-memory representation,
-  `render()` takes an in-memory representation
-  and produces an output document
-  conforming to some specification.
+The final task,
+`render()`,
+turns the in-memory representation of a document
+into an output form.
+It is, in effect, the inverse of `parse()`.
+Whereas `parse()` takes an input document
+conforming to a specification
+and converts it to an in-memory representation,
+`render()` takes an in-memory representation
+and produces an output document
+conforming to some specification.
 
-  ```python
-    >>> import re
-    >>>
-    >>> LINK = '<a href="{}">{}</a>'
-    >>> PAGE = '<h1>{}</h1>\n<p>\n{}\n<p>'
-    >>>
-    >>> def make_link(match):
-    ...     filename = match.group(1)
-    ...     return LINK.format(filename, title_of(filename))
-    ...
-    >>> @task
-    ... def render(filename):
-    ...     title, body = parse(filename)
-    ...     body = re.sub(r'`([^`]+)`', make_link, body)
-    ...     return PAGE.format(title, body)
-  ```  
+```python
+  >>> import re
+  >>>
+  >>> LINK = '<a href="{}">{}</a>'
+  >>> PAGE = '<h1>{}</h1>\n<p>\n{}\n<p>'
+  >>>
+  >>> def make_link(match):
+  ...     filename = match.group(1)
+  ...     return LINK.format(filename, title_of(filename))
+  ...
+  >>> @task
+  ... def render(filename):
+  ...     title, body = parse(filename)
+  ...     body = re.sub(r'`([^`]+)`', make_link, body)
+  ...     return PAGE.format(title, body)
+```  
 
 Here is an example run
 that will invoke every stage of the above logic —
