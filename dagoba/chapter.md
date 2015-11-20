@@ -282,12 +282,12 @@ In a non-strict language we would get the same result -- the execution strategy 
 
 We're probably only interested in getting a few unique results out, so we'll change the query a bit: `g.v('Thor').out().out().out().in().in().in().unique().take(10)`. Now our query produces at most 10 results. What happens if we evaluate this eagerly, though? We're still going to have to build up septillions of results before returning only the first 10.
 
-All graph databases have to support a mechanism for doing as little work as possible, and most choose some form of non-strict evaluation to do so. Since we're building our own interpreter the lazy evaluation our program is certainly achievable, but we may have to contend with some unintended consequences.
+All graph databases have to support a mechanism for doing as little work as possible, and most choose some form of non-strict evaluation to do so. Since we're building our own interpreter the lazy evaluation of our program is certainly achievable, but we may have to contend with some unintended consequences.
 
 
 ## Ramifications of evaluation strategy on our mental model
 
-Up until now our mental model for evaluation has been very simple:
+Up until now our model for evaluation has been very simple:
 - request a set of vertices
 - pass the returned set as input to a pipe
 - repeat as necessary
@@ -296,13 +296,13 @@ We would like to retain that model for our users, because it's easier to reason 
 
 Our case is nearly optimal for this deception, though: the answer to any query will be the same, regardless of execution model. The only difference is the performance. The tradeoff is between having all users learn a more complicated model prior to using the system, or forcing a subset of users to transfer from the simple model to the complicated model in order to better reason about query performance. 
 
-Some factors to consider when wrestling with this decision are: the relative cognitive difficulty of learning the simple model vs the more complex model; the additional cognitive load imposed by first using the simple model and then advancing to the complex one vs skipping the simple and learning only the complex; the subset of users required to make the transition, in terms of their proportional size, cognitive availability, available time, and so on.
+Some factors to consider when wrestling with this decision are: the relative cognitive difficulty of learning the simple model vs the more complex model; the additional cognitive load imposed by first using the simple model and then advancing to the complex one vs skipping the simple and learning only the complex; the subset of users required to make the transition, in terms of their proportional size, cognitive availability, temporal availablility, and so on.
 
 In our case this tradeoff makes sense. For most uses queries will return results fast enough that users needn't be concerned with optimizing their query structure or learning the deeper model. Those who will are the users writing advanced queries over large datasets, and they are also likely the users most well equipped to transition to a new model. Additionally, our hope is that there is only a small increase in difficulty imposed by using the simple model before learning the more complex one.
 
-We'll go in to more detail on this new model soon, but in the meantime here are some highlights to keep in mind during the next section:
-- Each pipe returns one result at a time, not a set of results. Each pipe may be activated many times while evaluating a query.
-- A read/write head controls which pipe is activated next. The head starts at the end of the pipeline, and its movement is directed by the result of the currently active pipe.
+We'll go into more detail on this new model soon, but in the meantime here are some highlights to keep in mind during the next section:
+- A pipe returns one result at a time, not a set of results. Each pipe may be activated many times while evaluating a query.
+- A read/write head controls the order of pipe activation. The head starts at the end of the pipeline, and its movement is directed by the result of the currently active pipe.
 - That result might be one of the aforementioned gremlins. Each gremlin represents a potential query result, and they carry state with them through the pipes. Gremlins cause the head to move to the right.
 - A pipe can return a result of 'pull', which signals the head that it needs input and moves it to the right.
 - A result of 'done' tells the head that nothing prior needs to be activated again, and moves the head left.
