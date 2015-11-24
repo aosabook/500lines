@@ -1,6 +1,9 @@
 title: A Pedometer in the Real World
 author: Dessy Daskalov
 
+_Dessy is an engineer by trade, an entrepreneur by passion, and a developer at heart. She's currently the CTO and co-founder of [Nudge Rewards](http://nudgerewards.com/.) When she’s not busy building product with her team, she can be found teaching others to code, attending or hosting a Toronto tech event, and online at [dessydaskalov.com](http://www.dessydaskalov.com/) and [\@dess_e](https://twitter.com/dess_e)._
+
+
 ## A Perfect World
 
 Many software engineers reflecting on their training will remember having the pleasure of living in a very perfect world. We were taught to solve discrete problems, with defined parameters, in an ideal domain.
@@ -107,7 +110,11 @@ For each component, we can pass total acceleration through a low-pass filter, an
 
 \aosafigure[240pt]{pedometer-images/low-pass-filter-a.png}{A low-pass filter}{500l.pedometer.lowpass}
 
-There are numerous varieties of filters. The one we'll use is called an infinite impulse response (IIR) filter. We've chosen an IIR filter because of its low overhead and ease of implementation. The IIR filter we've chosen is implemented using the formula $output_{i} = \alpha_{0}(input_{i}\beta_{0} + input_{i-1}\beta_{1} + input_{i-2}\beta_{2} - output_{i-1}\alpha_{1} - output_{i-2}\alpha_{2})$.
+There are numerous varieties of filters. The one we'll use is called an infinite impulse response (IIR) filter. We've chosen an IIR filter because of its low overhead and ease of implementation. The IIR filter we've chosen is implemented using the formula: 
+
+$$
+output_{i} = \alpha_{0}(input_{i}\beta_{0} + input_{i-1}\beta_{1} + input_{i-2}\beta_{2} - output_{i-1}\alpha_{1} - output_{i-2}\alpha_{2})
+$$
 
 The design of digital filters is outside of the scope of this chapter, but a very short teaser discussion is warranted. It's a well-studied, fascinating topic, with numerous practical applications. A digital filter can be designed to cancel any frequency or range of frequencies desired. The $\alpha$ and $\beta$ values in the formula are coefficients, set based on the cutoff frequency, and the range of frequencies we want to preserve.
 
@@ -300,13 +307,17 @@ We want our program to handle all mobile devices on the market with acceleromete
 
 Data in the combined format is total acceleration in the $x$, $y$, and $z$ directions, over time. $x$, $y$, and $z$ values will be separated by a comma, and samples per unit time will be separated by a semi-colon.
 
-$$"x1,y1,z1; ... xn,yn,zn;"$$
+$$
+x_1,y_1,z_1; \ldots x_n,y_n,z_n;
+$$
 
 #### Separated Format
 
 The separated format returns user acceleration and gravitational acceleration in the $x$, $y$, and $z$ directions, over time. User acceleration values will be separated from gravitational acceleration values by a pipe.
 
-$$"x^{u}\_1,y^u\_1,z^u\_1|x\^g_1,y^g\_1,z^g\_1; \ldots x^u\_n,y^u\_n,z^u\_n|x^g\_n,y^g\_n,z^g\_n;"$$
+$$
+x^{u}_1,y^{u}_1,z^{u}_1 \vert x^{g}_1,y^{g}_1,z^{g}_1; \ldots x^{u}_n,y^{u}_n,z^{u}_n \vert x^{g}_n,y^{g}_n,z^{g}_n;
+$$
 
 ### I Got Multiple Input Formats But a Standard Ain't One
 
@@ -385,13 +396,15 @@ end
 
 Let's take a look at our hard-working `parse` method. The first step in the process is to take string data and convert it to numerical data, giving us an array of arrays of arrays. Sound familiar? The next thing we do is ensure that the format is as expected. Unless we have exactly three elements per the innermost arrays, we throw an exception. Otherwise, we continue on.
 
-Note the differences in `@parsed_data` between the two formats at this stage. In the *combined format* it contains arrays with exactly *one* array: 
+Note the differences in `@parsed_data` between the two formats at this stage. In the *combined format* it contains arrays of exactly *one* array: 
 
-$$[[[x1, y1, z1]], ... [[xn, yn, zn]]$$
+$$
+[[[x_1, y_1, z_1]], \ldots [[x_n, y_n, z_n]]
+$$
 
-In the *separated format* it contains arrays with exactly *two* arrays: 
+In the *separated format* it contains arrays of exactly *two* arrays: 
 
-$$[[[x_{u}1,y_{u}1,z_{u}1], [x_{g}1,y_{g}1,z_{g}1]], ... [[x_{u}n,y_{u}n,z_{u}n], [x_{g}n,y_{g}n,z_{g}n]]]$$
+$$[[[x_{u}^1,y_{u}^1,z_{u}^1], [x_{g}^1,y_{g}^1,z_{g}^1]], ... [[x_{u}^n,y_{u}^n,z_{u}^n], [x_{g}^n,y_{g}^n,z_{g}^n]]]$$
 
 The separated format is already in our desired standard format after this operation. Amazing. However, if the data is combined (or, equivalently, has exactly one array where the separated format would have two), then we proceed with two loops. The first loop splits total acceleration into gravitational and user, using `Filter` with a `:low_0_hz` type, and the second loop reorganizes the data into the standard format.
 
