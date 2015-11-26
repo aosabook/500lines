@@ -478,7 +478,7 @@ first: CodeBuilder.
 
 The bulk of the work in our engine is parsing the template and producing the
 necessary Python code.  To help with producing the Python, we have the
-CodeBuilder class, which handles the bookkeeping for us as we construct the
+CodeBuilder class, which handles the bookkeeping for us as we construct 
 the Python code.  It adds lines of code, manages indentation, and
 finally gives us values from the compiled Python.
 
