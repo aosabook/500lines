@@ -301,7 +301,7 @@ Contributors
     <td>brandon-rhodes</td>
     <td>brandon@rhodesmill.org</td>
   </tr>
-    <tr>
+  <tr>
     <td>Dann Toliver</td>
     <td>Bento Box</td>
     <td>dagoba</td>
@@ -313,5 +313,18 @@ Contributors
     </td>
     <td><a href="https://github.com/dxnn">dxnn</a></td>
     <td>aosa@mrmuster.com</td>
+  </tr>
+  <tr>
+    <td>Malini Das</td>
+    <td>Twitch</td>
+    <td>ci</td>
+    <td>
+        <ul>
+            <li><a href="http://malinidas.com">malinidas.com</a></li>
+            <li><a href="https://twitter.com/malinidas">@malinidas</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/malini">malini</a></td>
+    <td></td>
   </tr>
 </table>
