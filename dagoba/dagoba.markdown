@@ -90,7 +90,13 @@ children = function(x) { return E.reduce(
   function(acc, e) { return ~x.indexOf(e[0]) ? acc.concat(e[1]) : acc }, [] )}
 ```
 
-Now we can say something like `children(children(children(parents(parents(parents([8]))))))`. It reads backwards and gets us lost in silly parens, but is otherwise pretty close to what we wanted. Take a minute to look at the code. Can you see any ways to improve it?
+Now we can say something like: 
+
+```javascript
+children(children(children(parents(parents(parents([8]))))))
+``` 
+
+It reads backwards and gets us lost in silly parens, but is otherwise pretty close to what we wanted. Take a minute to look at the code. Can you see any ways to improve it?
 
 Well, we're treating the edges as a global variable, which means we can only ever have one database at a time using these helper functions. That's pretty limiting. 
 
@@ -136,13 +142,13 @@ Dagoba.graph = function(V, E) {                 // the factory
 }
 ```
 
-We'll accept two optional arguments: a list of vertices and a list of edges. JavaScript is rather lax about parameters, so all named parameters are optional and default to 'undefined' if not supplied [footnote]. We will often have the vertices and edges before building the graph and use the V and E parameters, but it's also common to not have those at creation time and to build the graph up programmatically [footnote].
+We'll accept two optional arguments: a list of vertices and a list of edges. JavaScript is rather lax about parameters, so all named parameters are optional and default to 'undefined' if not supplied[^footnoteAD]. We will often have the vertices and edges before building the graph and use the V and E parameters, but it's also common to not have those at creation time and to build the graph up programmatically [^footnoteAE].
 
-[footnote on supplied: It's also lax the other direction: all functions are variadic, and all arguments are available by position via the `arguments` object, which is almost like an array but not quite. ('Variadic' is just a fancy way of saying a function has indefinite arity. Which is a fancy way of saying it takes a variable number of variables.)]
+[^footnoteAD]: It's also lax the other direction: all functions are variadic, and all arguments are available by position via the `arguments` object, which is almost like an array but not quite. ('Variadic' is just a fancy way of saying a function has indefinite arity. Which is a fancy way of saying it takes a variable number of variables.)
 
-[footnote on programmatically: The `Array.isArray` checks here are to distinguish our two different use cases, but in general we won't be doing many of the validations one would expect of production code in order to focus on the architecture instead of the trash bins.]
+[^footnoteAE]: The `Array.isArray` checks here are to distinguish our two different use cases, but in general we won't be doing many of the validations one would expect of production code in order to focus on the architecture instead of the trash bins.
 
-Then we create a new object that has all of our prototype's strengths and none of its weaknesses*. We build a brand new array (one of the other basic JS data structures) for our edges, another for the vertices, a new object called vertexIndex and an id counter -- more on those latter two later. (Think: why can't we just put these in the prototype?)
+Then we create a new object that has all of our prototype's strengths and none of its weaknesses. We build a brand new array (one of the other basic JS data structures) for our edges, another for the vertices, a new object called vertexIndex and an id counter -- more on those latter two later. (Think: why can't we just put these in the prototype?)
 
 Then we call addVertices and addEdges from inside our factory, so let's define those now.
 
@@ -504,7 +510,7 @@ Note that if the property doesn't exist we return `false` instead of the gremlin
 
 If we want to collect all Thor's grandparents' grandchildren -- his cousins, his siblings, and himself -- we could do a query like this: `g.v('Thor').in().in().out().out().run()`. That would give us many duplicates, however. In fact there would be at least four copies of Thor himself. (Can you think of a time when there might be more?)
 
-To resolve this we introduce a new pipetype called 'unique'. Our new query `g.v('Thor').in().in().out().out().unique().run()` produces output in one-to-one correspondence with the grandchildren.
+To resolve this we introduce a new pipetype called 'unique'. Our new query <latex>\linebreak</latex> `g.v('Thor').in().in().out().out().unique().run()` produces output in one-to-one correspondence with the grandchildren.
 
 ```javascript
 Dagoba.addPipetype('unique', function(graph, args, gremlin, state) {
@@ -1138,7 +1144,14 @@ Dagoba.addAlias(
   'children', 'unique'])
 ```
 
-Now instead of `g.v('Forseti').parents().as('parents').parents().children().except('parents').children().unique()` we can just say `g.v('Forseti').cousins()`.
+Now instead of: 
+
+```javascript
+g.v('Forseti').parents().as('parents').parents().children()
+                        .except('parents').children().unique()
+``` 
+
+we can just say `g.v('Forseti').cousins()`.
 
 We've introduced a bit of a pickle, though: while our addAlias function is resolving an alias it also has to resolve other aliases. What if `parents` called some other alias, and while we were resolving `cousins` we then had to stop to resolve `parents` and then resolve its aliases and so on? What if one of `parents` aliases ultimately called `cousins`?
 
@@ -1161,20 +1174,23 @@ To alleviate this dismal performance most databases index over oft-queried field
 
 Graph databases sidestep this issue by making direct connections between vertices and edges, so graph traversals are just pointer jumps: no need to scan through every item, no need for indices, no extra work at all. Now finding your friends has the same price regardless of the total number of people in the graph, with no additional space cost or write time cost. One downside to this approach is that the pointers work best when the whole graph is in memory on the same machine. Effectively sharding a graph database across multiple machines is still an active area of research[^footnoteZ]. 
 
-<!-- resume here -->
-[^footnoteZ]: Sharding a graph database requires partitioning the graph. Optimal graph partitioning is NP-hard, even for simple graphs like trees and grids, and good approximations also have exponential asymptotic complexity. See "http://arxiv.org/pdf/1311.3144v2.pdf, http://dl.acm.org/citation.cfm?doid=1007912.1007931] ]
+[^footnoteZ]: Sharding a graph database requires partitioning the graph. [Optimal graph partitioning is NP-hard](http://dl.acm.org/citation.cfm?doid=1007912.1007931), even for simple graphs like trees and grids, and good approximations also have exponential [asymptotic complexity](http://arxiv.org/pdf/1311.3144v2.pdf). 
 
 We can see this at work in the microcosm of Dagoba if we replace the functions for finding edges. Here's a naive version that searches through all the edges in linear time. It harkens back to our very first implementation, but uses all the structures we've since built.
 
 ```javascript
-Dagoba.G.findInEdges  = function(vertex) { return this.edges.filter(function(edge) {return edge._in._id  == vertex._id} ) }
-Dagoba.G.findOutEdges = function(vertex) { return this.edges.filter(function(edge) {return edge._out._id == vertex._id} ) }
+Dagoba.G.findInEdges  = function(vertex) { 
+  return this.edges.filter(function(edge) {return edge._in._id  == vertex._id} ) 
+}
+Dagoba.G.findOutEdges = function(vertex) { 
+  return this.edges.filter(function(edge) {return edge._out._id == vertex._id} ) 
+}
 ```
 
 We can add an index for edges, which gets us most of the way there with small graphs but has all the classic indexing issues for large ones.
 
 ```javascript
-Dagoba.G.findInEdges  = function(vertex) { return this.inEdgeIndex [vertex._id]  }
+Dagoba.G.findInEdges  = function(vertex) { return this.inEdgeIndex [vertex._id] }
 Dagoba.G.findOutEdges = function(vertex) { return this.outEdgeIndex[vertex._id] }
 ```
 
@@ -1185,9 +1201,9 @@ Dagoba.G.findInEdges  = function(vertex) { return vertex._in  }
 Dagoba.G.findOutEdges = function(vertex) { return vertex._out }
 ```
 
-Run these yourself to experience the graph database difference.
+Run these yourself to experience the graph database difference[^footnoteAA].
 
-[footnote: In modern JavaScript engines filtering a list is quite fast -- for small graphs the naive version can actually be faster than the index-free version due to the underlying data structures and the way the code is JIT compiled. Try it with different sizes of graphs to see how the two approaches scale.]
+[^footnoteAA]: In modern JavaScript engines filtering a list is quite fast -- for small graphs the naive version can actually be faster than the index-free version due to the underlying data structures and the way the code is JIT compiled. Try it with different sizes of graphs to see how the two approaches scale.
 
 
 ## Serialization
@@ -1196,7 +1212,9 @@ Having a graph in memory is great, but how do we get it there in the first place
 
 Our natural inclination is to do something like `JSON.stringify(graph)`, which produces the terribly helpful error `TypeError: Converting circular structure to JSON`. During the graph construction process the vertices were linked to their edges, and the edges are all linked to their vertices, so now everything refers to everything else. So how can we extract our nice neat lists again? JSON replacer functions to the rescue.
 
-The `JSON.stringify` function takes a value to stringify, but it also takes two additional parameters: a replacer function and a whitespace number [footnote: Pro tip: given a deep tree `deep_tree`, running `JSON.stringify(deep_tree, 0, 2)` in the JS console is a quick way to make it human readable]. The replacer allows you to customize how the stringification proceeds. 
+The `JSON.stringify` function takes a value to stringify, but it also takes two additional parameters: a replacer function and a whitespace number[^footnoteAB] . The replacer allows you to customize how the stringification proceeds. 
+
+[^footnoteAB]: Pro tip: given a deep tree `deep_tree`, running `JSON.stringify(deep_tree, 0, 2)` in the JS console is a quick way to make it human readable.
 
 We need to treat the vertices and edges a bit differently, so we're going to manually merge the two sides into a single JSON string.
 
@@ -1283,13 +1301,34 @@ One way to fix this non-determinism is to change the update handlers to add vers
 
 ## Future directions
 
-We saw one way of gathering ancestors earlier: `g.v('Thor').out().as('parent').out().as('grandparent').out().as('great-grandparent').merge(['parent', 'grandparent', 'great-grandparent']).run()`
+We saw one way of gathering ancestors earlier: 
+
+```javascript
+g.v('Thor').out().as('parent').out()
+                 .as('grandparent').out()
+                 .as('great-grandparent')
+                 .merge(['parent', 'grandparent', 'great-grandparent'])
+                 .run()
+```
 
 This is pretty clumsy, and doesn't scale well -- what if we wanted six layers of ancestors? Or to look through an arbitrary number of ancestors until we found what we wanted?
 
-It'd be nice if we could say something like this instead: `g.v('Thor').out().all().times(3).run()`. What we'd like to get out of this is something like the query above -- maybe `g.v('Thor').out().as('a').out().as('b').out().as('c').merge(['a', 'b', 'c']).run()` after the query transformers have all run.
+It'd be nice if we could say something like this instead: 
 
-We could run the `times` transformer first, to produce `g.v('Thor').out().all().out().all().out().all().run()`. Then run the `all` transformer and have it transform each `all` into a uniquely labeled `as`, and put a `merge` after the last `as`. 
+```javascript
+g.v('Thor').out().all().times(3).run()
+```
+
+What we'd like to get out of this is something like the query above after the query transformers have all run:
+
+```javascript
+g.v('Thor').out().as('a').out()
+                 .as('b').out()
+                 .as('c').merge(['a', 'b', 'c'])
+                 .run()`
+```
+
+We could run the `times` transformer first, to produce <latex>\linebreak</latex> `g.v('Thor').out().all().out().all().out().all().run()`. Then run the `all` transformer and have it transform each `all` into a uniquely labeled `as`, and put a `merge` after the last `as`. 
 
 There's a few problems with this, though. For one, this as/merge technique only works if every pathway is present in the graph -- if we're missing an entry for one of Thor's great-grandparents that will limit our results. For another, what happens if we want to do this to just part of a query and not the whole thing? What if there are multiple `all`s?  
 
@@ -1299,18 +1338,24 @@ The next two problems are easier: to modify just part of a query we'll wrap that
 
 To handle multiple `all`s we need to run all `all` transformers twice: one time before the times transformer, to mark all `all`s uniquely, and again after times' time to remark all marked `all`s uniquely all over.
 
-There's still the issue of searching through an unbounded number of ancestors -- for example, how do we find out which of Ymir's descendants are scheduled to survive Ragnarök? We could make individual queries like `g.v('Ymir').in().filter({survives: true})` and `g.v('Ymir').in().in().in().in().filter({survives: true})` and manually collect the results ourselves, but that's pretty awful. 
+There's still the issue of searching through an unbounded number of ancestors -- for example, how do we find out which of Ymir's descendants are scheduled to survive Ragnarök? We could make individual queries like `g.v('Ymir').in().filter({survives: true})` and <latex>\newline</latex> `g.v('Ymir').in().in().in().in().filter({survives: true})` and manually collect the results ourselves, but that's pretty awful. 
 
-We'd like to use an adverb like this: `g.v('Ymir').in().filter({survives: true}).every()`, which would work like `all`+`times` but without enforcing a limit. We may want to impose a particular strategy on the traversal, though, like a stolid BFS or YOLO DFS, so `g.v('Ymir').in().filter({survives: true}).bfs()` would be more flexible. Phrasing it this way allows us to state complicated queries like "check for Ragnarök survivors, skipping every other generation" in a straightforward fashion: `g.v('Ymir').in().filter({survives: true}).in().bfs()`.
+We'd like to use adverbs like this: 
+
+```javascript 
+g.v('Ymir').in().filter({survives: true}).every()
+```
+
+This would work like `all`+`times` but without enforcing a limit. We may want to impose a particular strategy on the traversal, though, like a stolid BFS or YOLO DFS, so <latex>\newline</latex> `g.v('Ymir').in().filter({survives: true}).bfs()` would be more flexible. Phrasing it this way allows us to state complicated queries like "check for Ragnarök survivors, skipping every other generation" in a straightforward fashion: `g.v('Ymir').in().filter({survives: true}).in().bfs()`.
 
 
 ## Wrapping up
 
-So what have we learned? Graph databases are great for storing interconnected* data that you plan to query via graph traversals. Adding non-strict semantics allows for a fluent interface over queries you could never express in an eager system for performance reasons, and allows you to cross async boundaries. Time makes things complicated, and time from multiple perspectives (i.e. concurrency) makes things very complicated, so whenever we can avoid introducing a temporal dependency (e.g. state, observable effects, etc) we make reasoning about our system easier. Building in a simple, decoupled and painfully unoptimized style leaves the door open for global optimizations later on, and using a driver loop allows for orthogonal optimizations -- each without introducing the brittleness and complexity that is the hallmark of most optimization techniques. 
+So what have we learned? Graph databases are great for storing interconnected[^footnoteAC] data that you plan to query via graph traversals. Adding non-strict semantics allows for a fluent interface over queries you could never express in an eager system for performance reasons, and allows you to cross async boundaries. Time makes things complicated, and time from multiple perspectives (i.e. concurrency) makes things very complicated, so whenever we can avoid introducing a temporal dependency (e.g. state, observable effects, etc) we make reasoning about our system easier. Building in a simple, decoupled and painfully unoptimized style leaves the door open for global optimizations later on, and using a driver loop allows for orthogonal optimizations -- each without introducing the brittleness and complexity that is the hallmark of most optimization techniques. 
 
 That last point can't be overstated: keep it simple. Eschew optimization in favor of simplicity. Work hard to achieve simplicity by finding the right model. Explore many possibilities. The chapters in this book provide ample evidence that highly non-trivial applications can have a small, tight kernel. Once you find that kernel for the application you are building, fight to keep complexity from polluting it. Build hooks for attaching additional functionality, and maintain your abstraction barriers at all costs. Using these techniques well is not easy, but they can give you leverage over otherwise intractable problems. 
 
-[footnote on interconnected: Not *too* interconnected, though -- you'd like the number of edges to grow in direct proportion to the number of vertices. In other words the average number of edges connected to a vertex shouldn't vary with the size of the graph. Most systems we'd consider putting in a graph database already have this property: if we add 100,000 Nigerian films to our movie database that doesn't increase the degree of the Kevin Bacon vertex.]
+[^interconnected]: Not *too* interconnected, though -- you'd like the number of edges to grow in direct proportion to the number of vertices. In other words the average number of edges connected to a vertex shouldn't vary with the size of the graph. Most systems we'd consider putting in a graph database already have this property: if we add 100,000 Nigerian films to our movie database that doesn't increase the degree of the Kevin Bacon vertex.
 
 
 ### Acknowledgements
