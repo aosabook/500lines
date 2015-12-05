@@ -566,16 +566,16 @@ of results before returning only the first 10.
 
 All graph databases have to support a mechanism for doing as little work
 as possible, and most choose some form of non-strict evaluation to do
-so. Since we're building our own interpreter the lazy evaluation our
+so. Since we're building our own interpreter the lazy evaluation of our
 program is certainly achievable, but we may have to contend with some
 unintended consequences.
 
 \aosasecti{Ramifications of evaluation strategy on our mental
 model}\label{ramifications-of-evaluation-strategy-on-our-mental-model}
 
-Up until now our mental model for evaluation has been very simple: -
-request a set of vertices - pass the returned set as input to a pipe -
-repeat as necessary
+Up until now our model for evaluation has been very simple: - request a
+set of vertices - pass the returned set as input to a pipe - repeat as
+necessary
 
 We would like to retain that model for our users, because it's easier to
 reason about, but as we've seen we can no longer use that model for the
@@ -597,7 +597,7 @@ complex model; the additional cognitive load imposed by first using the
 simple model and then advancing to the complex one vs skipping the
 simple and learning only the complex; the subset of users required to
 make the transition, in terms of their proportional size, cognitive
-availability, available time, and so on.
+availability, temporal availablility, and so on.
 
 In our case this tradeoff makes sense. For most uses queries will return
 results fast enough that users needn't be concerned with optimizing
@@ -608,11 +608,11 @@ Additionally, our hope is that there is only a small increase in
 difficulty imposed by using the simple model before learning the more
 complex one.
 
-We'll go in to more detail on this new model soon, but in the meantime
-here are some highlights to keep in mind during the next section: - Each
+We'll go into more detail on this new model soon, but in the meantime
+here are some highlights to keep in mind during the next section: - A
 pipe returns one result at a time, not a set of results. Each pipe may
 be activated many times while evaluating a query. - A read/write head
-controls which pipe is activated next. The head starts at the end of the
+controls the order of pipe activation. The head starts at the end of the
 pipeline, and its movement is directed by the result of the currently
 active pipe. - That result might be one of the aforementioned gremlins.
 Each gremlin represents a potential query result, and they carry state
@@ -2136,18 +2136,24 @@ other generation'' in a straightforward fashion:
 \aosasecti{Wrapping up}\label{wrapping-up}
 
 So what have we learned? Graph databases are great for storing
-interconnected{[}\^{}footnoteAC{]} data that you plan to query via graph
-traversals. Adding non-strict semantics allows for a fluent interface
-over queries you could never express in an eager system for performance
-reasons, and allows you to cross async boundaries. Time makes things
-complicated, and time from multiple perspectives (i.e.~concurrency)
-makes things very complicated, so whenever we can avoid introducing a
-temporal dependency (e.g.~state, observable effects, etc) we make
-reasoning about our system easier. Building in a simple, decoupled and
-painfully unoptimized style leaves the door open for global
-optimizations later on, and using a driver loop allows for orthogonal
-optimizations -- each without introducing the brittleness and complexity
-that is the hallmark of most optimization techniques.
+interconnected\footnote{Not \emph{too} interconnected, though -- you'd
+  like the number of edges to grow in direct proportion to the number of
+  vertices. In other words the average number of edges connected to a
+  vertex shouldn't vary with the size of the graph. Most systems we'd
+  consider putting in a graph database already have this property: if we
+  add 100,000 Nigerian films to our movie database that doesn't increase
+  the degree of the Kevin Bacon vertex.} data that you plan to query via
+graph traversals. Adding non-strict semantics allows for a fluent
+interface over queries you could never express in an eager system for
+performance reasons, and allows you to cross async boundaries. Time
+makes things complicated, and time from multiple perspectives
+(i.e.~concurrency) makes things very complicated, so whenever we can
+avoid introducing a temporal dependency (e.g.~state, observable effects,
+etc) we make reasoning about our system easier. Building in a simple,
+decoupled and painfully unoptimized style leaves the door open for
+global optimizations later on, and using a driver loop allows for
+orthogonal optimizations -- each without introducing the brittleness and
+complexity that is the hallmark of most optimization techniques.
 
 That last point can't be overstated: keep it simple. Eschew optimization
 in favor of simplicity. Work hard to achieve simplicity by finding the

@@ -1355,7 +1355,7 @@ So what have we learned? Graph databases are great for storing interconnected[^f
 
 That last point can't be overstated: keep it simple. Eschew optimization in favor of simplicity. Work hard to achieve simplicity by finding the right model. Explore many possibilities. The chapters in this book provide ample evidence that highly non-trivial applications can have a small, tight kernel. Once you find that kernel for the application you are building, fight to keep complexity from polluting it. Build hooks for attaching additional functionality, and maintain your abstraction barriers at all costs. Using these techniques well is not easy, but they can give you leverage over otherwise intractable problems. 
 
-[^interconnected]: Not *too* interconnected, though -- you'd like the number of edges to grow in direct proportion to the number of vertices. In other words the average number of edges connected to a vertex shouldn't vary with the size of the graph. Most systems we'd consider putting in a graph database already have this property: if we add 100,000 Nigerian films to our movie database that doesn't increase the degree of the Kevin Bacon vertex.
+[^footnoteAC]: Not *too* interconnected, though -- you'd like the number of edges to grow in direct proportion to the number of vertices. In other words the average number of edges connected to a vertex shouldn't vary with the size of the graph. Most systems we'd consider putting in a graph database already have this property: if we add 100,000 Nigerian films to our movie database that doesn't increase the degree of the Kevin Bacon vertex.
 
 
 ### Acknowledgements
