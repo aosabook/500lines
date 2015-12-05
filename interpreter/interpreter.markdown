@@ -1,7 +1,11 @@
 title: A Python Interpreter Written in Python
 author: Allison Kaptur
 
+<markdown>
 _Allison is an engineer at Dropbox, where she helps maintain one of the largest networks of Python clients in the world. Before Dropbox, she was a facilitator at the Recurse Center, a writers retreat for programmers in New York. She's spoken at PyCon North America about Python internals and loves weird bugs. She blogs at [akaptur.com](http://akaptur.com)._
+
+_(This chapter is also available in [Simplified Chinese](http://qingyunha.github.io/taotao/))_. 
+</markdown>
 
 ## Introduction
 
