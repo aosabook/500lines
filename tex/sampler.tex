@@ -484,12 +484,12 @@ p(\mathbf{x}; \mathbf{p}) = \frac{\Gamma((\sum_{i=1}^k x_i)+1)}{\Gamma(x_1+1)\cd
 \aosasectiii{Working with Log Values}\label{working-with-log-values}
 
 Before getting into the actual code needed to implement the equation
-above, I want to emphasize one of the \emph{the most important design
-decisions} when writing code with probabilities: working with log
-values. What this means is that rather than working directly with
-probabilities $p(x)$, we should be working with
-\emph{log}-probabilities, $\log{p(x)}$. This is because probabilities
-can get very small very quickly, resulting in underflow errors.
+above, I want to emphasize one of the the most important design
+decisions when writing code with probabilities: working with log values.
+What this means is that rather than working directly with probabilities
+$p(x)$, we should be working with \emph{log}-probabilities,
+$\log{p(x)}$. This is because probabilities can get very small very
+quickly, resulting in underflow errors.
 
 To motivate this, consider that probabilities must range between 0 and 1
 (inclusive). NumPy has a useful function, \texttt{finfo}, that will tell
@@ -1116,7 +1116,7 @@ because we actually do not know what the PMF should be! This would be
 the equation:
 
 \[
-\sum_{{item}_1, \ldots{}, {item}_m}p({damage}\ |\ {item}_1,\ldots{},{item}_m)p({item}_1)\cdots{}p({item}_m)
+\sum_{{item}_1, \ldots{}, {item}_m} p(\mathrm{damage} \vert \mathrm{item}_1,\ldots{},\mathrm{item}_m)p(\mathrm{item}_1)\cdots{}p(\mathrm{item}_m)
 \]
 
 What this equation says is that we would need to compute the probability
