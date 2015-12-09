@@ -1,9 +1,9 @@
 title: Blockcode: A visual programming toolkit
-author: Dethe Elze
+author: Dethe Elza
 
 In block-based programming languages, you write programs by dragging and connecting blocks that represent parts of the program. Block-based languages differ from conventional programming languages, in which you type words and symbols.
 
-Learning a programming language can be difficult because they are extremely sensitive to even the slightest of typos. Most programming languages are case-sensitive, have obscure syntax, and will refuse to run if you get so much as a semicolon in the wrong place --- or worse, leave one out. Further, most programming languages in use today are based on English and their syntax cannot be localized. 
+Learning a programming language can be difficult because they are extremely sensitive to even the slightest of typos. Most programming languages are case-sensitive, have obscure syntax, and will refuse to run if you get so much as a semicolon in the wrong place --- or worse, leave one out. Further, most programming languages in use today are based on English and their syntax cannot be localized.
 
 In contrast, a well-done block language can eliminate syntax errors completely. You can still create a program which does the wrong thing, but you cannot create one with the wrong syntax: the blocks just won't fit that way. Block languages are more discoverable: you can see all the constructs and libraries of the language right in the list of blocks. Further, blocks can be localized into any human language without changing the meaning of the programming language.
 
@@ -33,11 +33,11 @@ There is nothing stopping us from adding additional stages to be more like a tra
 
 ### Web Applications
 
-In order to make the tool available to the widest possible audience, it is web-native. It's written in HTML, CSS, and JavaScript, so it should work in most browsers and platforms. 
+In order to make the tool available to the widest possible audience, it is web-native. It's written in HTML, CSS, and JavaScript, so it should work in most browsers and platforms.
 
-Modern web browsers are powerful platforms, with a rich set of tools for building great apps. If something about the implementation became too complex, I took that as a sign that I wasn't doing it "the web way" and, where possible, tried to re-think how to better leverage the tools built into the browser. 
+Modern web browsers are powerful platforms, with a rich set of tools for building great apps. If something about the implementation became too complex, I took that as a sign that I wasn't doing it "the web way" and, where possible, tried to re-think how to better leverage the tools built into the browser.
 
-An important difference between web applications and traditional desktop or server applications is the lack of a `main()` or other entry point. There is no explicit run loop because that is already built into the browser and implicit on every web page. All our code will be parsed and executed on load, at which point we can register for events we are interested in for interacting with the user. After the first run, all further interaction with our code will be through callbacks we set up and register, whether we register those for events (like mouse movement), timeouts (fired with the periodicity we specify), or frame handlers (called for each screen redraw, generally 60 frames per second). The browser does not expose full-featured threads either (only shared-nothing web workers). 
+An important difference between web applications and traditional desktop or server applications is the lack of a `main()` or other entry point. There is no explicit run loop because that is already built into the browser and implicit on every web page. All our code will be parsed and executed on load, at which point we can register for events we are interested in for interacting with the user. After the first run, all further interaction with our code will be through callbacks we set up and register, whether we register those for events (like mouse movement), timeouts (fired with the periodicity we specify), or frame handlers (called for each screen redraw, generally 60 frames per second). The browser does not expose full-featured threads either (only shared-nothing web workers).
 
 ## Stepping Through the Code
 
@@ -45,7 +45,7 @@ I've tried to follow some conventions and best practices throughout this project
 
 The code style is procedural, not object-oriented or functional. We could do the same things in any of these paradigms, but that would require more setup code and wrappers to impose on what exists already for the DOM. Recent work on [Custom Elements](http://webcomponents.org/) make it easier to work with the DOM in an OO way, and there has been a lot of great writing on [Functional JavaScript](https://leanpub.com/javascript-allonge/read), but either would require a bit of shoe-horning, so it felt simpler to keep it procedural.
 
-There are eight source files in this project, but `index.html` and `blocks.css` are basic structure and style for the app and won't be discussed. Two of the JavaScript files won't be discussed in any detail either: `util.js` contains some helpers and serves as a bridge between different browser implementations --- similar to a library like jQuery but in less than 50 lines of code. `file.js` is a similar utility used for loading and saving files and serializing scripts. 
+There are eight source files in this project, but `index.html` and `blocks.css` are basic structure and style for the app and won't be discussed. Two of the JavaScript files won't be discussed in any detail either: `util.js` contains some helpers and serves as a bridge between different browser implementations --- similar to a library like jQuery but in less than 50 lines of code. `file.js` is a similar utility used for loading and saving files and serializing scripts.
 
 These are the remaining files:
 
@@ -77,8 +77,8 @@ The `createBlock(name, value, contents)` function returns a block as a DOM eleme
 
 ```javascript
     function createBlock(name, value, contents){
-        var item = elem('div', 
-            {'class': 'block', draggable: true, 'data-name': name}, 
+        var item = elem('div',
+            {'class': 'block', draggable: true, 'data-name': name},
             [name]
         );
         if (value !== undefined && value !== null){
@@ -89,7 +89,7 @@ The `createBlock(name, value, contents)` function returns a block as a DOM eleme
                 elem('div', {'class': 'container'}, contents.map(function(block){
                 return createBlock.apply(null, block);
             })));
-        }else if (typeof contents === 'string'){ 
+        }else if (typeof contents === 'string'){
             // Add units (degrees, etc.) specifier
             item.appendChild(document.createTextNode(' ' + contents));
         }
@@ -97,7 +97,7 @@ The `createBlock(name, value, contents)` function returns a block as a DOM eleme
     }
 ```
 
-We have some utilities for handling blocks as DOM elements: 
+We have some utilities for handling blocks as DOM elements:
 
 - `blockContents(block)` retrieves the child blocks of a container block. It always returns a list if called on a container block, and always returns null on a simple block
 - `blockValue(block)` returns the numerical value of the input on a block if the block has an input field of type number, or null if there is no input element for the block
@@ -116,8 +116,8 @@ We have some utilities for handling blocks as DOM elements:
     }
 
     function blockUnits(block){
-        if (block.children.length > 1 && 
-            block.lastChild.nodeType === Node.TEXT_NODE && 
+        if (block.children.length > 1 &&
+            block.lastChild.nodeType === Node.TEXT_NODE &&
             block.lastChild.textContent){
             return block.lastChild.textContent.slice(1);
         }
@@ -195,7 +195,7 @@ While we are dragging, the `dragenter`, `dragover`, and `dragout` events give us
             return;
         }
         // Necessary. Allows us to drop.
-        if (evt.preventDefault) { evt.preventDefault(); } 
+        if (evt.preventDefault) { evt.preventDefault(); }
         if (dragType === 'menu'){
             // See the section on the DataTransfer object.
             evt.dataTransfer.dropEffect = 'copy';  
@@ -216,7 +216,7 @@ When we release the mouse, we get a `drop` event. This is where the magic happen
         var dropType = 'script';
         if (matches(dropTarget, '.menu')){ dropType = 'menu'; }
         // stops the browser from redirecting.
-        if (evt.stopPropagation) { evt.stopPropagation(); } 
+        if (evt.stopPropagation) { evt.stopPropagation(); }
         if (dragType === 'script' && dropType === 'menu'){
             trigger('blockRemoved', dragTarget.parentElement, dragTarget);
             dragTarget.parentElement.removeChild(dragTarget);
@@ -277,7 +277,7 @@ We use `scriptDirty` to keep track of whether the script has been modified since
     var scriptDirty = false;
 ```
 
-When we want to notify the system to run the script during the next frame handler, we call `runSoon()` which sets the `scriptDirty` flag to `true`. The system calls `run()` on every frame, but returns immediately unless `scriptDirty` is set. When `scriptDirty` is set, it runs all the script blocks, and also triggers events to let the specific language handle any tasks it needs before and after the script is run. This decouples the blocks-as-toolkit from the turtle language to make the blocks re-usable (or the language pluggable, depending how you look at it). 
+When we want to notify the system to run the script during the next frame handler, we call `runSoon()` which sets the `scriptDirty` flag to `true`. The system calls `run()` on every frame, but returns immediately unless `scriptDirty` is set. When `scriptDirty` is set, it runs all the script blocks, and also triggers events to let the specific language handle any tasks it needs before and after the script is run. This decouples the blocks-as-toolkit from the turtle language to make the blocks re-usable (or the language pluggable, depending how you look at it).
 
 As part of running the script, we iterate over each block, calling `runEach(evt)` on it, which sets a class on the block, then finds and executes its associated function. If we slow things down, you should be able to watch the code execute as each block highlights to show when it is running.
 
@@ -342,7 +342,7 @@ We define `repeat(block)` here, outside of the turtle language, because it is ge
 
 \aosafigure[240pt]{blockcode-images/turtle_example.png}{Example of Turtle code running}{500l.blockcode.turtle}
 
-Turtle programming is a style of graphics programming, first popularized by Logo, where you have an imaginary turtle carrying a pen walking on the screen. You can tell the turtle to pick up the pen (stop drawing, but still move), put the pen down (leaving a line everywhere it goes), move forward a number of steps, or turn a number of degrees. Just those commands, combined with looping, can create amazingly intricate images. 
+Turtle programming is a style of graphics programming, first popularized by Logo, where you have an imaginary turtle carrying a pen walking on the screen. You can tell the turtle to pick up the pen (stop drawing, but still move), put the pen down (leaving a line everywhere it goes), move forward a number of steps, or turn a number of degrees. Just those commands, combined with looping, can create amazingly intricate images.
 
 In this version of turtle graphics we have a few extra blocks. Technically we don't need both `turn right` and `turn left` because you can have one and get the other with negative numbers. Likewise `move back` can be done with `move forward` and negative numbers. In this case it felt more balanced to have both.
 
@@ -359,7 +359,7 @@ The image above was formed by putting two loops inside another loop and adding a
     var WIDTH, HEIGHT, position, direction, visible, pen, color;
 ```
 
-The `reset()` function clears all the state variables to their defaults. If we were to support multiple turtles, these variables would be encapsulated in an object.  We also have a utility, `deg2rad(deg)`, because we work in degrees in the UI, but we draw in radians. Finally, `drawTurtle()` draws the turtle itself. The default turtle is simply a triangle, but you could override this to get a more "turtle-looking" turtle. 
+The `reset()` function clears all the state variables to their defaults. If we were to support multiple turtles, these variables would be encapsulated in an object.  We also have a utility, `deg2rad(deg)`, because we work in degrees in the UI, but we draw in radians. Finally, `drawTurtle()` draws the turtle itself. The default turtle is simply a triangle, but you could override this to get a more "turtle-looking" turtle.
 
 Note that `drawTurtle` uses the same primitive operations that we define to implement the turtle drawing. Sometimes you don't want to reuse code at different abstraction layers, but when the meaning is clear it can be a big win for code size and performance.
 
@@ -390,7 +390,7 @@ Note that `drawTurtle` uses the same primitive operations that we define to impl
     }
 ```
 
-We have a special block to draw a circle with a given radius at the current mouse position. We special-case `drawCircle` because, while you can certainly draw a circle by repeating `MOVE 1 RIGHT 1` 360 times, controlling the size of the circle is very difficult that way. 
+We have a special block to draw a circle with a given radius at the current mouse position. We special-case `drawCircle` because, while you can certainly draw a circle by repeating `MOVE 1 RIGHT 1` 360 times, controlling the size of the circle is very difficult that way.
 
 ```javascript
     function drawCircle(radius){
@@ -491,7 +491,7 @@ Now we can use the functions above, with the `Menu.item` function from `menu.js`
 
 ### Why Not Use MVC?
 
-Model-View-Controller (MVC) was a good design choice for Smalltalk programs in the '80s and it can work in some variation or other for web apps, but it isn't the right tool for every problem. All the state (the "model" in MVC) is captured by the block elements in a block language anyway, so replicating it into Javascript has little benefit unless there is some other need for the model (if we were editing shared, distributed code, for instance). 
+Model-View-Controller (MVC) was a good design choice for Smalltalk programs in the '80s and it can work in some variation or other for web apps, but it isn't the right tool for every problem. All the state (the "model" in MVC) is captured by the block elements in a block language anyway, so replicating it into Javascript has little benefit unless there is some other need for the model (if we were editing shared, distributed code, for instance).
 
 An early version of Waterbear went to great lengths to keep the model in JavaScript and sync it with the DOM, until I noticed that more than half the code and 90% of the bugs were due to keeping the model in sync with the DOM. Eliminating the duplication allowed the code to be simpler and more robust, and with all the state on the DOM elements, many bugs could be found simply by looking at the DOM in the developer tools. So in this case there is little benefit to building further separation of MVC than we already have in HTML/CSS/JavaScript.
 
@@ -501,14 +501,14 @@ Building a small, tightly scoped version of the larger system I work on has been
 
 #### Small Experiments Make Failure OK
 
-Some of the experiments I was able to do with this stripped-down block language were: 
+Some of the experiments I was able to do with this stripped-down block language were:
 
-- using HTML5 drag-and-drop, 
+- using HTML5 drag-and-drop,
 - running blocks directly by iterating through the DOM calling associated functions,
 - separating the code that runs cleanly from the HTML DOM,
 - simplified hit testing while dragging,
-- building our own tiny vector and sprite libraries (for the game blocks), and 
-- "live coding" where the results are shown whenever you change the block script. 
+- building our own tiny vector and sprite libraries (for the game blocks), and
+- "live coding" where the results are shown whenever you change the block script.
 
 The thing about experiments is that they do not have to succeed. We tend to gloss over failures and dead ends in our work, where failures are punished instead of treated as important vehicles for learning), but failures are essential if you are going to push forward. While I did get the HTML5 drag-and-drop working, the fact that it isn't supported at all on any mobile browser means it is a non-starter for Waterbear. Separating the code out and running code by iterating through the blocks worked so well that I've already begun bringing those ideas to Waterbear, with excellent improvements in testing and debugging. The simplified hit testing, with some modifications, is also coming back to Waterbear, as are the tiny vector and sprite libraries. Live coding hasn't made it to Waterbear yet, but once the current round of changes stabilizes I may introduce it.
 
