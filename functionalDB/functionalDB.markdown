@@ -721,7 +721,7 @@ Our data model is based on accumulation of facts (i.e., datoms) over time. For t
 
 ### Query Language
 
-Let's look at an example query in our proposed language. This query asks: "What are the names and birthday of entities who like pizza, speak English, and who have a birthday this month?"
+Let's look at an example query in our proposed language. This query asks: "What are the names and birthdays of entities who like pizza, speak English, and who have a birthday this month?"
 ```clojure
 {  :find [?nm ?bd ]
    :where [
