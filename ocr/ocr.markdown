@@ -35,6 +35,9 @@ first, let’s establish a bit more context.
 
 
 ## What is Artificial Intelligence?
+
+\label{sec.ocr.ai}
+
 While Turing’s definition of intelligence sounds reasonable, at the end of the
 day what constitutes intelligence is fundamentally a philosophical debate.
 Computer scientists have, however, categorized certain types of systems and
@@ -64,19 +67,21 @@ creating OCR systems, ANNs are one simple approach.
 ## Artificial Neural Networks
 ### What Are ANNs?
 
+\label{sec.ocr.ann}
+
 An ANN is a structure consisting of interconnected nodes that communicate with
 one another. The structure and its functionality are inspired by neural
 networks found in a biological brain. [Hebbian
 Theory](http://www.nbb.cornell.edu/neurobio/linster/BioNB420/hebb.pdf) explains
 how these networks can learn to identify patterns by physically altering their
-structure and link strengths. Similarly, a typical ANN (shown in FIXME) has
+structure and link strengths. Similarly, a typical ANN (shown in Figure FIXME) has
 connections between nodes that have a weight which is updated as the network
 learns. The nodes labelled "+1" are called _biases_. The leftmost blue column
 of nodes are _input nodes_, the middle column contains _hidden nodes_, and the
 rightmost column contains _output nodes_. There may be many columns of hidden
 nodes, known as _hidden layers_.
 
-The values inside all of the circular nodes in FIXME represent the output of
+The values inside all of the circular nodes in Figure FIXME represent the output of
 the node. If we call the output of the $n$th node from the top in layer $L$ as
 a $n(L)$ and the connection between the $i$th node in layer $L$ and the $j$th
 node in layer $L+1$ as $w^{(L)}_ji$, then the output of node $a^{(2)}_2$ is:
@@ -85,21 +90,21 @@ $$
 a^{(2)}_2 = f(w^{(1)}_{21}x_1 + w^{(1)}_{22}x_2 + b^{(1)}_{2})
 $$
 
- where $f(.)$ is known as the _activation function_ and $b$ is the _bias_. An
- activation function is the decision-maker for what type of output a node has.
- A bias is an additional node with a fixed output of 1 that may be added to an
- ANN to improve its accuracy. We’ll see more details on both of these in
- section FIXME (4.4.) 
+where $f(.)$ is known as the _activation function_ and $b$ is the _bias_. An
+activation function is the decision-maker for what type of output a node has.
+A bias is an additional node with a fixed output of 1 that may be added to an
+ANN to improve its accuracy. We’ll see more details on both of these in
+ \aosasecref{sec.ocr.feedforward}.
 
 This type of network topology is called a feedforward neural network because
 there are no cycles in the network. ANNs with nodes whose outputs feed into
 their inputs are called recurrent neural networks. There are many algorithms
 that can be applied to train feedforward ANNs; one commonly used algorithm is
-called Backpropagation. The OCR system we will implement in this chapter will
+called _backpropagation_. The OCR system we will implement in this chapter will
 use backpropagation.
 
 ### How Do We Use ANNs?
-Like most other ML approaches, the first step for using Backpropagation is to
+Like most other ML approaches, the first step for using backpropagation is to
 decide how to transform or reduce our problem into one that can be solved by an
 ANN. In other words, how can we manipulate our input data so we can feed it
 into the ANN? For the case of our OCR system, we can use the positions of the
@@ -110,7 +115,7 @@ image to identify contours within it. These contours would be the input.
 
 Once we’ve decided on our input data format, what’s next? Since backpropagation
 is a supervised algorithm, it will need to be trained with labelled data, as
-mentioned in FIXME section 2. Thus, when passing the pixel positions as training
+mentioned in \aosasecref{sec.ocr.ai}. Thus, when passing the pixel positions as training
 input, we must also pass the associated digit. This means that we must find or
 gather a large data set of drawn digits and associated values.
 
@@ -139,6 +144,9 @@ the optimal size has been decided and the network has been trained, it’s ready
 to make predictions!
 
 ## Design Decisions in a Simple OCR System
+
+\label{sec.ocr.decisions}
+
 In the last few paragraphs we’ve gone over some of the basics of feedforward
 ANNs and how to use them. Now it’s time to talk about how we can build an OCR
 system. 
@@ -356,7 +364,8 @@ response, and handle any potential errors along the way.
         }
         var responseJSON = JSON.parse(xmlHttp.responseText);
         if (xmlHttp.responseText && responseJSON.type == "test") {
-            alert("The neural network predicts you wrote a \'" + responseJSON.result + '\'');
+            alert("The neural network predicts you wrote a \'" 
+                   + responseJSON.result + '\'');
         }
     },
 
@@ -434,7 +443,10 @@ POST requests.
             nn.save()
         elif payload.get('predict'):
             try:
-                response = {"type":"test", "result":nn.predict(str(payload['image']))}
+                response = {
+                    "type":"test", 
+                    "result":nn.predict(str(payload['image']))
+                }
             except:
                 response_code = 500
         else:
@@ -450,6 +462,8 @@ POST requests.
 ```
 
 ### Designing a Feedforward ANN (`neural_network_design.py`)
+
+\label{sec.ocr.feedforward}
 
 When designing a feedforward ANN, there are a few factors we must consider. The
 first is what activation function to use. We mentioned activation functions
@@ -557,7 +571,7 @@ nodes instead of 15.
 ### Core OCR Functionality
 
 In this section we’ll talk about how the actual training occurs via
-Backpropagation, how we can use the network to make predictions, and other key
+backpropagation, how we can use the network to make predictions, and other key
 design decisions for core functionality.
 
 #### Training via Backpropagation (`ocr.py`)
@@ -587,13 +601,14 @@ the biases.
 ```python
             self.theta1 = self._rand_initialize_weights(400, num_hidden_nodes)
             self.theta2 = self._rand_initialize_weights(num_hidden_nodes, 10)
-            self.input_layer_bias = self._rand_initialize_weights(1, num_hidden_nodes)
+            self.input_layer_bias = self._rand_initialize_weights(1, 
+                                                                  num_hidden_nodes)
             self.hidden_layer_bias = self._rand_initialize_weights(1, 10)
 
 ```
 
 The second step is _forward propagation_, which is essentially computing the
-node outputs as described in section 3.1 FIXME, layer by layer starting from
+node outputs as described in \aosasecref{sec.ocr.ann}, layer by layer starting from
 the input nodes. Here, `y0` is an array of size 400 with the inputs we wish to
 use to train the ANN. We multiply `theta1` by `y0` transposed so that we have two
 matrices with sizes `(num_hidden_nodes x 400) * (400 x 1)` and have a resulting
@@ -638,10 +653,11 @@ perform an element-wise multiplication on these two components, giving a vector
 of errors for a hidden layer. Here we call this `hidden_errors`.
 
 ```python
-            actual_vals = [0] * 10 # actual_vals is a python list for easy initialization and is later turned into an np matrix (2 lines down).
+            actual_vals = [0] * 10 
             actual_vals[data['label']] = 1
             output_errors = np.mat(actual_vals).T - np.mat(y2)
-            hidden_errors = np.multiply(np.dot(np.mat(self.theta2).T, output_errors), self.sigmoid_prime(sum1))
+            hidden_errors = np.multiply(np.dot(np.mat(self.theta2).T, output_errors), 
+                                        self.sigmoid_prime(sum1))
 ```
 
 Weight updates that adjust the ANN weights based on the errors computed
@@ -658,8 +674,10 @@ for a user to continue making train or predict requests. Biases are updated by
 simply multiplying the learning rate by the layer’s error vector.
 
 ```python
-            self.theta1 += self.LEARNING_RATE * np.dot(np.mat(hidden_errors), np.mat(data['y0']))
-            self.theta2 += self.LEARNING_RATE * np.dot(np.mat(output_errors), np.mat(y1).T)
+            self.theta1 += self.LEARNING_RATE * np.dot(np.mat(hidden_errors), 
+                                                       np.mat(data['y0']))
+            self.theta2 += self.LEARNING_RATE * np.dot(np.mat(output_errors), 
+                                                       np.mat(y1).T)
             self.hidden_layer_bias += self.LEARNING_RATE * output_errors
             self.input_layer_bias += self.LEARNING_RATE * hidden_errors
 ```
@@ -697,18 +715,19 @@ the same as using loops, the benefit is that the code is simpler and easier to
 read with fewer nested loops. As we can see, the entire training process is
 written in under 25 lines of code using matrix algebra.
 
-As mentioned in the introduction of section 4 FIXME, persisting the weights of
-the ANN means we do not lose the progress made in training it when the server
-is shut down or abruptly goes down for any reason. We persist the weights by
-writing them as JSON to a file. On startup, the OCR loads the ANN’s saved
-weights to memory. The save function is not called internally by the OCR but is
-up to the server to decide when to perform a save. In our case, the server
-saves the weights after each update. This is a quick and simple solution but it
-is not optimal since writing to disk is time consuming. This also prevents us
-from handling multiple concurrent requests since there is no mechanism to
-prevent simultaneous writes to the same file. In a more sophisticated server,
-saves could perhaps be done on shutdown or once every few minutes with some
-form of locking or a timestamp protocol to ensure no data loss.
+As mentioned in the introduction of \aosasecref{sec.ocr.decisions}, persisting
+the weights of the ANN means we do not lose the progress made in training it
+when the server is shut down or abruptly goes down for any reason. We persist
+the weights by writing them as JSON to a file. On startup, the OCR loads the
+ANN’s saved weights to memory. The save function is not called internally by
+the OCR but is up to the server to decide when to perform a save. In our case,
+the server saves the weights after each update. This is a quick and simple
+solution but it is not optimal since writing to disk is time consuming. This
+also prevents us from handling multiple concurrent requests since there is no
+mechanism to prevent simultaneous writes to the same file. In a more
+sophisticated server, saves could perhaps be done on shutdown or once every few
+minutes with some form of locking or a timestamp protocol to ensure no data
+loss.
 
 ```python
     def save(self):
@@ -737,19 +756,19 @@ form of locking or a timestamp protocol to ensure no data loss.
 ```
 
 ## Conclusion
-Now that we’ve learned about AI, ANNs, Backpropagation, and building an
+Now that we’ve learned about AI, ANNs, backpropagation, and building an
 end-to-end OCR system, let’s recap the highlights of this chapter and the big
 picture.
 
-We started off the chapter with sections 1 to 3 FIXME giving background on AI,
-ANNs, and roughly what we will be implementing. We discussed what AI is and
-examples of how it’s used. We saw that AI is essentially a set of algorithms or
-problem-solving approaches that can provide an answer to a question in a
-similar manner as a human would. We then took a look at the structure of a
-Feedforward ANN. We learned that computing the output at a given node was as
-simple as summing the products of the outputs of the previous nodes and their
-connecting weights. We talked about how to use an ANN by first formatting the
-input and partitioning the data into training and validation sets.
+We started off the chapter by giving background on AI, ANNs, and roughly what
+we will be implementing. We discussed what AI is and examples of how it’s used.
+We saw that AI is essentially a set of algorithms or problem-solving approaches
+that can provide an answer to a question in a similar manner as a human would.
+We then took a look at the structure of a Feedforward ANN. We learned that
+computing the output at a given node was as simple as summing the products of
+the outputs of the previous nodes and their connecting weights. We talked about
+how to use an ANN by first formatting the input and partitioning the data into
+training and validation sets.
 
 Once we had some background, we started talking about creating a web-based,
 client-server system that would handle user requests to train or test the OCR.
@@ -757,7 +776,7 @@ We then discussed how the client would interpret the drawn pixels into an array
 and perform an HTTP request to the OCR server to perform the training or
 testing. We discussed how our simple server read requests and how to design an
 ANN by testing performance of several hidden node counts. We finished off by
-going through the core training and testing code for Backpropagation.
+going through the core training and testing code for backpropagation.
 
 Although we’ve built a seemingly functional OCR system, this chapter simply
 scratches the surface of how a real OCR system might work. More sophisticated
