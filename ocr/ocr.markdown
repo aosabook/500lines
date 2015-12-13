@@ -35,9 +35,7 @@ first, let’s establish a bit more context.
 
 
 ## What is Artificial Intelligence?
-
 \label{sec.ocr.ai}
-
 While Turing’s definition of intelligence sounds reasonable, at the end of the
 day what constitutes intelligence is fundamentally a philosophical debate.
 Computer scientists have, however, categorized certain types of systems and
@@ -66,9 +64,7 @@ creating OCR systems, ANNs are one simple approach.
 
 ## Artificial Neural Networks
 ### What Are ANNs?
-
 \label{sec.ocr.ann}
-
 An ANN is a structure consisting of interconnected nodes that communicate with
 one another. The structure and its functionality are inspired by neural
 networks found in a biological brain. [Hebbian
@@ -144,9 +140,7 @@ the optimal size has been decided and the network has been trained, it’s ready
 to make predictions!
 
 ## Design Decisions in a Simple OCR System
-
 \label{sec.ocr.decisions}
-
 In the last few paragraphs we’ve gone over some of the basics of feedforward
 ANNs and how to use them. Now it’s time to talk about how we can build an OCR
 system. 
@@ -462,9 +456,7 @@ POST requests.
 ```
 
 ### Designing a Feedforward ANN (`neural_network_design.py`)
-
 \label{sec.ocr.feedforward}
-
 When designing a feedforward ANN, there are a few factors we must consider. The
 first is what activation function to use. We mentioned activation functions
 earlier as the decision-maker for a node’s output. The type of the decision an
