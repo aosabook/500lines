@@ -19,8 +19,7 @@ things; he loves seeing the spark of wonder and delight in people's eyes when
 someone shares a novel, surprising, or beautiful idea. Daniel lives in Atlanta
 with a microbiologist and four aspiring rocketeers._
 
-Introduction
-============
+## Introduction
 
 Build systems have long been a standard tool
 within computer programming.
@@ -32,7 +31,7 @@ It not only lets you declare
 that an output file depends upon one (or more) inputs,
 but lets you do this recursively.
 A program, for example, might depend upon an object file
-which itself depends upon the corresponding source code::
+which itself depends upon the corresponding source code:
 
 ```
     prog: main.o
@@ -70,8 +69,7 @@ The problem, again, is cross-referencing.
 Where do cross-references tend to emerge?
 In text documents, documentation, and printed books!
 
-The Problem: Building Document Systems
-======================================
+## The Problem: Building Document Systems
 
 Systems to rebuild formatted documents from source texts
 always seem to do too much work, or too little.
@@ -132,7 +130,7 @@ If you later reconsider the tutorial’s chapter title —
 after all, the word “newcomer” sounds so antique,
 as if your users are settlers who have just arrived in pioneer Wyoming —
 then you would edit the first line of `tutorial.rst`
-and write something better::
+and write something better:
 
 ```
   -Newcomers Tutorial
@@ -279,8 +277,7 @@ This can happen for many kinds of cross reference that Sphinx supports:
 chapter titles, section titles, paragraphs,
 classes, methods, and functions.
 
-Build Systems and Consistency
-=============================
+## Build Systems and Consistency
 
 The problem outlined above is not specific to Sphinx.
 Not only does it haunt other document systems, like LaTeX,
@@ -290,7 +287,7 @@ with the venerable `make` utility,
 if their assets happen to cross-reference in interesting ways.
 
 As the problem is ancient and universal,
-its solution is of equally long lineage::
+its solution is of equally long lineage:
 
 ```bash
    $ rm -r _build/
@@ -332,8 +329,7 @@ while performing the fewest possible rebuild steps.
 While Contingent can be applied to any problem domain,
 we will run it against a small version of the problem outlined above.
 
-Linking Tasks To Make a Graph
-=============================
+## Linking Tasks To Make a Graph
 
 Any build system needs a way to link inputs and outputs.
 The three markup texts in our discussion above,
@@ -544,8 +540,7 @@ at either end of the edge.
 But in return for this redundancy,
 the data structure supports the fast lookup that Contingent needs.
 
-The Proper Use of Classes
-=========================
+## The Proper Use of Classes
 
 You may have been surprised
 by the absence of classes in the above discussion
@@ -637,7 +632,7 @@ and that the nodes themselves in these early examples
 are simply strings.
 Coming from other languages and traditions,
 one might have expected to see
-user-defined classes and interfaces for everything in the system::
+user-defined classes and interfaces for everything in the system:
 
 ```java
     Graph g = new ConcreteGraph();
@@ -862,8 +857,7 @@ will eventually have Contingent do for us:
 the graph `g` captures the inputs and consequences
 for the various artifacts in our project's documentation.
 
-Learning Connections
-====================
+## Learning Connections
 
 We now have a way for Contingent
 to keep track of tasks and the relationships between them.
@@ -1311,8 +1305,7 @@ at its disposal,
 Contingent knows all the things to rebuild
 if the inputs to any tasks change.
 
-Chasing Consequences
-====================
+## Chasing Consequences
 
 Once the initial build has run to completion,
 Contingent needs to monitor the input files for changes.
@@ -1542,8 +1535,7 @@ nevertheless returned the same value means that all further
 downstream tasks were insulated from the change
 and did not get re-invoked.
 
-Conclusion
-==========
+## Conclusion
 
 There exist languages and programming methodologies
 under which Contingent would be a suffocating forest of tiny classes
