@@ -75,13 +75,13 @@ class OCRNeuralNetwork:
             actual_vals = [0] * 10 # actual_vals is a python list for easy initialization and is later turned into an np matrix (2 lines down).
             actual_vals[data['label']] = 1
             output_errors = np.mat(actual_vals).T - np.mat(y2)
-            hiddenErrors = np.multiply(np.dot(np.mat(self.theta2).T, output_errors), self.sigmoid_prime(sum1))
+            hidden_errors = np.multiply(np.dot(np.mat(self.theta2).T, output_errors), self.sigmoid_prime(sum1))
 
             # Step 4: Update weights
-            self.theta1 += self.LEARNING_RATE * np.dot(np.mat(hiddenErrors), np.mat(data['y0']))
+            self.theta1 += self.LEARNING_RATE * np.dot(np.mat(hidden_errors), np.mat(data['y0']))
             self.theta2 += self.LEARNING_RATE * np.dot(np.mat(output_errors), np.mat(y1).T)
             self.hidden_layer_bias += self.LEARNING_RATE * output_errors
-            self.input_layer_bias += self.LEARNING_RATE * hiddenErrors
+            self.input_layer_bias += self.LEARNING_RATE * hidden_errors
 
     def predict(self, test):
         y1 = np.dot(np.mat(self.theta1), np.mat(test).T)
