@@ -39,14 +39,12 @@ bit more context.
 \aosasecti{What is Artificial
 Intelligence?}\label{what-is-artificial-intelligence}
 
-\label{sec.ocr.ai}
-
-While Turing's definition of intelligence sounds reasonable, at the end
-of the day what constitutes intelligence is fundamentally a
-philosophical debate. Computer scientists have, however, categorized
-certain types of systems and algorithms into branches of AI. Each branch
-is used to solve certain sets of problems. These branches include the
-following examples, as well as
+\label{sec.ocr.ai} While Turing's definition of intelligence sounds
+reasonable, at the end of the day what constitutes intelligence is
+fundamentally a philosophical debate. Computer scientists have, however,
+categorized certain types of systems and algorithms into branches of AI.
+Each branch is used to solve certain sets of problems. These branches
+include the following examples, as well as
 \href{http://www-formal.stanford.edu/jmc/whatisai/node2.html}{many
 others}:
 
@@ -81,26 +79,27 @@ systems, ANNs are one simple approach.
 
 \aosasectii{What Are ANNs?}\label{what-are-anns}
 
-\label{sec.ocr.ann}
-
-An ANN is a structure consisting of interconnected nodes that
-communicate with one another. The structure and its functionality are
-inspired by neural networks found in a biological brain.
+\label{sec.ocr.ann} An ANN is a structure consisting of interconnected
+nodes that communicate with one another. The structure and its
+functionality are inspired by neural networks found in a biological
+brain.
 \href{http://www.nbb.cornell.edu/neurobio/linster/BioNB420/hebb.pdf}{Hebbian
 Theory} explains how these networks can learn to identify patterns by
 physically altering their structure and link strengths. Similarly, a
-typical ANN (shown in Figure FIXME) has connections between nodes that
-have a weight which is updated as the network learns. The nodes labelled
-``+1'' are called \emph{biases}. The leftmost blue column of nodes are
-\emph{input nodes}, the middle column contains \emph{hidden nodes}, and
-the rightmost column contains \emph{output nodes}. There may be many
-columns of hidden nodes, known as \emph{hidden layers}.
+typical ANN (shown in \aosafigref{500l.ocr.ann}) has connections between
+nodes that have a weight which is updated as the network learns. The
+nodes labelled ``+1'' are called \emph{biases}. The leftmost blue column
+of nodes are \emph{input nodes}, the middle column contains \emph{hidden
+nodes}, and the rightmost column contains \emph{output nodes}. There may
+be many columns of hidden nodes, known as \emph{hidden layers}.
 
-The values inside all of the circular nodes in Figure FIXME represent
-the output of the node. If we call the output of the $n$th node from the
-top in layer $L$ as a $n(L)$ and the connection between the $i$th node
-in layer $L$ and the $j$th node in layer $L+1$ as $w^{(L)}_ji$, then the
-output of node $a^{(2)}_2$ is:
+\aosafigure[360pt]{ocr-images/ann.png}{An Artificial Neural Network}{500l.ocr.ann}
+
+The values inside all of the circular nodes in \aosafigref{500l.ocr.ann}
+represent the output of the node. If we call the output of the $n$th
+node from the top in layer $L$ as a $n(L)$ and the connection between
+the $i$th node in layer $L$ and the $j$th node in layer $L+1$ as
+$w^{(L)}_ji$, then the output of node $a^{(2)}_2$ is:
 
 \[
 a^{(2)}_2 = f(w^{(1)}_{21}x_1 + w^{(1)}_{22}x_2 + b^{(1)}_{2})
@@ -168,11 +167,9 @@ been trained, it's ready to make predictions!
 \aosasecti{Design Decisions in a Simple OCR
 System}\label{design-decisions-in-a-simple-ocr-system}
 
-\label{sec.ocr.decisions}
-
-In the last few paragraphs we've gone over some of the basics of
-feedforward ANNs and how to use them. Now it's time to talk about how we
-can build an OCR system.
+\label{sec.ocr.decisions} In the last few paragraphs we've gone over
+some of the basics of feedforward ANNs and how to use them. Now it's
+time to talk about how we can build an OCR system.
 
 First off, we must decide what we want our system to be able to do. To
 keep things simple, let's allow users to draw a single digit and be able
@@ -511,37 +508,35 @@ handles POST requests.
 \aosasectii{Designing a Feedforward ANN
 (\texttt{neural\_network\_design.py})}\label{designing-a-feedforward-ann-neuralux5fnetworkux5fdesign.py}
 
-\label{sec.ocr.feedforward}
-
-When designing a feedforward ANN, there are a few factors we must
-consider. The first is what activation function to use. We mentioned
-activation functions earlier as the decision-maker for a node's output.
-The type of the decision an activation function makes will help us
-decide which one to use. In our case, we will be designing an ANN that
-outputs a value between 0 and 1 for each digit (0-9). Values closer to 1
-would mean the ANN predicts this is the drawn digit and values closer to
-0 would mean it's predicted to not be the drawn digit. Thus, we want an
-activation function that would have outputs either close to 0 or close
-to 1. We also need a function that is differentiable because we will
-need the derivative for our backpropagation computation. A commonly used
-function in this case is the sigmoid because it satisfies both these
-constraints. StatSoft provides a
+\label{sec.ocr.feedforward} When designing a feedforward ANN, there are
+a few factors we must consider. The first is what activation function to
+use. We mentioned activation functions earlier as the decision-maker for
+a node's output. The type of the decision an activation function makes
+will help us decide which one to use. In our case, we will be designing
+an ANN that outputs a value between 0 and 1 for each digit (0-9). Values
+closer to 1 would mean the ANN predicts this is the drawn digit and
+values closer to 0 would mean it's predicted to not be the drawn digit.
+Thus, we want an activation function that would have outputs either
+close to 0 or close to 1. We also need a function that is differentiable
+because we will need the derivative for our backpropagation computation.
+A commonly used function in this case is the sigmoid because it
+satisfies both these constraints. StatSoft provides a
 \href{http://www.fmi.uni-sofia.bg/fmi/statist/education/textbook/eng/glosa.html}{nice
 list} of common activation functions and their properties.
 
 A second factor to consider is whether we want to include biases. We've
 mentioned biases a couple of times before but haven't really talked
 about what they are or why we use them. Let's try to understand this by
-going back to how the output of a node is computed in Figure 1 FIXME.
-Suppose we had a single input node and a single output node, our output
-formula would be $y = f(wx)$, where $y$ is the output, $f()$ is the
-activation function, $w$ is the weight for the link between the nodes,
-and $x$ is the variable input for the node. The bias is essentially a
-node whose output is always $1$. This would change the output formula to
-$y = f(wx + b)$ where $b$ is the weight of the connection between the
-bias node and the next node. If we consider $w$ and $b$ as constants and
-$x$ as a variable, then adding a bias adds a constant to our linear
-function input to $f(.)$.
+going back to how the output of a node is computed in
+\aosafigref{500l.ocr.ann}. Suppose we had a single input node and a
+single output node, our output formula would be $y = f(wx)$, where $y$
+is the output, $f()$ is the activation function, $w$ is the weight for
+the link between the nodes, and $x$ is the variable input for the node.
+The bias is essentially a node whose output is always $1$. This would
+change the output formula to $y = f(wx + b)$ where $b$ is the weight of
+the connection between the bias node and the next node. If we consider
+$w$ and $b$ as constants and $x$ as a variable, then adding a bias adds
+a constant to our linear function input to $f(.)$.
 
 Adding the bias therefore allows for a shift in the $y$-intercept and in
 general gives more flexibility for the output of a node. It's often good
