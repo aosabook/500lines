@@ -65,7 +65,7 @@ Copy the tests/ folder from this code base to test_repo and commit it::
   cp -r /this/directory/tests /path/to/test_repo/
   cd /path/to/test_repo
   git add tests/
-  git commit -m”add tests”
+  git commit -m "add tests"
 
 The repo observer will need its own clone of the code::
 
@@ -110,7 +110,7 @@ to make a new commit. Go to your master repo and make an arbitrary change::
   cd /path/to/test_repo
   touch new_file
   git add new_file
-  git commit -m"new file" new_file
+  git commit -m "new file" new_file
 
 then repo_observer.py will realize that there's a new commit and will notify
 the dispatcher. You can see the output in their respective shells, so you
