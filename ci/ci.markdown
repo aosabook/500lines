@@ -227,7 +227,7 @@ modified this assumption for simplicity.
 
 The observer must know which repository to observe. We previously
 created a clone of our repository at `/path/to/test_repo_clone_obs`.
-The repository will use this clone to detect changes. To allow the
+The observer will use this clone to detect changes. To allow the
 repository observer to use this clone, we pass it the path when we
 invoke the `repo_observer.py` file. The repository observer will use this
 clone to pull from the main repository.
