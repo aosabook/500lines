@@ -1,0 +1,1604 @@
+\begin{aosachapter}{A Web Crawler With asyncio Coroutines}{s:crawler}{A. Jesse Jiryu Davis and Guido van Rossum}
+
+Classical computer science emphasizes efficient algorithms that complete
+computations as quickly as possible. But many networked programs spend
+their time not computing, but holding open many connections that are
+slow, or have infrequent events. These programs present a very different
+challenge: to wait for a huge number of network events efficiently. A
+contemporary approach to this problem is asynchronous I/O, or ``async''.
+
+This chapter presents a simple web crawler. The crawler is an archetypal
+async application because it waits for many responses, but does little
+computation. The more pages it can fetch at once, the sooner it
+completes. If it devotes a thread to each in-flight request, then as the
+number of concurrent requests rises it will run out of memory or other
+thread-related resource before it runs out of sockets. It avoids the
+need for threads by using asynchronous I/O.
+
+We present the example in three stages. First, we show an async event
+loop and sketch a crawler that uses the event loop with callbacks: it is
+very efficient, but extending it to more complex problems would lead to
+unmanageable spaghetti code. Second, therefore, we show that Python
+coroutines are both efficient and extensible. We implement simple
+coroutines in Python using generator functions. In the third stage, we
+use the full-featured coroutines from Python's standard ``asyncio''
+library\footnote{Guido introduced the standard asyncio library, called
+  ``Tulip'' then, at PyCon 2013.}, and coordinate them using an async
+queue.
+
+\aosasecti{The Task}\label{the-task}
+
+A web crawler finds and downloads all pages on a website, perhaps to
+archive or index them. Beginning with a root URL, it fetches each page,
+parses it for links to pages it has not seen, and adds the new links to
+a queue. When it fetches a page with no unseen links and the queue is
+empty, it stops.
+
+We can hasten this process by downloading many pages concurrently. As
+the crawler finds new links, it launches simultaneous fetch operations
+for the new pages on separate sockets. It parses responses as they
+arrive, adding new links to the queue. There may come some point of
+diminishing returns where too much concurrency degrades performance, so
+we cap the number of concurrent requests, and leave the remaining links
+in the queue until some in-flight requests complete.
+
+\aosasecti{The Traditional Approach}\label{the-traditional-approach}
+
+How do we make the crawler concurrent? Traditionally we would create a
+thread pool. Each thread would be in charge of downloading one page at a
+time over a socket. For example, to download a page from xkcd.com:
+
+\begin{verbatim}
+def fetch(url):
+    sock = socket.socket()
+    sock.connect(('xkcd.com', 80))
+    request = 'GET {} HTTP/1.0\r\nHost: xkcd.com\r\n\r\n'.format(url)
+    sock.send(request.encode('ascii'))
+    response = b''
+    chunk = sock.recv(4096)
+    while chunk:
+        response += chunk
+        chunk = sock.recv(4096)
+    
+    # Page is now downloaded.
+    links = parse_links(response)
+    q.add(links)
+\end{verbatim}
+
+By default, socket operations are \emph{blocking}: when the thread calls
+a method like \texttt{connect} or \texttt{recv}, it pauses until the
+operation completes.\footnote{Even calls to \texttt{send} can block, if
+  the recipient is slow to acknowledge outstanding messages and the
+  system's buffer of outgoing data is full.} Consequently to download
+many pages at once, we need many threads. A sophisticated application
+amortizes the cost of thread-creation by keeping idle threads in a
+thread pool, then checking them out to reuse them for subsequent tasks;
+it does the same with sockets in a connection pool.
+
+And yet, threads are expensive, and operating systems enforce a variety
+of hard caps on the number of threads a process, user, or machine may
+have. On Jesse's system, a Python thread costs around 50k of memory, and
+starting tens of thousands of threads causes failures. If we scale up to
+tens of thousands of simultaneous operations on concurrent sockets, we
+run out of threads before we run out of sockets. Per-thread overhead or
+system limits on threads are the bottleneck.
+
+In his influential article ``The C10K problem''\footnote{\url{http://www.kegel.com/c10k.html}},
+Dan Kegel outlines the limitations of multithreading for I/O
+concurrency. He begins,
+
+\begin{quote}
+It's time for web servers to handle ten thousand clients simultaneously,
+don't you think? After all, the web is a big place now.
+\end{quote}
+
+Kegel coined the term ``C10K'' in 1999. Ten thousand connections sounds
+dainty now, but the problem has changed only in size, not in kind. Back
+then, using a thread per connection for C10K was impractical. Now the
+cap is orders of magnitude higher. Indeed, our toy web crawler would
+work just fine with threads. Yet for very large scale applications, with
+hundreds of thousands of connections, the cap remains: there is a limit
+beyond which most systems can still create sockets, but have run out of
+threads. How can we overcome this?
+
+\aosasecti{Async}\label{async}
+
+Asynchronous I/O frameworks do concurrent operations on a single thread.
+Let us find out how.
+
+Async frameworks use \emph{non-blocking} sockets. In our async crawler,
+we set the socket non-blocking before we begin to connect to the server:
+
+\begin{verbatim}
+sock = socket.socket()
+sock.setblocking(False)
+try:
+    sock.connect(('xkcd.com', 80))
+except BlockingIOError:
+    pass
+\end{verbatim}
+
+Irritatingly, a non-blocking socket throws an exception from
+\texttt{connect}, even when it is working normally. This exception
+replicates the irritating behavior of the underlying C function, which
+sets \texttt{errno} to \texttt{EINPROGRESS} to tell you it has begun.
+
+Now our crawler needs a way to know when the connection is established,
+so it can send the HTTP request. We could simply keep trying in a tight
+loop:
+
+\begin{verbatim}
+request = 'GET {} HTTP/1.0\r\nHost: xkcd.com\r\n\r\n'.format(url)
+encoded = request.encode('ascii')
+
+while True:
+    try:
+        sock.send(encoded)
+        break  # Done.
+    except OSError as e:
+        pass
+
+print('sent')
+\end{verbatim}
+
+This method not only wastes electricity, but it cannot efficiently await
+events on \emph{multiple} sockets. In ancient times, BSD Unix's solution
+to this problem was \texttt{select}, a C function that waits for an
+event to occur on a non-blocking socket or a small array of them.
+Nowadays the demand for Internet applications with huge numbers of
+connections has led to replacements like \texttt{poll}, then
+\texttt{kqueue} on BSD and \texttt{epoll} on Linux. These APIs are
+similar to \texttt{select}, but perform well with very large numbers of
+connections.
+
+Python 3.4's \texttt{DefaultSelector} uses the best \texttt{select}-like
+function available on your system. To register for notifications about
+network I/O, we create a non-blocking socket and register it with the
+default selector:
+
+\begin{verbatim}
+from selectors import DefaultSelector
+
+selector = DefaultSelector()
+
+sock = socket.socket()
+sock.setblocking(False)
+try:
+    sock.connect(('xkcd.com', 80))
+except BlockingIOError:
+    pass
+
+def connected():
+    selector.unregister(sock.fileno())
+    print('connected!')
+
+selector.register(sock.fileno(), EVENT_WRITE, connected)
+\end{verbatim}
+
+We disregard the spurious error and call \texttt{selector.register},
+passing in the socket's file descriptor and a constant that expresses
+what event we are waiting for. To be notified when the connection is
+established, we pass \texttt{EVENT\_WRITE}: that is, we want to know
+when the socket is ``writable''. We also pass a Python function,
+\texttt{connected}, to run when that event occurs. Such a function is
+known as a \emph{callback}.
+
+We process I/O notifications as the selector receives them, in a loop:
+
+\begin{verbatim}
+def loop():
+    while True:
+        events = selector.select()
+        for event_key, event_mask in events:
+            callback = event_key.data
+            callback()
+\end{verbatim}
+
+The \texttt{connected} callback is stored as \texttt{event\_key.data},
+which we retrieve and execute once the non-blocking socket is connected.
+
+Unlike in our fast-spinning loop above, the call to \texttt{select} here
+pauses, awaiting the next I/O events. Then the loop runs callbacks that
+are waiting for these events. Operations that have not completed remain
+pending until some future tick of the event loop.
+
+What have we demonstrated already? We showed how to begin an operation
+and execute a callback when the operation is ready. An async
+\emph{framework} builds on the two features we have shown---non-blocking
+sockets and the event loop---to run concurrent operations on a single
+thread.
+
+We have achieved ``concurrency'' here, but not what is traditionally
+called ``parallelism''. That is, we built a tiny system that does
+overlapping I/O. It is capable of beginning new operations while others
+are in flight. It does not actually utilize multiple cores to execute
+computation in parallel. But then, this system is designed for I/O-bound
+problems, not CPU-bound ones.\footnote{Python's global interpreter lock
+  prohibits running Python code in parallel in one process anyway.
+  Parallelizing CPU-bound algorithms in Python requires multiple
+  processes, or writing the parallel portions of the code in C. But that
+  is a topic for another day.}
+
+So our event loop is efficient at concurrent I/O because it does not
+devote thread resources to each connection. But before we proceed, it is
+important to correct a common misapprehension that async is
+\emph{faster} than multithreading. Often it is not---indeed, in Python,
+an event loop like ours is moderately slower than multithreading at
+serving a small number of very active connections. In a runtime without
+a global interpreter lock, threads would perform even better on such a
+workload. What asynchronous I/O is right for, is applications with many
+slow or sleepy connections with infrequent events.\footnote{Jesse listed
+  indications and contraindications for using async in ``What Is Async,
+  How Does It Work, And When Should I Use It?'', available at
+  pyvideo.org.}\footnote{Mike Bayer compared the throughput of asyncio
+  and multithreading for different workloads in his ``Asynchronous
+  Python and Databases'':
+  http://techspot.zzzeek.org/2015/02/15/asynchronous-python-and-databases/}
+
+\aosasecti{Programming With Callbacks}\label{programming-with-callbacks}
+
+With the runty async framework we have built so far, how can we build a
+web crawler? Even a simple URL-fetcher is painful to write.
+
+We begin with global sets of the URLs we have yet to fetch, and the URLs
+we have seen:
+
+\begin{verbatim}
+urls_todo = set(['/'])
+seen_urls = set(['/'])
+\end{verbatim}
+
+The \texttt{seen\_urls} set includes \texttt{urls\_todo} plus completed
+URLs. The two sets are initialized with the root URL ``/''.
+
+Fetching a page will require a series of callbacks. The
+\texttt{connected} callback fires when a socket is connected, and sends
+a GET request to the server. But then it must await a response, so it
+registers another callback. If, when that callback fires, it cannot read
+the full response yet, it registers again, and so on.
+
+Let us collect these callbacks into a \texttt{Fetcher} object. It needs
+a URL, a socket object, and a place to accumulate the response bytes:
+
+\begin{verbatim}
+class Fetcher:
+    def __init__(self, url):
+        self.response = b''  # Empty array of bytes.
+        self.url = url
+        self.sock = None
+\end{verbatim}
+
+We begin by calling \texttt{Fetcher.fetch}:
+
+\begin{verbatim}
+    # Method on Fetcher class.
+    def fetch(self):
+        self.sock = socket.socket()
+        self.sock.setblocking(False)
+        try:
+            self.sock.connect(('xkcd.com', 80))
+        except BlockingIOError:
+            pass
+            
+        # Register next callback.
+        selector.register(self.sock.fileno(),
+                          EVENT_WRITE,
+                          self.connected)
+\end{verbatim}
+
+The \texttt{fetch} method begins connecting a socket. But notice the
+method returns before the connection is established. It must return
+control to the event loop to wait for the connection. To understand why,
+imagine our whole application was structured so:
+
+\begin{verbatim}
+# Begin fetching http://xkcd.com/353/
+fetcher = Fetcher('/353/')
+fetcher.fetch()
+
+while True:
+    events = selector.select()
+    for event_key, event_mask in events:
+        callback = event_key.data
+        callback(event_key, event_mask)
+\end{verbatim}
+
+All event notifications are processed in the event loop when it calls
+\texttt{select}. Hence \texttt{fetch} must hand control to the event
+loop, so that the program knows when the socket has connected. Only then
+does the loop run the \texttt{connected} callback, which was registered
+at the end of \texttt{fetch} above.
+
+Here is the implementation of \texttt{connected}:
+
+\begin{verbatim}
+    # Method on Fetcher class.
+    def connected(self, key, mask):
+        print('connected!')
+        selector.unregister(key.fd)
+        request = 'GET {} HTTP/1.0\r\nHost: xkcd.com\r\n\r\n'.format(url)
+        self.sock.send(request.encode('ascii'))
+        
+        # Register the next callback.
+        selector.register(key.fd,
+                          EVENT_READ,
+                          self.read_response)
+\end{verbatim}
+
+The method sends a GET request. A real application would check the
+return value of \texttt{send} in case the whole message cannot be sent
+at once. But our request is small and our application unsophisticated.
+It blithely calls \texttt{send}, then waits for a response. Of course,
+it must register yet another callback and relinquish control to the
+event loop. The next and final callback, \texttt{read\_response},
+processes the server's reply:
+
+\begin{verbatim}
+    # Method on Fetcher class.
+    def read_response(self, key, mask):
+        global stopped
+
+        chunk = self.sock.recv(4096)  # 4k chunk size.
+        if chunk:
+            self.response += chunk
+        else:
+            selector.unregister(key.fd)  # Done reading.
+            links = self.parse_links()
+            
+            # Python set-logic:
+            for link in links.difference(seen_urls):
+                urls_todo.add(link)
+                Fetcher(link).fetch()  # <- New Fetcher.
+
+            seen_urls.update(links)
+            urls_todo.remove(self.url)
+            if not urls_todo:
+                stopped = True
+\end{verbatim}
+
+The callback is executed each time the selector sees that the socket is
+``readable'', which could mean two things: the socket has data or it is
+closed.
+
+The callback asks for up to four kilobytes of data from the socket. If
+less is ready, \texttt{chunk} contains whatever data is available. If
+there is more, \texttt{chunk} is four kilobytes long and the socket
+remains readable, so the event loop runs this callback again on the next
+tick. When the response is complete, the server has closed the socket
+and \texttt{chunk} is empty.
+
+The \texttt{parse\_links} method, not shown, returns a set of URLs. We
+start a new fetcher for each new URL, with no concurrency cap. Note a
+nice feature of async programming with callbacks: we need no mutex
+around changes to shared data, such as when we add links to
+\texttt{seen\_urls}. There is no preemptive multitasking, so we cannot
+be interrupted at arbitrary points in our code.
+
+We add a global \texttt{stopped} variable and use it to control the
+loop:
+
+\begin{verbatim}
+stopped = False
+
+def loop():
+    while not stopped:
+        events = selector.select()
+        for event_key, event_mask in events:
+            callback = event_key.data
+            callback()
+\end{verbatim}
+
+Once all pages are downloaded the fetcher stops the global event loop
+and the program exits.
+
+This example makes async's problem plain: spaghetti code.
+
+We need some way to express a series of computations and I/O operations,
+and schedule multiple such series of operations to run concurrently. But
+without threads, a series of operations cannot be collected into a
+single function: whenever a function begins an I/O operation, it
+explicitly saves whatever state will be needed in the future, then
+returns. You are responsible for thinking about and writing this
+state-saving code.
+
+Let us explain what we mean by that. Consider how simply we fetched a
+URL on a thread with a conventional blocking socket:
+
+\begin{verbatim}
+# Blocking version.
+def fetch(url):
+    sock = socket.socket()
+    sock.connect(('xkcd.com', 80))
+    request = 'GET {} HTTP/1.0\r\nHost: xkcd.com\r\n\r\n'.format(url)
+    sock.send(request.encode('ascii'))
+    response = b''
+    chunk = sock.recv(4096)
+    while chunk:
+        response += chunk
+        chunk = sock.recv(4096)
+    
+    # Page is now downloaded.
+    links = parse_links(response)
+    q.add(links)
+\end{verbatim}
+
+What state does this function remember between one socket operation and
+the next? It has the socket, a URL, and the accumulating
+\texttt{response}. A function that runs on a thread uses basic features
+of the programming language to store this temporary state in local
+variables, on its stack. The function also has a ``continuation''---that
+is, the code it plans to execute after I/O completes. The runtime
+remembers the continuation by storing the thread's instruction pointer.
+You need not think about restoring these local variables and the
+continuation after I/O. It is built in to the language.
+
+But with a callback-based async framework, these language features are
+no help. While waiting for I/O, a function must save its state
+explicitly, because the function returns and loses its stack frame
+before I/O completes. In lieu of local variables, our callback-based
+example stores \texttt{sock} and \texttt{response} as attributes of
+\texttt{self}, the Fetcher instance. In lieu of the instruction pointer,
+it stores its continuation by registering the callbacks
+\texttt{connected} and \texttt{read\_response}. As the application's
+features grow, so does the complexity of the state we manually save
+across callbacks. Such onerous bookkeeping makes the coder prone to
+migraines.
+
+Even worse, what happens if a callback throws an exception, before it
+schedules the next callback in the chain? Say we did a poor job on the
+\texttt{parse\_links} method and it throws an exception parsing some
+HTML:
+
+\begin{verbatim}
+Traceback (most recent call last):
+  File "loop-with-callbacks.py", line 111, in <module>
+    loop()
+  File "loop-with-callbacks.py", line 106, in loop
+    callback(event_key, event_mask)
+  File "loop-with-callbacks.py", line 51, in read_response
+    links = self.parse_links()
+  File "loop-with-callbacks.py", line 67, in parse_links
+    raise Exception('parse error')
+Exception: parse error
+\end{verbatim}
+
+The stack trace shows only that the event loop was running a callback.
+We do not remember what led to the error. The chain is broken on both
+ends: we forgot where we were going and whence we came. This loss of
+context is called ``stack ripping'', and in many cases it confounds the
+investigator. Stack ripping also prevents us from installing an
+exception handler for a chain of callbacks, the way a ``try / except''
+block wraps a function call and its tree of descendents.\footnote{For a
+  complex solution to this problem, see
+  \url{http://www.tornadoweb.org/en/stable/stack_context.html}}
+
+So, even apart from the long debate about the relative efficiencies of
+multithreading and async, there is this other debate regarding which is
+more error-prone: threads are susceptible to data races if you make a
+mistake synchronizing them, but callbacks are stubborn to debug due to
+stack ripping.
+
+\aosasecti{Coroutines}\label{coroutines}
+
+We entice you with a promise. It is possible to write asynchronous code
+that combines the efficiency of callbacks with the classic good looks of
+multithreaded programming. This combination is achieved with a pattern
+called ``coroutines''. Using Python 3.4's standard asyncio library, and
+a package called ``aiohttp'', fetching a URL in a coroutine is very
+direct\footnote{The \texttt{@asyncio.coroutine} decorator is not
+  magical. In fact, if it decorates a generator function and the
+  \texttt{PYTHONASYNCIODEBUG} environment variable is not set, the
+  decorator does practically nothing. It just sets an attribute,
+  \texttt{\_is\_coroutine}, for the convenience of other parts of the
+  framework. It is possible to use asyncio with bare generators not
+  decorated with \texttt{@asyncio.coroutine} at all.}:
+
+\begin{verbatim}
+    @asyncio.coroutine
+    def fetch(self, url):
+        response = yield from aiohttp.request('get', url)
+        body = yield from response.read()
+\end{verbatim}
+
+It is also scalable. Compared to the 50k of memory per thread and the
+operating system's hard limits on threads, a Python coroutine takes
+barely 3k of memory on Jesse's system. Python can easily start hundreds
+of thousands of coroutines.
+
+The concept of a coroutine, dating to the elder days of computer
+science, is simple: it is a subroutine that can be paused and resumed.
+Whereas threads are preemptively multitasked by the operating system,
+coroutines multitask cooperatively: they choose when to pause, and which
+coroutine to run next.
+
+There are many implementations of coroutines; even in Python there are
+several. The coroutines in the standard ``asyncio'' library in Python
+3.4 are built upon generators, a Future class, and the ``yield from''
+statement. Starting in Python 3.5, coroutines will be a native feature
+of the language itself\footnote{Python 3.5's built-in coroutines are
+  described in \href{https://www.python.org/dev/peps/pep-0492/}{PEP
+  492}, ``Coroutines with async and await syntax.'' At the time of this
+  writing, Python 3.5 was in beta, due for release in September 2015.};
+however, understanding coroutines as they were first implemented in
+Python 3.4, using pre-existing language facilities, is the foundation to
+tackle Python 3.5's native coroutines.
+
+To explain Python 3.4's generator-based coroutines, we will engage in an
+exposition of generators and how they are used as coroutines in asyncio,
+and trust you will enjoy reading it as much as we enjoyed writing it.
+Once we have explained generator-based coroutines, we shall use them in
+our async web crawler.
+
+\aosasecti{How Python Generators Work}\label{how-python-generators-work}
+
+Before you grasp Python generators, you have to understand how regular
+Python functions work. Normally, when a Python function calls a
+subroutine, the subroutine retains control until it returns, or throws
+an exception. Then control returns to the caller:
+
+\begin{verbatim}
+>>> def foo():
+...     bar()
+...
+>>> def bar():
+...     pass
+\end{verbatim}
+
+The standard Python interpreter is written in C. The C function that
+executes a Python function is called, mellifluously,
+\texttt{PyEval\_EvalFrameEx}. It takes a Python stack frame object and
+evaluates Python bytecode in the context of the frame. Here is the
+bytecode for \texttt{foo}:
+
+\begin{verbatim}
+>>> import dis
+>>> dis.dis(foo)
+  2           0 LOAD_GLOBAL              0 (bar)
+              3 CALL_FUNCTION            0 (0 positional, 0 keyword pair)
+              6 POP_TOP
+              7 LOAD_CONST               0 (None)
+             10 RETURN_VALUE
+\end{verbatim}
+
+The \texttt{foo} function loads \texttt{bar} onto its stack and calls
+it, then pops its return value from the stack, loads \texttt{None} onto
+the stack, and returns \texttt{None}.
+
+When \texttt{PyEval\_EvalFrameEx} encounters the \texttt{CALL\_FUNCTION}
+bytecode, it creates a new Python stack frame and recurses: that is, it
+calls \texttt{PyEval\_EvalFrameEx} recursively with the new frame, which
+is used to execute \texttt{bar}.
+
+\aosafigure[240pt]{crawler-images/function-calls.png}{Function Calls}{500l.crawler.functioncalls}
+
+It is crucial to understand that Python stack frames are allocated in
+heap memory! The Python interpreter is a normal C program, so its stack
+frames are normal stack frames. But the \emph{Python} stack frames it
+manipulates are on the heap. Among other surprises, this means a Python
+stack frame can outlive its function call. To see this interactively,
+save the current frame from within \texttt{bar}:
+
+\begin{verbatim}
+>>> import inspect
+>>> frame = None
+>>> def foo():
+...     bar()
+...
+>>> def bar():
+...     global frame
+...     frame = inspect.currentframe()
+...
+>>> foo()
+>>> # The frame was executing the code for 'bar'.
+>>> frame.f_code.co_name
+'bar'
+>>> # Its back pointer refers to the frame for 'foo'.
+>>> caller_frame = frame.f_back
+>>> caller_frame.f_code.co_name
+'foo'
+\end{verbatim}
+
+The stage is now set for Python generators, which use the same building
+blocks---code objects and stack frames---to marvelous effect.
+
+This is a generator function:
+
+\begin{verbatim}
+>>> def gen_fn():
+...     result = yield 1
+...     print('result of yield: {}'.format(result))
+...     result2 = yield 2
+...     print('result of 2nd yield: {}'.format(result2))
+...     return 'done'
+...     
+\end{verbatim}
+
+When Python compiles \texttt{gen\_fn} to bytecode, it sees the
+\texttt{yield} statement and knows that \texttt{gen\_fn} is a generator
+function, not a regular one. It sets a flag to remember this fact:
+
+\begin{verbatim}
+>>> # The generator flag is bit position 5.
+>>> generator_bit = 1 << 5
+>>> bool(gen_fn.__code__.co_flags & generator_bit)
+True
+\end{verbatim}
+
+When you call a generator function, Python sees the generator flag, and
+it does not actually run the function. Instead, it creates a generator:
+
+\begin{verbatim}
+>>> gen = gen_fn()
+>>> type(gen)
+<class 'generator'>
+\end{verbatim}
+
+A Python generator encapsulates a stack frame plus a reference to some
+code, the body of \texttt{gen\_fn}:
+
+\begin{verbatim}
+>>> gen.gi_code.co_name
+'gen_fn'
+\end{verbatim}
+
+All generators from calls to \texttt{gen\_fn} point to this same code.
+But each has its own stack frame. This stack frame is not on any actual
+stack, it sits in heap memory waiting to be used:
+
+\aosafigure[240pt]{crawler-images/generator.png}{Generators}{500l.crawler.generators}
+
+The frame has a ``last instruction'' pointer, the instruction it
+executed most recently. In the beginning, the last instruction pointer
+is -1, meaning the generator has not begun:
+
+\begin{verbatim}
+>>> gen.gi_frame.f_lasti
+-1
+\end{verbatim}
+
+When we call \texttt{send}, the generator reaches its first
+\texttt{yield}, and pauses. The return value of \texttt{send} is 1,
+since that is what \texttt{gen} passes to the \texttt{yield} expression:
+
+\begin{verbatim}
+>>> gen.send(None)
+1
+\end{verbatim}
+
+The generator's instruction pointer is now 3 bytecodes from the start,
+part way through the 56 bytes of compiled Python:
+
+\begin{verbatim}
+>>> gen.gi_frame.f_lasti
+3
+>>> len(gen.gi_code.co_code)
+56
+\end{verbatim}
+
+The generator can be resumed at any time, from any function, because its
+stack frame is not actually on the stack: it is on the heap. Its
+position in the call hierarchy is not fixed, and it need not obey the
+first-in, last-out order of execution that regular functions do. It is
+liberated, floating free like a cloud.
+
+We can send the value ``hello'' into the generator and it becomes the
+result of the \texttt{yield} expression, and the generator continues
+until it yields 2:
+
+\begin{verbatim}
+>>> gen.send('hello')
+result of yield: hello
+2
+\end{verbatim}
+
+Its stack frame now contains the local variable \texttt{result}:
+
+\begin{verbatim}
+>>> gen.gi_frame.f_locals
+{'result': 'hello'}
+\end{verbatim}
+
+Other generators created from \texttt{gen\_fn} will have their own stack
+frames and their own local variables.
+
+When we call \texttt{send} again, the generator continues from its
+second \texttt{yield}, and finishes by raising the special
+\texttt{StopIteration} exception:
+
+\begin{verbatim}
+>>> gen.send('goodbye')
+result of 2nd yield: goodbye
+Traceback (most recent call last):
+  File "<input>", line 1, in <module>
+StopIteration: done
+\end{verbatim}
+
+The exception has a value, which is the return value of the generator:
+the string ``done''.
+
+\aosasecti{Building Coroutines With
+Generators}\label{building-coroutines-with-generators}
+
+So a generator can pause, and it can be resumed with a value, and it has
+a return value. Sounds like a good primitive upon which to build an
+async programming model, without spaghetti callbacks! We want to build a
+``coroutine'': a routine that is cooperatively scheduled with other
+routines in the program. Our coroutines will be a simplified version of
+those in Python's standard ``asyncio'' library. As in asyncio, we will
+use generators, futures, and the ``yield from'' statement.
+
+First we need a way to represent some future result that a coroutine is
+waiting for. A stripped-down version:
+
+\begin{verbatim}
+class Future:
+    def __init__(self):
+        self.result = None
+        self._callbacks = []
+
+    def add_done_callback(self, fn):
+        self._callbacks.append(fn)
+
+    def set_result(self, result):
+        self.result = result
+        for fn in self._callbacks:
+            fn(self)
+\end{verbatim}
+
+A future is initially ``pending''. It is ``resolved'' by a call to
+\texttt{set\_result}.\footnote{This future has many deficiencies. For
+  example, once this future is resolved, a coroutine that yields it
+  should resume immediately instead of pausing, but with our code it
+  does not. See asyncio's Future class for a complete implementation.}
+
+Let us adapt our fetcher to use futures and coroutines. Review how we
+wrote \texttt{fetch} with a callback:
+
+\begin{verbatim}
+class Fetcher:
+    def fetch(self):
+        self.sock = socket.socket()
+        self.sock.setblocking(False)
+        try:
+            self.sock.connect(('xkcd.com', 80))
+        except BlockingIOError:
+            pass
+        selector.register(self.sock.fileno(),
+                          EVENT_WRITE,
+                          self.connected)
+
+    def connected(self, key, mask):
+        print('connected!')
+        # And so on....
+\end{verbatim}
+
+The \texttt{fetch} method begins connecting a socket, then registers the
+callback, \texttt{connected}, to be executed when the socket is ready.
+Now we can combine these two steps into one coroutine:
+
+\begin{verbatim}
+    def fetch(self):
+        sock = socket.socket()
+        sock.setblocking(False)
+        try:
+            sock.connect(('xkcd.com', 80))
+        except BlockingIOError:
+            pass
+
+        f = Future()
+
+        def on_connected():
+            f.set_result(None)
+
+        selector.register(sock.fileno(),
+                          EVENT_WRITE,
+                          on_connected)
+        yield f
+        selector.unregister(sock.fileno())
+        print('connected!')
+\end{verbatim}
+
+Now \texttt{fetch} is a generator function, rather than a regular one,
+because it contains a \texttt{yield} statement. We create a pending
+future, then yield it to pause \texttt{fetch} until the socket is ready.
+The inner function \texttt{on\_connected} resolves the future.
+
+But when the future resolves, what resumes the generator? We need a
+coroutine \emph{driver}. Let us call it ``task'':
+
+\begin{verbatim}
+class Task:
+    def __init__(self, coro):
+        self.coro = coro
+        f = Future()
+        f.set_result(None)
+        self.step(f)
+
+    def step(self, future):
+        try:
+            next_future = self.coro.send(future.result)
+        except StopIteration:
+            return
+
+        next_future.add_done_callback(self.step)
+
+# Begin fetching http://xkcd.com/353/
+fetcher = Fetcher('/353/')
+Task(fetcher.fetch())
+
+loop()
+\end{verbatim}
+
+The task starts the \texttt{fetch} generator by sending \texttt{None}
+into it. Then \texttt{fetch} runs until it yields a future, which the
+task captures as \texttt{next\_future}. When the socket is connected,
+the event loop runs the callback \texttt{on\_connected}, which resolves
+the future, which calls \texttt{step}, which resumes \texttt{fetch}.
+
+\aosasecti{Factoring Coroutines With
+\texttt{yield from}}\label{factoring-coroutines-with-yield-from}
+
+Once the socket is connected, we send the HTTP GET request and read the
+server response. These steps need no longer be scattered among
+callbacks; we gather them into the same generator function:
+
+\begin{verbatim}
+    def fetch(self):
+        # ... connection logic from above, then:
+        sock.send(request.encode('ascii'))
+
+        while True:
+            f = Future()
+
+            def on_readable():
+                f.set_result(sock.recv(4096))
+
+            selector.register(sock.fileno(),
+                              EVENT_READ,
+                              on_readable)
+            chunk = yield f
+            selector.unregister(sock.fileno())
+            if chunk:
+                self.response += chunk
+            else:
+                # Done reading.
+                break
+\end{verbatim}
+
+This code, which reads a whole message from a socket, seems generally
+useful. How can we factor it from \texttt{fetch} into a subroutine? Now
+Python 3's celebrated \texttt{yield from} takes the stage. It lets one
+generator \emph{delegate} to another.
+
+To see how, let us return to our simple generator example:
+
+\begin{verbatim}
+>>> def gen_fn():
+...     result = yield 1
+...     print('result of yield: {}'.format(result))
+...     result2 = yield 2
+...     print('result of 2nd yield: {}'.format(result2))
+...     return 'done'
+...     
+\end{verbatim}
+
+To call this generator from another generator, delegate to it with
+\texttt{yield from}:
+
+\begin{verbatim}
+>>> # Generator function:
+>>> def caller_fn():
+...     gen = gen_fn()
+...     rv = yield from gen
+...     print('return value of yield-from: {}'
+...           .format(rv))
+...
+>>> # Make a generator from the
+>>> # generator function.
+>>> caller = caller_fn()
+\end{verbatim}
+
+The \texttt{caller} generator acts as if it were \texttt{gen}, the
+generator it is delegating to:
+
+\begin{verbatim}
+>>> caller.send(None)
+1
+>>> caller.gi_frame.f_lasti
+15
+>>> caller.send('hello')
+result of yield: hello
+2
+>>> caller.gi_frame.f_lasti  # Hasn't advanced.
+15
+>>> caller.send('goodbye')
+result of 2nd yield: goodbye
+return value of yield-from: done
+Traceback (most recent call last):
+  File "<input>", line 1, in <module>
+StopIteration
+\end{verbatim}
+
+While \texttt{caller} yields from \texttt{gen}, \texttt{caller} does not
+advance. Notice that its instruction pointer remains at 15, the site of
+its \texttt{yield from} statement, even while the inner generator
+\texttt{gen} advances from one \texttt{yield} statement to the
+next.\footnote{In fact, this is exactly how ``yield from'' works in
+  CPython. A function increments its instruction pointer before
+  executing each statement. But after the outer generator executes
+  ``yield from'', it subtracts 1 from its instruction pointer to keep
+  itself pinned at the ``yield from'' statement. Then it yields to
+  \emph{its} caller. The cycle repeats until the inner generator throws
+  \texttt{StopIteration}, at which point the outer generator finally
+  allows itself to advance to the next instruction.} From our
+perspective outside \texttt{caller}, we cannot tell if the values it
+yields are from \texttt{caller} or from the generator it delegates to.
+And from inside \texttt{gen}, we cannot tell if values are sent in from
+\texttt{caller} or from outside it. The \texttt{yield from} statement is
+a frictionless channel, through which values flow in and out of
+\texttt{gen} until it \texttt{gen} completes.
+
+A coroutine can delegate work to a sub-coroutine with
+\texttt{yield from} and receive the result of the work. Notice, above,
+that \texttt{caller} printed ``return value of yield-from: done''. When
+\texttt{gen} completed, its return value became the value of the
+\texttt{yield from} statement in \texttt{caller}:
+
+\begin{verbatim}
+    rv = yield from gen
+\end{verbatim}
+
+Earlier, when we criticized callback-based async programming, our most
+strident complaint was about ``stack ripping'': when a callback throws
+an exception, the stack trace is typically useless. It only shows that
+the event loop was running the callback, not \emph{why}. How do
+coroutines fare?
+
+\begin{verbatim}
+>>> def gen_fn():
+...     raise Exception('my error')
+>>> caller = caller_fn()
+>>> caller.send(None)
+Traceback (most recent call last):
+  File "<input>", line 1, in <module>
+  File "<input>", line 3, in caller_fn
+  File "<input>", line 2, in gen_fn
+Exception: my error
+\end{verbatim}
+
+This is much more useful! The stack trace shows \texttt{caller\_fn} was
+delegating to \texttt{gen\_fn} when it threw the error. Even more
+comforting, we can wrap the call to a sub-coroutine in an exception
+handler, the same is with normal subroutines:
+
+\begin{verbatim}
+>>> def gen_fn():
+...     yield 1
+...     raise Exception('uh oh')
+...
+>>> def caller_fn():
+...     try:
+...         yield from gen_fn()
+...     except Exception as exc:
+...         print('caught {}'.format(exc))
+...
+>>> caller = caller_fn()
+>>> caller.send(None)
+1
+>>> caller.send('hello')
+caught uh oh
+\end{verbatim}
+
+So we factor logic with sub-coroutines just like with regular
+subroutines. Let us factor some useful sub-coroutines from our fetcher.
+We write a \texttt{read} coroutine to receive one chunk:
+
+\begin{verbatim}
+def read(sock):
+    f = Future()
+
+    def on_readable():
+        f.set_result(sock.recv(4096))
+
+    selector.register(sock.fileno(), EVENT_READ, on_readable)
+    chunk = yield f  # Read one chunk.
+    selector.unregister(sock.fileno())
+    return chunk
+\end{verbatim}
+
+We build on \texttt{read} with a \texttt{read\_all} coroutine that
+receives a whole message:
+
+\begin{verbatim}
+def read_all(sock):
+    response = []
+    # Read whole response.
+    chunk = yield from read(sock)
+    while chunk:
+        response.append(chunk)
+        chunk = yield from read(sock)
+
+    return b''.join(response)
+\end{verbatim}
+
+If you squint the right way, the \texttt{yield from} statements
+disappear and these look like conventional functions doing blocking I/O.
+But in fact, \texttt{read} and \texttt{read\_all} are coroutines.
+Yielding from \texttt{read} pauses \texttt{read\_all} until the I/O
+completes. While \texttt{read\_all} is paused, asyncio's event loop does
+other work and awaits other I/O events; \texttt{read\_all} is resumed
+with the result of \texttt{read} on the next loop tick once its event is
+ready.
+
+At the stack's root, \texttt{fetch} calls \texttt{read\_all}:
+
+\begin{verbatim}
+class Fetcher:
+    def fetch(self):
+         # ... connection logic from above, then:
+        sock.send(request.encode('ascii'))
+        self.response = yield from read_all(sock)
+\end{verbatim}
+
+Miraculously, the Task class needs no modification. It drives the outer
+\texttt{fetch} coroutine just the same as before:
+
+\begin{verbatim}
+Task(fetcher.fetch())
+loop()
+\end{verbatim}
+
+When \texttt{read} yields a future, the task receives it through the
+channel of \texttt{yield from} statements, precisely as if the future
+were yielded directly from \texttt{fetch}. When the loop resolves a
+future, the task sends its result into \texttt{fetch}, and the value is
+received by \texttt{read}, exactly as if the task were driving
+\texttt{read} directly:
+
+\aosafigure[240pt]{crawler-images/yield-from.png}{Yield From}{500l.crawler.yieldfrom}
+
+To perfect our coroutine implementation, we polish out one mar: our code
+uses \texttt{yield} when it waits for a future, but \texttt{yield from}
+when it delegates to a sub-coroutine. It would be more refined if we
+used \texttt{yield from} whenever a coroutine pauses. Then a coroutine
+need not concern itself with what type of thing it awaits.
+
+We take advantage of the deep correspondence in Python between
+generators and iterators. Advancing a generator is, to the caller, the
+same as advancing an iterator. So we make our Future class iterable by
+implementing a special method:
+
+\begin{verbatim}
+    # Method on Future class.
+    def __iter__(self):
+        # Tell Task to resume me here.
+        yield self
+        return self.result
+\end{verbatim}
+
+The future's \texttt{\_\_iter\_\_} method is a coroutine that yields the
+future itself. Now when we replace code like this:
+
+\begin{verbatim}
+# f is a Future.
+yield f
+\end{verbatim}
+
+\ldots{}with this:
+
+\begin{verbatim}
+# f is a Future.
+yield from f
+\end{verbatim}
+
+\ldots{}the outcome is precisely the same! The driving Task receives the
+future from its call to \texttt{self.coro.send(result)}, and when the
+future is resolved it sends the new result back into the coroutine.
+
+What is the advantage of using \texttt{yield from} everywhere? Why is
+that better than waiting for futures with \texttt{yield} and delegating
+to sub-coroutines with \texttt{yield from}? It is better because now, a
+method can freely change its implementation without affecting the
+caller: it might be a normal method that returns a future that will
+\emph{resolve} to a value, or it might be a coroutine that contains
+\texttt{yield from} statements and \emph{returns} a value. In either
+case, the caller need only \texttt{yield from} the method in order to
+wait for the result.
+
+Gentle reader, we have reached the end of our enjoyable exposition of
+coroutines in asyncio. We peered into the machinery of generators, and
+sketched an implementation of futures and tasks. We outlined how asyncio
+attains the best of both worlds: concurrent I/O that is more efficient
+than threads and more legible than callbacks. Of course, the real
+asyncio is much more sophisticated than our sketch. The real framework
+addresses zero-copy I/O, fair scheduling, exception handling, and an
+abundance of other features.
+
+To an asyncio user, coding with coroutines is much simpler than you saw
+here. In the code above we implemented coroutines from first principles,
+so you saw callbacks, tasks, and futures. You even saw non-blocking
+sockets and the call to \texttt{select}. But when it comes time to build
+an application with asyncio, none of this appears in your code. As we
+promised, you can fetch a URL as sleekly as this:
+
+\begin{verbatim}
+    @asyncio.coroutine
+    def fetch(self, url):
+        response = yield from aiohttp.request('get', url)
+        body = yield from response.read()
+\end{verbatim}
+
+Satisfied with this exposition, we return to our original assignment: to
+write an async web crawler, using asyncio.
+
+\aosasecti{Coordinating Coroutines}\label{coordinating-coroutines}
+
+We began by describing how we want our crawler to work. Now it is time
+to implement it with asyncio coroutines.
+
+Our crawler will fetch the first page, parse its links, and add them to
+a queue. After this it fans out across the website, fetching pages
+concurrently. But to limit load on the client and server, we want some
+maximum number of workers to run, and no more. Whenever a worker
+finishes fetching a page, it should immediately pull the next link from
+the queue. We will pass through periods when there is not enough work to
+go around, so some workers must pause. But when a worker hits a page
+rich with new links, then the queue suddenly grows and any paused
+workers should wake and get cracking. Finally, our program must quit
+once its work is done.
+
+Imagine if the workers were threads. How would we express the crawler's
+algorithm? We could use a synchronized queue\footnote{\url{https://docs.python.org/3/library/queue.html}}
+from the Python standard library. Each time an item is put in the queue,
+the queue increments its count of ``tasks''. Worker threads call
+\texttt{task\_done} after completing work on an item. The main thread
+blocks on \texttt{Queue.join} until each item put in the queue is
+matched by a \texttt{task\_done} call, then it exits.
+
+Coroutines use the exact same pattern with a queue from asyncio! First
+we import asyncio's queue\footnote{\url{https://docs.python.org/3/library/asyncio-sync.html}}:
+
+\begin{verbatim}
+try:
+    from asyncio import JoinableQueue as Queue
+except ImportError:
+    # In Python 3.5, asyncio.JoinableQueue is
+    # merged into Queue.
+    from asyncio import Queue
+\end{verbatim}
+
+We collect the workers' shared state in a crawler class, and write the
+main logic in its \texttt{crawl} method. We start \texttt{crawl} on a
+coroutine and run asyncio's event loop until \texttt{crawl} finishes:
+
+\begin{verbatim}
+crawler = crawling.Crawler('http://xkcd.com',
+                           max_redirect=10)
+
+loop = asyncio.get_event_loop()
+loop.run_until_complete(crawler.crawl())
+\end{verbatim}
+
+The crawler begins with a root URL and \texttt{max\_redirect}, the
+number of redirects it is willing to follow to fetch any one URL. It
+puts the pair \texttt{(URL, max\_redirect)} in the queue. (For the
+reason why, stay tuned.)
+
+\begin{verbatim}
+class Crawler:
+    def __init__(self, root_url, max_redirect):
+        self.max_tasks = 10
+        self.max_redirect = max_redirect
+        self.q = Queue()
+        self.seen_urls = set()
+        
+        # Put (URL, max_redirect) in the queue.
+        self.q.put((root_url, self.max_redirect))
+\end{verbatim}
+
+The number of unfinished tasks in the queue is now one. Back in our main
+script, we launch the event loop and the \texttt{crawl} method:
+
+\begin{verbatim}
+loop.run_until_complete(crawler.crawl())
+\end{verbatim}
+
+The \texttt{crawl} coroutine kicks off the workers. It is like a main
+thread: it blocks on \texttt{join} until all tasks are finished, while
+the workers run in the background.
+
+\begin{verbatim}
+    @asyncio.coroutine
+    def crawl(self):
+        """Run the crawler until all work is done."""
+        workers = [asyncio.Task(self.work())
+                   for _ in range(self.max_tasks)]
+
+        # When all work is done, exit.
+        yield from self.q.join()
+        for w in workers:
+            w.cancel()
+\end{verbatim}
+
+If the workers were threads we might not wish to start them all at once.
+To avoid creating expensive threads until it is certain they are
+necessary, a thread pool typically grows on demand. But coroutines are
+cheap, so we simply start the maximum number allowed.
+
+It is interesting to note how we shut down the crawler. When the
+\texttt{join} future resolves, the worker tasks are alive but suspended:
+they wait for more URLs but none come. So, the main coroutine cancels
+them before exiting. Otherwise, as the Python interpreter shuts down and
+calls all objects' destructors, living tasks cry out:
+
+\begin{verbatim}
+ERROR:asyncio:Task was destroyed but it is pending!
+\end{verbatim}
+
+And how does \texttt{cancel} work? Generators have a feature we have not
+yet shown you. You can throw an exception into a generator from outside:
+
+\begin{verbatim}
+>>> gen = gen_fn()
+>>> gen.send(None)  # Start the generator as usual.
+1
+>>> gen.throw(Exception('error'))
+Traceback (most recent call last):
+  File "<input>", line 3, in <module>
+  File "<input>", line 2, in gen_fn
+Exception: error
+\end{verbatim}
+
+The generator is resumed by \texttt{throw}, but it is now raising an
+exception. If no code in the generator's call stack catches it, the
+exception bubbles back up to the top. So to cancel a task's coroutine:
+
+\begin{verbatim}
+    # Method of Task class.
+    def cancel(self):
+        self.coro.throw(CancelledError)
+\end{verbatim}
+
+Wherever the generator is paused, at some \texttt{yield from} statement,
+it resumes and throws an exception. We handle cancellation in the task's
+\texttt{step} method:
+
+\begin{verbatim}
+    # Method of Task class.
+    def step(self, future):
+        try:
+            next_future = self.coro.send(future.result)
+        except CancelledError:
+            self.cancelled = True
+            return
+        except StopIteration:
+            return
+
+        next_future.add_done_callback(self.step)
+\end{verbatim}
+
+Now the task knows it is cancelled, so when it is destroyed it does not
+rage against the dying of the light.
+
+Once \texttt{crawl} has canceled the workers, it exits. The event loop
+sees that the coroutine is complete (we shall see how later), and it too
+exits:
+
+\begin{verbatim}
+loop.run_until_complete(crawler.crawl())
+\end{verbatim}
+
+The \texttt{crawl} method comprises all that our main coroutine must do.
+It is the worker coroutines that get URLs from the queue, fetch them,
+and parse them for new links. Each worker runs the \texttt{work}
+coroutine independently:
+
+\begin{verbatim}
+    @asyncio.coroutine
+    def work(self):
+        while True:
+            url, max_redirect = yield from self.q.get()
+
+            # Download page and add new links to self.q.
+            yield from self.fetch(url, max_redirect)
+            self.q.task_done()
+\end{verbatim}
+
+Python sees that this code contains \texttt{yield from} statements, and
+compiles it into a generator function. So in \texttt{crawl}, when the
+main coroutine calls \texttt{self.work} ten times, it does not actually
+execute this method: it only creates ten generator objects with
+references to this code. It wraps each in a Task. The Task receives each
+future the generator yields, and drives the generator by calling
+\texttt{send} with each future's result when the future resolves.
+Because the generators have their own stack frames, they run
+independently, with separate local variables and instruction pointers.
+
+The worker coordinates with its fellows via the queue. It waits for new
+URLs with:
+
+\begin{verbatim}
+    url, max_redirect = yield from self.q.get()
+\end{verbatim}
+
+The queue's \texttt{get} method is itself a coroutine: it pauses until
+someone puts an item in the queue, then resumes and returns the item.
+
+Incidentally, this is where the worker will be paused at the end of the
+crawl, when the main coroutine cancels it. From the coroutine's
+perspective, its last trip around the loop ends when \texttt{yield from}
+raises a \texttt{CancelledError}.
+
+When a worker fetches a page it parses the links and puts new ones in
+the queue, then calls \texttt{task\_done} to decrement the counter.
+Eventually, a worker fetches a page whose URLs have all been fetched
+already, and there is also no work left in the queue. Thus this worker's
+call to \texttt{task\_done} decrements the counter to zero. Then
+\texttt{crawl}, which is waiting for the queue's \texttt{join} method,
+is unpaused and finishes.
+
+We promised to explain why the items in the queue are pairs, like:
+
+\begin{verbatim}
+# URL to fetch, and the number of redirects left.
+('http://xkcd.com/353', 10)
+\end{verbatim}
+
+New URLs have ten redirects remaining. Fetching this particular URL
+results in a redirect to a new location with a trailing slash. We
+decrement the number of redirects remaining, and put the next location
+in the queue:
+
+\begin{verbatim}
+# URL with a trailing slash. Nine redirects left.
+('http://xkcd.com/353/', 9)
+\end{verbatim}
+
+The \texttt{aiohttp} package we use would follow redirects by default
+and give us the final response. We tell it not to, however, and handle
+redirects in the crawler, so it can coalesce redirect paths that lead to
+the same destination: if we have already seen this URL, it is in
+\texttt{self.seen\_urls} and we have already started on this path from a
+different entry point:
+
+\aosafigure[240pt]{crawler-images/redirects.png}{Redirects}{500l.crawler.redirects}
+
+The crawler fetches ``foo'' and sees it redirects to ``baz'', so it adds
+``baz'' to the queue and to \texttt{seen\_urls}. If the next page it
+fetches is ``bar'', which also redirects to ``baz'', the fetcher does
+not enqueue ``baz'' again.
+
+\begin{verbatim}
+    @asyncio.coroutine
+    def fetch(self, url, max_redirect):
+        # Handle redirects ourselves.
+        response = yield from aiohttp.request(
+            'get', url, allow_redirects=False)
+
+        if is_redirect(response):
+            if max_redirect > 0:
+                next_url = response.headers['location']
+                if next_url in self.seen_urls:
+                    # We have been down this path before.
+                    return
+
+                # Remember we have seen this URL.
+                self.seen_urls.add(next_url)
+                
+                # Follow the redirect. One less redirect remains.
+                self.q.put_nowait((next_url, max_redirect - 1))
+         else:
+             links = yield from self.parse_links(response)
+             # Python set-logic:
+             for link in links.difference(self.seen_urls):
+                self.q.put_nowait((link, self.max_redirect))
+            self.seen_urls.update(links)
+\end{verbatim}
+
+If the response is a page, rather than a redirect, \texttt{fetch} parses
+it for links and puts new ones in the queue.
+
+If this were multithreaded code, it would be lousy with race conditions.
+For example, in the last few lines the worker checks if a link is in
+\texttt{seen\_urls}, and if not the worker puts it in the queue and adds
+it to \texttt{seen\_urls}. If it were interrupted between the two
+operations, then another worker might parse the same link from a
+different page, also observe that it is not in \texttt{seen\_urls}, and
+also add it to the queue. Now that same link is in the queue twice,
+leading (at best) to duplicated work and wrong statistics.
+
+However, a coroutine is only vulnerable to interruption at
+\texttt{yield from} statements. This is a key difference that makes
+coroutine code far less prone to races than multithreaded code:
+multithreaded code must enter a critical section explicitly, by grabbing
+a lock, otherwise it is interruptible. A Python coroutine, however, is
+uninterruptible by default, and only cedes control when it explicitly
+yields.
+
+We no longer need a fetcher class like we had in the callback-based
+program. That class was a workaround for a deficiency of callbacks: they
+need some place to store state while waiting for I/O, since their local
+variables are not preserved across calls. But the \texttt{fetch}
+coroutine can store its state in local variables like a regular function
+does, so there is no more need for a class.
+
+When \texttt{fetch} finishes processing the server response it returns
+to the caller, \texttt{work}. The \texttt{work} method calls
+\texttt{task\_done} on the queue and then gets the next URL from the
+queue to be fetched.
+
+When \texttt{fetch} puts new links in the queue it increments the count
+of unfinished tasks and keeps the main coroutine, which is waiting for
+\texttt{q.join}, paused. If, however, there are no unseen links and this
+was the last URL in the queue, then when \texttt{work} calls
+\texttt{task\_done} the count of unfinished tasks falls to zero. That
+event unpauses \texttt{join} and the main coroutine completes.
+
+The queue code that coordinates the workers and the main coroutine is
+like this\footnote{The actual \texttt{asyncio.Queue} implementation uses
+  an \texttt{asyncio.Event} in place of the Future shown here. The
+  difference is an Event can be reset, whereas a Future cannot
+  transition from resolved back to pending.}:
+
+\begin{verbatim}
+class Queue:
+    def __init__(self):
+        self._join_future = Future()
+        self._unfinished_tasks = 0
+        # ... other initialization ...
+    
+    def put_nowait(self, item):
+        self._unfinished_tasks += 1
+        # ... store the item ...
+
+    def task_done(self):
+        self._unfinished_tasks -= 1
+        if self._unfinished_tasks == 0:
+            self._join_future.set_result(None)
+
+    @asyncio.coroutine
+    def join(self):
+        if self._unfinished_tasks > 0:
+            yield from self._join_future
+\end{verbatim}
+
+The main coroutine, \texttt{crawl}, yields from \texttt{join}. So when
+the last worker decrements the count of unfinished tasks to zero, it
+signals \texttt{crawl} to resume, and finish.
+
+The ride is almost over. Our program began with the call to
+\texttt{crawl}:
+
+\begin{verbatim}
+loop.run_until_complete(self.crawler.crawl())
+\end{verbatim}
+
+How does the program end? Since \texttt{crawl} is a generator function,
+calling it returns a generator. To drive the generator, asyncio wraps it
+in a task:
+
+\begin{verbatim}
+class EventLoop:
+    def run_until_complete(self, coro):
+        """Run until the coroutine is done."""
+        task = Task(coro)
+        task.add_done_callback(stop_callback)
+        try:
+            self.run_forever()
+        except StopError:
+            pass
+
+class StopError(BaseException):
+    """Raised to stop the event loop."""
+
+def stop_callback(future):
+    raise StopError
+\end{verbatim}
+
+When the task completes, it raises \texttt{StopError}, which the loop
+uses as a signal that it has arrived at normal completion.
+
+But what's this? The task has methods called
+\texttt{add\_done\_callback} and \texttt{result}? You might think that a
+task resembles a future. Your instinct is correct. We must admit a
+detail about the Task class we hid from you: a task is a future.
+
+\begin{verbatim}
+class Task(Future):
+    """A coroutine wrapped in a Future."""
+\end{verbatim}
+
+Normally a future is resolved by someone else calling
+\texttt{set\_result} on it. But a task resolves \emph{itself} when its
+coroutine stops. Remember from our earlier exploration of Python
+generators that when a generator returns, it throws the special
+\texttt{StopIteration} exception:
+
+\begin{verbatim}
+    # Method of class Task.
+    def step(self, future):
+        try:
+            next_future = self.coro.send(future.result)
+        except CancelledError:
+            self.cancelled = True
+            return
+        except StopIteration as exc:
+
+            # Task resolves itself with coro's return
+            # value.
+            self.set_result(exc.value)
+            return
+
+        next_future.add_done_callback(self.step)
+\end{verbatim}
+
+So when the event loop calls
+\texttt{task.add\_done\_callback(stop\_callback)}, it prepares to be
+stopped by the task. Here is \texttt{run\_until\_complete} again:
+
+\begin{verbatim}
+    # Method of event loop.
+    def run_until_complete(self, coro):
+        task = Task(coro)
+        task.add_done_callback(stop_callback)
+        try:
+            self.run_forever()
+        except StopError:
+            pass
+\end{verbatim}
+
+When the task catches \texttt{StopIteration} and resolves itself, the
+callback raises \texttt{StopError} from within the loop. The loop stops
+and the call stack is unwound to \texttt{run\_until\_complete}. Our
+program is finished.
+
+\aosasecti{Conclusion}\label{conclusion}
+
+Increasingly often, modern programs are I/O-bound instead of CPU-bound.
+For such programs, Python threads are the worst of both worlds: the
+global interpreter lock prevents them from actually executing
+computations in parallel, and preemptive switching makes them prone to
+races. Async is often the right pattern. But as callback-based async
+code grows, it tends to become a dishevelled mess. Coroutines are a tidy
+alternative. They factor naturally into subroutines, with sane exception
+handling and stack traces.
+
+If we squint so that the \texttt{yield from} statements blur, a
+coroutine looks like a thread doing traditional blocking I/O. We can
+even coordinate coroutines with classic patterns from multi-threaded
+programming. There is no need for reinvention. Thus, compared to
+callbacks, coroutines are an inviting idiom to the coder experienced
+with multithreading.
+
+But when we open our eyes and focus on the \texttt{yield from}
+statements, we see they mark points when the coroutine cedes control and
+allows others to run. Unlike threads, coroutines display where our code
+can be interrupted and where it cannot. In his illuminating essay
+``Unyielding''\footnote{\url{https://glyph.twistedmatrix.com/2014/02/unyielding.html}},
+Glyph Lefkowitz writes, ``Threads make local reasoning difficult, and
+local reasoning is perhaps the most important thing in software
+development.'' Explicitly yielding, however, makes it possible to
+``understand the behavior (and thereby, the correctness) of a routine by
+examining the routine itself rather than examining the entire system.''
+
+This chapter was written during a renaissance in the history of Python
+and async. Generator-based coroutines, whose devising you have just
+learned, were released in the ``asyncio'' module with Python 3.4 in
+March 2014. In September 2015, Python 3.5 will be released with
+coroutines built in to the language itself. These native coroutines will
+be declared with the new syntax ``async def'', and instead of ``yield
+from'', they will use the new ``await'' keyword to delegate to a
+coroutine or wait for a Future.
+
+Despite these advances, the core ideas remain. Python's new native
+coroutines will be syntactically distinct from generators but work very
+similarly; indeed, they will share an implementation within the Python
+interpreter. Task, Future, and the event loop will continue to play
+their roles in asyncio.
+
+Now that you know how asyncio coroutines work, you can largely forget
+the details. The machinery is tucked behind a dapper interface. But your
+grasp of the fundamentals empowers you to code correctly and efficiently
+in modern async environments.
+
+\end{aosachapter}

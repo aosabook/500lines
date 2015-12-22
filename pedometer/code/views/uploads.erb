@@ -1,0 +1,22 @@
+<link href="/styles.css" rel="stylesheet" type="text/css" />
+
+<html>
+  <div class="error"><%= @error %></div>
+  <%= erb :summary, locals: { pipelines: @pipelines, detail_hidden: true } %>
+  <form method="post" action="/create" enctype="multipart/form-data">
+    <h3 class="upload-header">Trial Info</h3>
+    <input name="data" type="file">
+    <input name="trial[name]" class="params" placeholder="Name">
+    <input name="trial[rate]" type="number" class="params" placeholder="Sampling Rate">
+    <input name="trial[steps]" type="number" class="params" placeholder="Actual Step Count">
+    <h3 class="upload-header">User Info</h3>
+    <select class="params" name="user[gender]">
+      <option value="">(Select a gender)</option>
+      <option value="female">Female</option>
+      <option value="male">Male</option>
+    </select>
+    <input class="params" type="number" step="0.1" name="user[height]" placeholder="Height (cm)">
+    <input class="params" type="number" step="0.1" name="user[stride]" placeholder="Stride (cm)">
+    <div class="controls"><input type="submit" value="submit"></div>
+  </form>
+</html>

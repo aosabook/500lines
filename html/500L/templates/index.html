@@ -1,0 +1,20 @@
+{% extends "500L.html" %}
+{% block content %}
+      <div class="row">
+        <div class='span10 offset1' id='content' align='center'>
+          <table class='table table-striped table-condensed'>
+            <tbody>
+            {% set chapter = 1 %}
+            {% for page in pages %}
+              <tr>
+                <td>{{ chapter }}</td>
+                <td><a href='{{ page.url }}' title='{{ page.title }}'>{{ page.title }}</a></td>
+                <td>{{ page.author }}</td>
+              </tr>
+             {% set chapter = chapter + 1 %}
+           {% endfor %}
+           </tbody>
+         </table>
+        </div>
+      </div>
+{% endblock content %}

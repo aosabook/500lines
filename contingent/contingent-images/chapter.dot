@@ -1,0 +1,42 @@
+digraph {
+graph [rankdir=LR];
+node [fontname=Arial shape=rect penwidth=2 color="#DAB21D"
+      style=filled fillcolor="#F4E5AD"]
+{rank=same
+"read_text_file('chapter.dot')"
+"read_text_file('chapter.rst')"
+"read_text_file('contingent/graphlib.py')"
+"read_text_file('figure1.dot')"
+"read_text_file('figure2.dot')"
+"read_text_file('figure3.dot')"
+"read_text_file('figure4.dot')"
+}
+node [shape=rect penwidth=2 color="#708BA6"
+      style=filled fillcolor="#DCE9ED"]
+{rank=same
+"render('chapter.dot')"
+"render('chapter.rst')"
+"render('figure1.dot')"
+"render('figure2.dot')"
+"render('figure3.dot')"
+"render('figure4.dot')"
+}
+node [shape=oval penwidth=0 style=filled fillcolor="#E8EED2"
+      margin="0.05,0"]
+"chapter_doctests('chapter.rst')" -> "render('chapter.rst')"
+"check_rst_includes('chapter.rst')" -> "render('chapter.rst')"
+"read_text_file('chapter.dot')" -> "chapter_doctests('chapter.rst')"
+"read_text_file('chapter.dot')" -> "render('chapter.dot')"
+"read_text_file('chapter.rst')" -> "chapter_doctests('chapter.rst')"
+"read_text_file('chapter.rst')" -> "check_rst_includes('chapter.rst')"
+"read_text_file('chapter.rst')" -> "render('chapter.rst')"
+"read_text_file('contingent/graphlib.py')" -> "check_rst_includes('chapter.rst')"
+"read_text_file('figure1.dot')" -> "chapter_doctests('chapter.rst')"
+"read_text_file('figure1.dot')" -> "render('figure1.dot')"
+"read_text_file('figure2.dot')" -> "chapter_doctests('chapter.rst')"
+"read_text_file('figure2.dot')" -> "render('figure2.dot')"
+"read_text_file('figure3.dot')" -> "chapter_doctests('chapter.rst')"
+"read_text_file('figure3.dot')" -> "render('figure3.dot')"
+"read_text_file('figure4.dot')" -> "chapter_doctests('chapter.rst')"
+"read_text_file('figure4.dot')" -> "render('figure4.dot')"
+}

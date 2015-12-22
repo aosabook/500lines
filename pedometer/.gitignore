@@ -1,0 +1,24 @@
+.DS_Store
+*.gem
+*.rbc
+.bundle
+.config
+coverage
+InstalledFiles
+lib/bundler/man
+pkg
+rdoc
+spec/reports
+test/tmp
+test/version_tmp
+tmp
+.rbenv-gemsets
+.gems/
+
+# YARD artifacts
+.yardoc
+_yardoc
+doc/
+chapter.html
+chapter.pdf
+public/uploads-temp/*

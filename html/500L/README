@@ -1,0 +1,8 @@
+#POSA pelican/jinja2 theme
+
+The content of the **static** directory will be copied into the **output** folder.
+
+The **templates** folder contains the page, tag, index and other **templates**.
+
+Jinja2 template engine is quite similar to Twig, and resembles a little bit 
+Java's JSTL, so any Java, Python, PHP dev should be comfortable with it.

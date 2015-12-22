@@ -1,0 +1,35 @@
+<script src="/jquery.min.js"></script>
+<script src="/highcharts.js"></script>
+<link href="/styles.css" rel="stylesheet" type="text/css" />
+
+<html>
+    <a class="nav" href='/uploads'>Back to Uploads</a>
+    <%= erb :summary, locals: { pipelines: [@pipeline], detail_hidden: false } %>
+
+    <div id="container-dot-product"></div>
+    <div id="container-filtered"></div>
+</html>
+
+<script>
+  $(function () {
+        $('#container-dot-product').highcharts({
+            title: { text: 'User Acceleration in the Direction of Gravity' },
+            series: [{
+                name: 'a(t)',
+                data: <%= limit_1000(@pipeline.processor.dot_product_data) %>
+            }],
+            xAxis: { title: { text: 'Time' } },
+            yAxis: { title: { text: 'Acceleration' } }
+        });
+
+        $('#container-filtered').highcharts({
+            title: { text: 'User Acceleration in the Direction of Gravity - Filtered' },
+            series: [{
+                name: 'a(t)',
+                data: <%= limit_1000(@pipeline.processor.filtered_data) %>
+            }],
+            xAxis: { title: { text: 'Time' } },
+            yAxis: { title: { text: 'Acceleration' } }
+        });
+    });
+</script>

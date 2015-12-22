@@ -1,0 +1,281 @@
+\documentclass{book}
+\usepackage[table]{xcolor}
+\usepackage{booktabs}
+\definecolor{TableBorder}{rgb}{0.0078,0.6824,0.7882}
+\def \tablegradient {0.95}
+\definecolor{TableEven}{rgb}{\tablegradient,\tablegradient,\tablegradient}
+\definecolor{TableOdd}{rgb}{1,1,1}
+
+% \rowcolors{2}{TableOdd}{TableEven}
+
+%% PANDOC SYNTAX HIGHLIGHTING
+\usepackage{fixltx2e} % provides \textsubscript
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath} % bmatrix
+% use microtype if available
+\IfFileExists{microtype.sty}{\usepackage{microtype}}{}
+%\usepackage{color}
+\usepackage{fancyvrb}
+\DefineShortVerb[commandchars=\\\{\}]{\|}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\newenvironment{Shaded}{}{}
+%\newcommand{\KeywordTok}[1]{\textbf{{#1}}}
+%\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.50,0.00,0.00}{{#1}}}
+%\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,1.00}{{#1}}}
+%\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,1.00}{{#1}}}
+%\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.50,0.00,0.50}{{#1}}}
+%\newcommand{\CharTok}[1]{\textcolor[rgb]{1.00,0.00,1.00}{{#1}}}
+%\newcommand{\StringTok}[1]{\textcolor[rgb]{0.87,0.00,0.00}{{#1}}}
+%\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.50,0.50,0.50}{\textit{{#1}}}}
+%\newcommand{\OtherTok}[1]{{#1}}
+%\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.00,1.00,0.00}{\textbf{{#1}}}}
+%\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.50}{{#1}}}
+%\newcommand{\RegionMarkerTok}[1]{{#1}}
+%\newcommand{\ErrorTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{{#1}}}}
+%\newcommand{\NormalTok}[1]{{#1}}
+\newcommand{\tabitem}{~~\llap{\textbullet}~~}
+\usepackage{graphicx}
+
+% END PANDOC SYNTAX HIGHLIGHTING
+
+% BEGIN PANDOC IMAGE WIDTH
+% We will generate all images so they have a width \maxwidth. This means
+% that they will get their normal width if they fit onto the page, but
+% are scaled down if they would overflow the margins.
+% \makeatletter
+% \def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth
+% \else\Gin@nat@width\fi}
+% \makeatother
+% \let\Oldincludegraphics\includegraphics
+% \renewcommand{\includegraphics}[1]{ \Oldincludegraphics[width=\maxwidth]{#1} }
+% END PANDOC IMAGE WIDTH
+
+\usepackage[hyphens]{url} % this package doesn't make proper clickable links, but
+% \usepackage{hyperref} % this package breaks the build.
+
+\usepackage{graphicx}
+\usepackage{epstopdf}
+\usepackage{microtype}
+\usepackage{amssymb}
+\usepackage{framed} % for sidebars
+\usepackage[includefoot]{geometry} % for margins
+\usepackage{tocloft}  % to typeset table of contents
+\usepackage{titlesec} % to format chapter title pages
+\usepackage{fancyhdr} % to format headers/footers
+\pagestyle{fancy}
+\usepackage{sectsty}
+\usepackage{xspace}
+\usepackage{wrapfig}
+\usepackage[small]{caption}  % make caption text size smaller
+\usepackage{enumitem}  % to manage spacing in and around lists
+\usepackage{multicol} % to break the list of reviewers into columns
+\usepackage[hang,flushmargin]{footmisc}  % To not indent footnotes
+
+\usepackage[T1]{fontenc}
+\usepackage{tgtermes}    % body font
+\usepackage{inconsolata} % fixed width font
+\usepackage{tgheros}     % sans-serif font
+
+% Make links footnotes instead of hotlinks:
+\newcommand{\href}[2]{{#2}\footnote{\code{\url{#1}}}}
+
+\author{Tavish Armstrong}
+
+% define page size and margins etc
+\geometry{paperwidth=18.91cm,paperheight=24.589cm,
+          vmargin=1.9cm, % top and bottom margins
+          inner=1.9cm, % inside margin
+          outer=2.29cm, % outside margin
+          bindingoffset=0.89cm % gutter
+         } 
+
+% define headers (empty) and footers
+% fiddle with chaptermark so we can make it not all caps
+\renewcommand{\chaptermark}[1]{\markboth{#1}{}}
+\renewcommand{\sectionmark}[1]{\markright{#1}{}}
+
+% next get rid of existing header and footer and header rule
+\fancyhead{}
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+
+% now make the footer the way we want it:
+% page number on right side of footer for odd pages 
+\rfoot[]{\small{\textsf{\chapterauthor \hspace{0.25cm} \thepage}}}
+\fancyhfoffset[EL]{0cm} % this looks like it doesn't do anything, but
+                        % it seems to remind it to line up headers with the
+                        % rest of the text
+
+% page number and chapter name on left side of footer for even pages 
+\lfoot[\small{\textsf{\thepage \hspace{0.25cm} \leftmark}}]{}
+
+% make plain pages have no headers or footers
+\fancypagestyle{plain}{\fancyhf{}}
+
+% set all section headers to be sans serif
+\allsectionsfont{\normalfont\sffamily}
+
+% format the table of contents
+\renewcommand{\cftchapfont}{\sffamily\small}     % set TOC entries to sserif
+\renewcommand{\cftchappagefont}{\sffamily} % set TOC page numbers to sserif
+
+% make all verbatim (code blocks) text smaller, just because it was bugging me
+\let\oldverbatim\verbatim
+\renewcommand\verbatim{\small\oldverbatim}
+
+
+% format title of TOC: make sure this matches chapter head format as set below
+\renewcommand{\cfttoctitlefont}{\hfill\Huge\sffamily} 
+
+\setcounter{tocdepth}{0} % sets what level of header is shown in the TOC
+\setcounter{secnumdepth}{1} % sets what level of subsect. are numbered
+
+% introduce penalty for widows and orphans (can increase to 10 000, although
+% not recommended)
+% upped the widow/orphan penalty to 600 from 300; seems to have removed
+% all widows and orphans -- ARB Mar 30 2012
+\widowpenalty=600
+\clubpenalty=600
+
+\title{500 Lines or Less}
+\date{}
+
+\newcommand{\chapterauthor}{}
+
+\newcommand{\chapterauthortoc}{}
+
+\newenvironment{aosachapter}[3]
+{ \renewcommand{\chapterauthor}{#3} \chapter{#1} \label{#2} 
+   \addtocontents{toc}{\hspace{1cm}\textit{\textsf{\small by \chapterauthor}}\protect\par} } {  }
+
+\newenvironment{aosachaptertoc}[4]
+{ \renewcommand{\chapterauthor}{#3}
+  \renewcommand{\chapterauthortoc}{#4}
+  \chapter{#1} \label{#2} 
+  \addtocontents{toc}{\hspace{1cm}\textit{\textsf{by \chapterauthortoc}}\protect\par} } {  }
+
+\newcommand{\aosasecti}[1]{\section{#1}}
+\newcommand{\aosasectii}[1]{\subsection{#1}}
+\newcommand{\aosasectiii}[1]{\subsubsection*{#1}}
+
+\newenvironment{aosabox}[1]
+{ \begin{figure}[h!]\vspace{-0.7cm}\centering \rule[-.7cm]{13.83cm}{0.75pt} \begin{minipage}[t]{13.83cm}\begin{framed}\centerline{{\textbf{#1}}} }
+{ \end{framed}\end{minipage} \rule{13.83cm}{0.75pt} \end{figure} }
+
+\newenvironment{aosadescription}
+{\begin{description}[itemsep=-0.1ex,parsep=0.3ex,topsep=0.2ex,leftmargin=10mm]}
+{\end{description}}
+
+\newenvironment{aosaenumerate}
+{\begin{enumerate}[itemsep=-0.8ex,topsep=0.2ex,leftmargin=10mm]}
+{\end{enumerate}}
+
+% new environment for second-level nested enumerated lists
+\newenvironment{aosaenumerate2}
+{\begin{enumerate}[itemsep=-0.7ex,topsep=-1ex,leftmargin=10mm]}
+{\end{enumerate}}
+
+\newenvironment{aosaitemize}
+{\begin{itemize}[itemsep=-0.8ex,topsep=0.2ex,leftmargin=8.5mm]}
+{\end{itemize}}
+
+% new environment for second-level nested itemized lists
+\newenvironment{aosaitemize2}
+{\begin{itemize}[itemsep=-0.5ex,topsep=-1ex,leftmargin=9mm]}
+{\end{itemize}}
+
+\newcommand{\aosaboxref}[1]{Box~\ref{#1}}
+\newcommand{\aosachapref}[1]{Chapter~\ref{#1}}
+\newcommand{\aosafigref}[1]{Figure~\ref{#1}}
+\newcommand{\aosasecref}[1]{Section~\ref{#1}}
+\newcommand{\aosatblref}[1]{Table~\ref{#1}}
+
+\newcommand{\aosafigure}[4][375pt]{\begin{figure}[h!]\centering\includegraphics[width={#1}]{#2}\caption{#3}\label{#4}\end{figure}}
+\newcommand{\aosafigureTop}[4][375pt]{\begin{figure}[t]\centering\includegraphics[width={#1}]{#2}\caption{#3}\label{#4}\end{figure}}
+
+%% Make the space above and below captions smaller
+\setlength{\abovecaptionskip}{1.2ex}
+\setlength{\belowcaptionskip}{-1.5ex}
+
+\newcommand{\aosagraphics}[2][375pt]{\includegraphics[width={#1}]{#2}}
+\newcommand{\aosaquestion}[1]{\begin{textbf}{#1}\end{textbf}}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\smcode}[1]{\small\texttt{#1}\normalsize}
+
+% GHC commands
+\newcommand{\clift}[1]{\lfloor{#1}\rfloor}
+\newcommand{\ol}[1]{\overline{#1}}
+\newcommand{\tcase}[2]{\mathbf{case}\;{#1}\;\mathbf{of}\;\ol{#2}}
+\newcommand{\tlet}[4]{\mathbf{let}\;{#1}{:}{#2} = {#3}\;\mathbf{in}\;{#4}}
+\newcommand{\tcast}[2]{{#1}\xspace{\triangleright}\xspace{#2}}
+
+%% Tavish: for highlighting the italicized text
+%% (To see if I made mistakes)
+% \newcommand{\oldemph}[1]{\emph{#1}}
+% \renewcommand\emph[1]{\begin{textbf}{{\Huge#1}}\end{textbf}}
+
+
+% format chapter title pages
+\titleformat{\chapter}
+  [display] % shape/type of title
+  {\ttfamily} % formatting commands applied to both label and title
+  {\vspace{-2cm} \hfill \large [chapter\kern0.15em\thechapter]} 
+  {2cm} % separation between number and chapter title
+  {\huge\sffamily} % code preceding title. Last cmd can take arg, which is title
+  [  % everything inside [] comes after the title
+     % \hspace*{1cm} % indent author name 
+     \Large % make text that follows large
+     \thispagestyle{plain} % suppress page numbers
+     \chapterauthor % insert chapter author name 
+  ]% end of what comes after title
+
+% Code for creating empty pages
+% No headers/footers on empty pages before new chapter, if prev
+% chapter ends on right side
+\makeatletter
+\def\cleardoublepage{\clearpage\if@twoside \ifodd\c@page\else
+    \hbox{}
+    \thispagestyle{plain}
+    \newpage
+    \if@twocolumn\hbox{}\newpage\fi\fi\fi}
+\makeatother \clearpage{\pagestyle{plain}\cleardoublepage}
+
+
+% list of hard-to-hyphenate words with correct possible hyphenation-points
+\hyphenation{Free-RTOS}
+
+
+\raggedbottom
+
+\begin{document}
+
+\frontmatter
+\include{frontmatter}
+
+\tableofcontents
+
+\include{intro}
+
+\mainmatter
+
+
+\include{dagoba}
+
+
+\bibliographystyle{alpha}
+
+\bibliography{500L}
+
+\makeatletter
+\@openrightfalse
+%% \renewcommand*\cleardoublepage{\clearpage\if@twoside
+  %% \ifodd\c@page \hbox{}\newpage\if@twocolumn\hbox{}%
+  %% \newpage\fi\fi\fi}
+\makeatother
+
+\backmatter
+
+\include{colophon}
+
+\end{document}

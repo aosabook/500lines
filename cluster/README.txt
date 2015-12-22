@@ -3,12 +3,9 @@ Project: Cluster (a working title!)
 Requirements: Python
 
 This directory holds a simple implementation of a replicated state machine
-that can also feed clients information on cluster membership.
+using a Paxos-derived algorithm.
 
-* statemachine.py -- illustrates the state machine client API
-* network.py -- handles network communication
-* deterministic_network.py -- similar, but deterministic
-* client.py -- a simple client
-* member_single.py -- a non-clustered member server, talking to the client
-* member_replicated.py -- a replicated state machine with consensus and a fixed membership
-  This is based on "Paxos Made Moderately Complex" (van Renesse, 2011)
+Goals:
+
+Every programmer should know how consensus is achieved across a network of hosts.
+And every programmer ought to know how network protocols are implemented, tested, and debugged.

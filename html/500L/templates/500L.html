@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="provenance" content="$Id: index.html 1472 2012-09-21 22:17:41Z audrey $" />
+    <link rel="stylesheet" href="{{ SITEURL }}/theme/css/bootstrap.css" type="text/css" />
+    <link rel="stylesheet" href="{{ SITEURL }}/theme/css/bootstrap-responsive.css" type="text/css" />
+    <link rel="stylesheet" href="{{ SITEURL }}/theme/css/code.css" type="text/css" />
+    <link rel="stylesheet" href="{{ SITEURL }}/theme/css/500L.css" type="text/css" />
+    <title>{{ SITENAME }}{% if page is defined and page.title is defined %} | {{ page.title }}{% endif %}</title>
+    <script type="text/x-mathjax-config">
+        MathJax.Hub.Config({
+          tex2jax: {
+            inlineMath: [['$','$'], ['\\(','\\)']],
+            displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+          },
+        });
+    </script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    </script>
+</head>
+  <body>
+    <div class="container">
+      <div class="row">
+      {% block header %}
+        <div class="hero-unit">
+          <!--	  <img src="theme/images/logo.png" align="left" style="padding:10px;vertical-align:middle" /> -->
+          <h1>{{ SITENAME }}</h1>
+          <blockquote class="pull-right">
+<!--             &hellip;a wonderful book and a wonderful contribution to the industry.
+            <small><a href="http://en.wikipedia.org/wiki/Grady_Booch">Grady
+                Booch</a></small> -->
+            </blockquote>
+
+        </div>
+      {% endblock header %}
+      </div>
+      {% block intro %}
+      <div class="row">
+        <div class="span10 offset1">
+          <p>
+            Architects look at thousands of buildings during their
+            training, and study critiques of those buildings written
+            by masters.  In contrast, most software developers only
+            ever get to know a handful of large programs
+            well&mdash;usually programs they wrote
+            themselves&mdash;and never study the great programs of
+            history.  As a result, they repeat one another's mistakes
+            rather than building on one another's successes.
+          </p>
+
+          <p>
+            Our goal is to change that.  In these two books, the authors of
+            four dozen open source applications explain how their software
+            is structured, and why.  What are each program's major
+            components?  How do they interact?  And what did their builders
+            learn during their development?  In answering these questions,
+            the contributors to these books provide unique insights into how
+            they think.
+          </p>
+
+          <p>
+            If you are a junior developer, and want to learn how your
+            more experienced colleagues think, these books are the place
+            to start.  If you are an intermediate or senior developer,
+            and want to see how your peers have solved hard design
+            problems, these books can help you too.
+          </p>
+
+          <p>
+            Follow us on our blog at <a href="http://aosabook.org/blog/">http://aosabook.org/blog/</a>,
+            or on Twitter at <a href="http://twitter.com/aosabook">@aosabook</a>
+            and using the <a href="http://twitter.com/#!/search/%23aosa">#aosa</a> hashtag.
+          </p>
+
+          <div class="alert alert-success">
+              <strong>August 30, 2015</strong>: We're currently publishing chapters for <em>500 Lines or Less</em> on an early-access basis here. If you've somehow landed on this page, you're in the wrong place. Everything you need to know about the early-access release can be found on <a href="http://aosabook.org/blog/">our blog</a>.
+          </div>
+
+        </div>
+      </div>
+      {% endblock intro %}
+      {# le book content #}
+      {% block content %}
+      {% endblock content %}
+      {% block footer %}
+      <div class="row">
+        <div class="span10 offset1" id="license">
+
+          <h2>License and Royalties</h2>
+
+          <p>
+            This work is made available under
+            the <a href="http://creativecommons.org/licenses/by/3.0/legalcode">Creative
+            Commons Attribution 3.0 Unported</a> license.  Please see
+            the <a href="intro1.html#license">full description of the
+            license</a> for details.
+            All <a href="#purchase">royalties</a> from sales of these books will be donated to
+            <a href="http://amnesty.org">Amnesty International</a>.
+          </p>
+
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="span10 offset1" id="contribute">
+
+          <h2>
+            Contributing
+          </h2>
+
+          <p>
+            Dozens of volunteers worked hard to create this book,
+            but there is still lots to do.
+            You can help by reporting errors,
+            by helping to translate the content into other languages and formats,
+            or by describing the architecture of other open source projects.
+            Please contact us the coordinators for various translations listed below,
+            or mail us directly at <a href="mailto:aosa@aosabook.org">aosa@aosabook.org</a>
+            if you would like to start a new translation or write a chapter yourself.
+          </p>
+
+        </div>
+      </div>
+    {% endblock footer %}
+    </div>
+  </body>
+</html>

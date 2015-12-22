@@ -1,0 +1,31 @@
+html, body{ height: 100%; padding: 0; border: 0; margin: 0; }
+.menu, .script, .block{ border: 1px inset #021429; border-radius: 7px; }
+h1, h2, h3, h4, h5, h6{ text-align: center; }
+h1{ margin: 0em; }
+.menu-column{ width: 24%; height: 85%; float: left; margin-left: 10px; }
+.menu{ background-color: PeachPuff; overflow-y: auto; }
+.menu.over{ background-color: BurlyWood; }
+.script-column{ width: 24%; height: 85%; float: left; margin: 0 10px; }
+.script{ background-color: LightSteelBlue; height: 94%; overflow-y: auto; }
+.script.over{ background-color: CadetBlue; }
+.canvas-column{ width: 46%; height: 85%; float: right; margin-right: 10px; }
+.canvas-placeholder{ width: 100%; height: 85%; }
+.canvas{ background-color: white; position: absolute; }
+.block{ padding: 5px; margin: 10px; cursor: move; }
+.block.running{ outline: 2px solid red; }
+.block.next{ outline: 2px solid green; }
+.block.dragging{ opacity: 0.4; }
+.menu .block{ background-color: Coral; }
+.script .block{ margin: 5px; background-color: DodgerBlue; }
+.block input{ margin-left: 1em; width: 5em; margin-bottom: 5px; }
+.container{
+    margin: 0 -6px 0 20px;
+    padding-bottom: 10px;
+    border: 1px inset #021429; border-radius: 7px;
+    border-right: 0;
+    background-color: LightSteelBlue;
+    border-radius: 7px 0 0 7px;
+}
+.menu .container{ background-color: PeachPuff; }
+.over .container{ background-color: CadetBlue;  }
+
