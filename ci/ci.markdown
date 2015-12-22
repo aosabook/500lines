@@ -179,7 +179,7 @@ Copy the tests folder from this code base to `test_repo` and commit it:
 $ cp -r /this/directory/tests /path/to/test_repo/ 
 $ cd /path/to/test\_repo 
 $ git add tests/ 
-$ git commit -m”add tests”
+$ git commit -m ”add tests”
 ```
 
 Now you have a commit in the master repository.
