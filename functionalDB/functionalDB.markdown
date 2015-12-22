@@ -721,7 +721,7 @@ Our data model is based on accumulation of facts (i.e., datoms) over time. For t
 
 ### Query Language
 
-Let's look at an example query in our proposed language. This query asks: "What are the names and birthday of entities who like pizza, speak English, and who have a birthday this month?"
+Let's look at an example query in our proposed language. This query asks: "What are the names and birthdays of entities who like pizza, speak English, and who have a birthday this month?"
 ```clojure
 {  :find [?nm ?bd ]
    :where [
@@ -1281,12 +1281,12 @@ The twist to the index structure is that now we hold a binding pair of the entit
 
 At the end of phase 3 of our example execution, we have the following structure at hand:
 ```clojure
- {[1 "?e"] {
-		[:likes nil]    ["Pizza" nil]
-        [:name nil]     ["USA" "?nm"]
-        [:speaks nil]   ["English" nil] 
-		[:birthday nil] ["July 4, 1776" "?bd"]} 
-	}}
+{[1 "?e"]{ 
+	{[:likes nil]    ["Pizza" nil]}
+	{[:name nil]     ["USA" "?nm"]}
+	{[:speaks nil]   ["English" nil]} 
+	{[:birthday nil] ["July 4, 1776" "?bd"]} 
+}}
 ```
 
 #### Phase 4: Unify and Report

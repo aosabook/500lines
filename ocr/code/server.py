@@ -24,8 +24,8 @@ class JSONHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_POST(s):
         response_code = 200
         response = ""
-        varLen = int(s.headers.get('Content-Length'))
-        content = s.rfile.read(varLen);
+        var_len = int(s.headers.get('Content-Length'))
+        content = s.rfile.read(var_len);
         payload = json.loads(content);
 
         if payload.get('train'):

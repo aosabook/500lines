@@ -1,6 +1,8 @@
 title: A Rejection Sampler
 author: Jessica B. Hamrick
 
+_Jess is a Ph.D. student at UC Berkeley where she studies human cognition by combining probabilistic models from machine learning with behavioral experiments from cognitive science. In her spare time, Jess is a core contributor to IPython and Jupyter. She also holds a B.S. and M.Eng. in Computer Science from MIT._
+
 ## Introduction
 
 Frequently, in computer science and engineering, we run into problems
@@ -452,7 +454,7 @@ implement the PMF or PDF from the beginning, anyway.
 Formally, the multinomial distribution has the following equation:
 
 $$
-p(\mathbf{x}; \mathbf{p}) = \frac{(\sum_{i=1}^k x_i)!}{x_1!\cdots{}x_k!}p_1^{x_1}\cdots{}p_k^{x_k},
+p(\mathbf{x}; \mathbf{p}) = \frac{(\sum_{i=1}^k x_i)!}{x_1!\cdots{}x_k!}p_1^{x_1}\cdots{}p_k^{x_k}
 $$
 
 where $\mathbf{x}=[x_1, \ldots{}, x_k]$ is a vector of length $k$
@@ -468,14 +470,14 @@ the gamma function rather than factorial, so we will rewrite the
 equation using $\Gamma$:
 
 $$
-p(\mathbf{x}; \mathbf{p}) = \frac{\Gamma((\sum_{i=1}^k x_i)+1)}{\Gamma(x_1+1)\cdots{}\Gamma(x_k+1)}p_1^{x_1}\cdots{}p_k^{x_k},
+p(\mathbf{x}; \mathbf{p}) = \frac{\Gamma((\sum_{i=1}^k x_i)+1)}{\Gamma(x_1+1)\cdots{}\Gamma(x_k+1)}p_1^{x_1}\cdots{}p_k^{x_k}
 $$
 
 #### Working with Log Values
 
 Before getting into the actual code needed to implement the equation
-above, I want to emphasize one of the *the most important design
-decisions* when writing code with probabilities: working with
+above, I want to emphasize one of the the most important design
+decisions when writing code with probabilities: working with
 log values. What this means is that rather than working directly with
 probabilities $p(x)$, we should be working with *log*-probabilities,
 $\log{p(x)}$. This is because probabilities can get very small very
@@ -936,7 +938,7 @@ def _bonus_log_pmf(self, bonus):
     return self.bonus_dist.log_pmf(x)
 ```
 
-We can now create our distrbution as follows:
+We can now create our distribution as follows:
 
 ```python
 >>> import numpy as np
@@ -1094,7 +1096,7 @@ function in our `DamageDistribution`. This is because we actually do
 not know what the PMF should be! This would be the equation:
 
 $$
-\sum_{{item}_1, \ldots{}, {item}_m}p({damage}\ |\ {item}_1,\ldots{},{item}_m)p({item}_1)\cdots{}p({item}_m)
+\sum_{{item}_1, \ldots{}, {item}_m} p(\mathrm{damage} \vert \mathrm{item}_1,\ldots{},\mathrm{item}_m)p(\mathrm{item}_1)\cdots{}p(\mathrm{item}_m)
 $$
 
 What this equation says is that we would need to compute the
@@ -1163,7 +1165,7 @@ the general case:
    (e.g., using dictionaries as the output of
    `MagicItemDistribution.sample`) while still exposing the less clear
    but more efficient and purely numeric version of those functions
-   (e.g., `MagicItemDistribution._sample_stats`).
+   <latex>\linebreak</latex> (e.g., `MagicItemDistribution._sample_stats`).
 
 Additionally, we've seen how sampling from a probability distribution
 can be useful both for producing single random values (e.g.,
