@@ -735,7 +735,7 @@ Dagoba.G.findVertices = function(args) {                      // vertex finder h
 }
 ```
 
-This function receives its arguments as a list. If the first one is an object it passes it to searchVertices, allowing queries like `g.v({_id:'Thor'}).run()` or `g.v({species: 'Aesir'}).run()`.
+This function receives its arguments as a list. If the first one is an object it passes it to `searchVertices`, allowing queries like `g.v({_id:'Thor'}).run()` or `g.v({species: 'Aesir'}).run()`.
 
 Otherwise, if there are arguments it gets passed to findVerticesByIds, which handles queries like `g.v('Thor', 'Odin').run()`.
 
