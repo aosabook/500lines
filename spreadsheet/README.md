@@ -7,8 +7,8 @@
 
 ## Chapter Text
 
-* English: <https://github.com/audreyt/500lines/blob/master/spreadsheet/spreadsheet.markdown>
-* 中文: <https://github.com/audreyt/500lines/blob/master/spreadsheet/spreadsheet.zh-tw.markdown>
+* English: <https://github.com/aosabook/500lines/blob/master/spreadsheet/spreadsheet.markdown>
+* 中文: <https://github.com/aosabook/500lines/blob/master/spreadsheet/spreadsheet.zh-tw.markdown>
 
 ## Online Demo
 
