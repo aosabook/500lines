@@ -682,7 +682,7 @@ class VirtualMachine(object):
 
     # Block stack manipulation
     def push_block(self, b_type, handler=None):
-        level = len(self.frame.stack)
+        stack_height = len(self.frame.stack)
         self.frame.block_stack.append(Block(b_type, handler, stack_height))
 
     def pop_block(self):
