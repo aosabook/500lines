@@ -17,6 +17,8 @@ The code in this chapter is loosely based on the open-source project [Waterbear]
 
 The choice of turtle graphics for this language goes back to the Logo language, which was created specifically to teach programming to children. Several of the block-based languages above include turtle graphics, and it is a small enough domain to be able to capture in a tightly constrained project such as this.
 
+If you would like to get a feel for what a block-based-language is like, you can experiment with the program that is built in this chapter from author's [GitHub repository](https://dethe.github.io/500lines/blockcode/).
+
 ## Goals and Structure
 
 I want to accomplish a couple of things with this code. First and foremost, I want to implement a block language for turtle graphics, with which you can write code to create images through simple dragging-and-dropping of blocks, using as simple a structure of HTML, CSS, and JavaScript as possible. Second, but still important, I want to show how the blocks themselves can serve as a framework for other languages besides our mini turtle language.
