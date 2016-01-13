@@ -76,7 +76,7 @@ parents  = (vertices) => E.reduce( (acc, [parent, child]) => vertices.includes(c
 children = (vertices) => E.reduce( (acc, [parent, child]) => vertices.includes(parent) ? acc.concat(child)  : acc , [] )
 ```
 
-Given a list of vertices we then reduce over the edges, adding an edge's parent to the accumulator if the edge's child is in our input list. The children function is identical, but examines the edge's parent to determine whether to add the edge's child.
+Given a list of vertices we reduce over the edges, adding an edge's parent to the accumulator if the edge's child is in our input list. The children function is identical, but examines the edge's parent to determine whether to add the edge's child.
 
 Those functions are valid JavaScript, but use a few features browsers haven't implemented as of this writing. This translated version will work today:
 
@@ -254,7 +254,7 @@ We'll need a way to add steps to our query. Here's a helper function for that:
 ```javascript
 Dagoba.Q.add = function(pipetype, args) {               // add a new step to the query
   var step = [pipetype, args]
-  this.program.push(step)                               // step is an array: first the pipe type, then its args
+  this.program.push(step)                               // step is an array: first the pipetype, then its args
   return this
 }
 ```
@@ -320,7 +320,7 @@ We'll go in to more detail on this new model soon, but in the meantime here are 
 
 Pipetypes make up the core functionality of our system. Once we understand how each one works, we'll have a better basis for understanding how they're invoked and sequenced together in the interpreter.
 
-We'll start by making a place to put our pipe types, and a way to add new ones.
+We'll start by making a place to put our pipetypes, and a way to add new ones.
 
 ```javascript
 Dagoba.Pipetypes = {}                                   // every pipe has a type
@@ -340,24 +340,24 @@ Note that adding a new pipetype with the same name replaces the existing one, wh
 
 ```javascript
 Dagoba.getPipetype = function(name) {
-  var pipetype = Dagoba.Pipetypes[name]                 // a pipe type is just a function 
+  var pipetype = Dagoba.Pipetypes[name]                 // a pipetype is just a function 
 
   if(!pipetype)
-    Dagoba.error('Unrecognized pipe type: ' + name)
+    Dagoba.error('Unrecognized pipetype: ' + name)
 
   return pipetype || Dagoba.fauxPipetype
 }
 ```
 
-If we can't find a pipetype we generate an error and return the default pipetype, which acts like an empty conduit: if a message comes in one side, it gets passed out the other.
+If we can't find a pipetype, we generate an error and return the default pipetype, which acts like an empty conduit: if a message comes in one side, it gets passed out the other.
 
 ```javascript
-Dagoba.fauxPipetype = function(_, _, maybe_gremlin) {   // if you can't find a pipe type 
+Dagoba.fauxPipetype = function(_, _, maybe_gremlin) {   // if you can't find a pipetype 
   return maybe_gremlin || 'pull'                        // then keep things flowing along
 }
 ```
 
-See those underscores? We use those to label params that won't be used in our function. Most other pipetypes will use all three parameters, and have all three parameter names. This allows us to distinguish at a glance which parameters a particular pipetype relies on [footnote: Actually, we only used this underscore technique here to make the comments line up nicely. No, seriously. If programs "must be written for people to read, and only incidentally for machines to execute", then it immediately follows that our predominant concern should be making code pretty.].
+See those underscores? We use those to label params that won't be used in our function. Most other pipetypes will use all three parameters, and have all three parameter names. This allows us to distinguish at a glance which parameters a particular pipetype relies on.[footnote: Actually, we only used this underscore technique here to make the comments line up nicely. No, seriously. If programs "must be written for people to read, and only incidentally for machines to execute", [citation: Structure and Interpretation of Computer Programs, Abelson and Sussman] then it immediately follows that our predominant concern should be making code pretty.]
 
 
 #### Vertex
@@ -377,35 +377,35 @@ Dagoba.addPipetype('vertex', function(graph, args, gremlin, state) {
 })
 ```
 
-We first check to see if we've already gathered matching vertices, otherwise we try to find some. If there are any vertices then we'll pop one off and return a new gremlin sitting on that vertex. Each gremlin can carry around its own state, like a journal of where it's been and what interesting thing it has seen on its journey through the graph. If we receive a gremlin as input to this step we'll copy its journal for the exiting gremlin.
+We first check to see if we've already gathered matching vertices, otherwise we try to find some. If there are any vertices, we'll pop one off and return a new gremlin sitting on that vertex. Each gremlin can carry around its own state, like a journal of where it's been and what interesting things it has seen on its journey through the graph. If we receive a gremlin as input to this step we'll copy its journal for the exiting gremlin.
 
 Note that we're directly mutating the state argument here, and not passing it back. An alternative would be to return an object instead of a gremlin or signal, and pass state back that way. That complicates our return value, and creates some additional garbage. [footnote: Very short lived garbage though, which is the second best kind.] If JS allowed multiple return values it would make this option more elegant. 
 
-We would still need to find a way to deal with the mutations, though, as the call site maintains a reference to the original variable. What if we had some way to determine whether a particular reference is 'unique' -- that it is the only reference to that object? 
+We would still need to find a way to deal with the mutations, though, as the call site maintains a reference to the original variable. What if we had some way to determine whether a particular reference is "unique" -- that it is the only reference to that object? 
 
 If we know a reference is unique then we can get the benefits of immutability while avoiding expensive copy-on-write schemes or complicated persistent data structures. With only one reference we can't tell whether the object has been mutated or a new object has been returned with the changes we requested: "observed immutability" is maintained.*
 
+[footnote on maintained: Two references to the same mutable data structure act like a pair of walkie-talkies, allowing whoever holds them to communicate directly. Those walkie-talkies can be passed around from function to function, and cloned to create a whole lot of walkie-talkies. This completely subverts the natural communication channels your code already possesses. In a system with no concurrency you can sometimes get away with it, but introduce multithreading or asynchronous behavior and all that walkie-talkie squawking can become a real drag.]
+
 There are a couple of common ways of determining this: in a statically typed system we might make use of uniqueness types* to guarantee at compile time that each object has only one reference. If we had a reference counter* -- even just a cheap two-bit sticky counter -- we could know at runtime that an object only has one reference and use that knowledge to our advantage.
-
-JavaScript doesn't have either of these facilities, but we can get almost the same effect if we're really, really disciplined. Which we will be. For now.
-
-[footnote on maintained: Two references to the same mutable data structure act like a pair of walkie-talkies, allowing whoever holds them to communicate directly. Those walkie-talkies can be passed around from function to function, and cloned to create whole passel of walkie-talkies. This completely subverts the natural communication channels your code already possesses. In a system with no concurrency you can sometimes get away with it, but introduce multithreading or asynchronous behavior and all that walkie-talkie squawking can become a real drag.]
 
 [footnote on uniqueness types: Uniqueness types were dusted off in the Clean language, and have a non-linear relationship with linear types, which are themselves a subtype of substructural types.]
 
 [footnote on reference counter: Most modern JS runtimes employ generational garbage collectors, and the language is intentionally kept at arm's length from the engine's memory management to curtail a source of programmatic non-determinism.]
 
+JavaScript doesn't have either of these facilities, but we can get almost the same effect if we're really, really disciplined. Which we will be. For now.
+
 
 #### In-N-Out
 
-Walking the graph is as easy as ordering a burger. These two lines set up the 'in' and 'out' pipetypes for us.
+Walking the graph is as easy as ordering a burger. These two lines set up the `in` and `out` pipetypes for us.
 
 ```javascript
 Dagoba.addPipetype('out', Dagoba.simpleTraversal('out'))
 Dagoba.addPipetype('in',  Dagoba.simpleTraversal('in'))
 ```
 
-The simpleTraversal function returns a pipetype handler that accepts a gremlin as its input, and then spawns a new gremlin each time it's queried. Once those gremlins are gone, it sends back a 'pull' request to get a new gremlin from its predecessor. 
+The `simpleTraversal` function returns a pipetype handler that accepts a gremlin as its input, and spawns a new gremlin each time it's queried. Once those gremlins are gone, it sends back a `pull` request to get a new gremlin from its predecessor. 
 
 ```javascript
 Dagoba.simpleTraversal = function(dir) {
@@ -431,13 +431,13 @@ Dagoba.simpleTraversal = function(dir) {
 }
 ```
 
-The first couple lines handle the differences between the in version and the out version. Then we're ready to return our pipetype function, which looks quite a bit like the vertex pipetype we just saw. That's a little surprising, since this one takes in a gremlin whereas the vertex pipetype creates gremlins ex nihilo.
+The first couple of lines handle the differences between the in version and the out version. Then we're ready to return our pipetype function, which looks quite a bit like the vertex pipetype we just saw. That's a little surprising, since this one takes in a gremlin whereas the vertex pipetype creates gremlins *ex nihilo*.
 
 But we can see the same beats being hit here, with the addition of a query initialization step. If there's no gremlin and we're out of available edges then we pull. If we have a gremlin but haven't yet set state then we find any edges going the appropriate direction and add them to our state. If there's a gremlin but its current vertex has no appropriate edges then we pull. And finally we pop off an edge and return a freshly cloned gremlin on the vertex to which it points.
 
 Glancing at this code we see `!state.edges.length` repeated in each of the three clauses. It's tempting to refactor this to reduce the complexity of those conditionals. There are two issues keeping us from doing so. One is relatively minor: the third `!state.edges.length` means something different from the first two, since `state.edges` has been changed between the second and third conditional. This actually encourages us to refactor, because having the same label mean two different things inside a single function usually isn't ideal.
 
-But this isn't the only pipetype function we're writing, and we'll see these ideas of query initialization and/or state initialization repeated over and over. There's always a balancing act when writing code between structured qualities and unstructured qualities. Too much structure and you pay a high cost in boilerplate and abstraction complexity. Too little structure and you'll have to keep all the plumbing minutia in your head.
+But this isn't the only pipetype function we're writing, and we'll see these ideas of query initialization and/or state initialization repeated over and over. When writing code, there's always a balancing act between structured qualities and unstructured qualities. Too much structure and you pay a high cost in boilerplate and abstraction complexity. Too little structure and you'll have to keep all the plumbing minutia in your head.
 
 In this case, with a dozen or so pipetypes, the right choice seems to be to style each of the pipetype functions as similarly as possible, and label the constituent pieces with comments. So we resist our impulse to refactor this particular pipetype, because doing so would reduce uniformity, but we also resist the urge to engineer a formal structural abstraction for query initialization, state initialization, and the like. If there were hundreds of pipetypes that latter choice would probably be the right one -- the complexity cost of the abstraction is constant, while the benefit accrues linearly with the number of units. When handling that many moving pieces, anything you can do to enforce regularity among them is helpful.
 
@@ -503,8 +503,6 @@ g.v('Thor').out().in().unique()
  .run()
 ```
 
-[footnote: Depending on the density of Asgardian flesh this may return many results, or possibly just Volstagg [footnote: Provided we're allowing Shakespeare by way of Jack Kirby into our pantheon.].] 
-
 If we wanted to know which of Thor's siblings survive Ragnarök we can pass filter an object:
 
 ```javascript
@@ -533,22 +531,22 @@ Dagoba.addPipetype('filter', function(graph, args, gremlin, state) {
 
 If the filter's first argument is not an object or function then we trigger an error, and pass the gremlin along. Pause for a minute, and consider the alternatives. Why would we decide to continue the query once an error is encountered?
 
-There are two possibilities for this error to arise. The first involves a programmer typing in a query, either in a REPL or directly in code. When run that query will produce results, and also generate a programmer-observable error. The programmer then corrects the error to further filter the set of results produced. Alternatively, the system could display only the error and produce no results, and fixing all errors would allow results to be displayed. Which of those you prefer is mostly personal preference.
+There are two reasons this error might arise. The first involves a programmer typing in a query, either in a REPL or directly in code. When run, that query will produce results, and also generate a programmer-observable error. The programmer then corrects the error to further filter the set of results produced. Alternatively, the system could display only the error and produce no results, and fixing all errors would allow results to be displayed. Which of those you prefer is mostly personal preference.
 
-The second possibility is that the filter is being applied dynamically at run time. This is a much more important case, because the person invoking the query is not necessarily the author of the query code. Because this is on the web, our default rule is to always show results, and to never break things. It is usually preferable to soldier on in the face of grave tribulations rather than succumb to our wounds and present the user with a grisly error message.
+The second possibility is that the filter is being applied dynamically at run time. This is a much more important case, because the person invoking the query is not necessarily the author of the query code. Because this is on the web, our default rule is to always show results, and to never break things. It is usually preferable to soldier on in the face of trouble rather than succumb to our wounds and present the user with a grisly error message.
 
-For those occasions when showing too few results is better than showing too many, Dagoba.error can be overridden to throw an error, thereby circumventing the natural control flow.
+For those occasions when showing too few results is better than showing too many, `Dagoba.error` can be overridden to throw an error, thereby circumventing the natural control flow.
 
 
 #### Take
 
-We don't always want all the results at once. Sometimes we only need a handful of results: we want a dozen of Thor's contemporaries, so we walk all the way back to the primeval cow Auðumbla: 
+We don't always want all the results at once. Sometimes we only need a handful of results; say we want a dozen of Thor's contemporaries:
 
 ```javascript
 g.v('Thor').out().out().out().out().in().in().in().in().unique().take(12).run()
 ```
 
-Without the take pipe that query could take quite a while to run, but thanks to our lazy evaluation strategy the query with the take pipe is very efficient.
+Without the `take` pipe that query could take quite a while to run, but thanks to our lazy evaluation strategy the query with the `take` pipe is very efficient.
 
 Sometimes we just want one at a time: we'll process the result, work with it, and then come back for another one. This pipetype allows us to do that as well.
 
@@ -581,7 +579,7 @@ Dagoba.addPipetype('take', function(graph, args, gremlin, state) {
 
 We initialize `state.taken` to zero if it doesn't already exist. JavaScript has implicit coercion, but coerces `undefined` into `NaN`, so we have to be explicit here. [footnote: Some would argue it's best to be explicit all the time. Others would argue that a good system for implicits makes for more concise, readable code, with less boilerplate and a smaller surface area for bugs. One thing we can all agree on is that making effective use of JavaScript's implicit coercion requires memorizing a lot of non-intuitive special cases, making it a minefield for the uninitiated.]
 
-Then when `state.taken` reaches `args[0]` we return 'done', sealing off the pipes before us. We also reset the `state.taken` counter, allowing us to repeat the query later.
+Then when `state.taken` reaches `args[0]` we return `done`, sealing off the pipes before us. We also reset the `state.taken` counter, allowing us to repeat the query later.
 
 We do those two steps before query initialization to handle the cases of `take(0)` and `take()` [footnote: What would you expect each of those to return? What do they actually return?]. Then we increment our counter and return the gremlin.
 
@@ -599,11 +597,11 @@ Dagoba.addPipetype('as', function(graph, args, gremlin, state) {
 })
 ```
 
-After initializing the query, we then ensure the gremlin's local state has an 'as' parameter. Then we set a property of that parameter to the gremlin's current vertex.
+After initializing the query, we ensure the gremlin's local state has an `as` parameter. Then we set a property of that parameter to the gremlin's current vertex.
 
 #### Merge
 
-Once we've labeled vertices we can then extract them using merge. If we want Thor's parents, grandparents and great-grandparents we can do something like this:
+Once we've labeled vertices we can extract them using merge. If we want Thor's parents, grandparents and great-grandparents we can do something like this:
 
 ```javascript
 g.v('Thor').out().as('parent').out().as('grandparent').out().as('great-grandparent')
@@ -690,7 +688,7 @@ We're using the `Dagoba.gotoVertex` helper function to do all real work here. Le
 
 ## Helpers
 
-The pipetypes above rely on a few helpers to do their jobs. Let's take a quick look at those before diving in to the interpreter. This is ostensibly because understanding these helpers will aid in understanding the interpreter, but it's mostly just to build up the anticipation.
+The pipetypes above rely on a few helpers to do their jobs. Let's take a quick look at those before diving in to the interpreter. 
 
 #### Gremlins
 
@@ -704,7 +702,7 @@ Dagoba.makeGremlin = function(vertex, state) {
 
 Any object that has a vertex property and a state property is a gremlin by this definition, so we could just inline the constructor, but wrapping it in a function allows us to add new properties to all gremlins in a single place.
 
-We can also take an existing gremlin and send it to a new vertex, as we saw in the 'back' pipetype and the simpleTraversal function.
+We can also take an existing gremlin and send it to a new vertex, as we saw in the 'back' pipetype and the `simpleTraversal` function.
 
 ```javascript
 Dagoba.gotoVertex = function(gremlin, vertex) {         // clone the gremlin 
@@ -712,14 +710,14 @@ Dagoba.gotoVertex = function(gremlin, vertex) {         // clone the gremlin
 }
 ```
 
-Note that this function actually returns a brand new gremlin -- a clone of the old one, sent to our desired destination. That means a gremlin can sit on a vertex while its clones are sent out to explore many other vertices. This is exactly what happens in simpleTraversal.
+Note that this function actually returns a brand new gremlin: a clone of the old one, sent to our desired destination. That means a gremlin can sit on a vertex while its clones are sent out to explore many other vertices. This is exactly what happens in `simpleTraversal`.
 
-As an example of possible enhancements, we could add a bit of state to keep track of every vertex the gremlin visits, and then add new pipetypes to take advantage of those paths.
+As an example of possible enhancements, we could add a bit of state to keep track of every vertex the gremlin visits, and add new pipetypes to take advantage of those paths.
 
 
 #### Finding 
 
-The `vertex` pipetype uses the findVertices function to collect a set of initial vertices from which to begin our query.
+The `vertex` pipetype uses the `findVertices` function to collect a set of initial vertices from which to begin our query.
 
 ```javascript
 Dagoba.G.findVertices = function(args) {                          // our general vertex finding function
@@ -732,9 +730,9 @@ Dagoba.G.findVertices = function(args) {                          // our general
 }
 ```
 
-This function receives its arguments as a list. If the first one is an object it passes it to searchVertices, allowing queries like `g.v({_id:'Thor'}).run()` or `g.v({species: 'Aesir'}).run()`. 
+This function receives its arguments as a list. If the first one is an object it passes it to `searchVertices`, allowing queries like `g.v({_id:'Thor'}).run()` or `g.v({species: 'Aesir'}).run()`. 
 
-Otherwise, if there are arguments it gets passed to findVerticesByIds, which handles queries like `g.v('Thor', 'Odin').run()`.
+Otherwise, if there are arguments it gets passed to `findVerticesByIds`, which handles queries like `g.v('Thor', 'Odin').run()`.
 
 If there are no arguments at all, then our query looks like `g.v().run()`. This isn't something you'll want to do frequently with large graphs, especially since we're slicing the vertex list before returning it. We slice because some call sites manipulate the returned list directly by popping items off as they work through them. We could optimize this use case by cloning at the call site, or by avoiding those manipulations (we could keep a counter in state instead of popping).
 
@@ -753,7 +751,7 @@ Dagoba.G.findVertexById = function(vertex_id) {
 }
 ```
 
-Note the use of vertexIndex here. Without that index we'd have to go through each vertex in our list one at a time to decide if it matched the ID -- turning a constant time operation into a linear time one, and any O(n) operations that directly rely on it into O(n^2) operations. 
+Note the use of `vertexIndex` here. Without that index we'd have to go through each vertex in our list one at a time to decide if it matched the ID -- turning a constant time operation into a linear time one, and any $O(n)$ operations that directly rely on it into $O(n^2)$ operations. 
 
 ```javascript
 Dagoba.G.searchVertices = function(filter) {            // find vertices that match obj's key-value pairs
@@ -805,14 +803,16 @@ Dagoba.objectFilter = function(thing, filter) {         // thing has to match al
 }
 ```
 
-This allows us to query the edge using a filter object: `g.v('Odin').in({_label: 'spouse', order: 2}).run()` finds Odin's second wife.
+This allows us to query the edge using a filter object: 
+
+`g.v('Odin').in({_label: 'spouse', order: 2}).run()` // finds Odin's second wife
 
 
-## The interpreter's nature
+## The Interpreter's Nature
 
-We've arrived at the top of the narrative mountain, ready to receive our prize: the much ballyhooed interpreter. The code is actually fairly compact, but the model has a bit of subtlety.
+We've arrived at the top of the narrative mountain, ready to receive our prize: the interpreter. The code is actually fairly compact, but the model has a bit of subtlety.
 
-We compared programs to pipelines earlier, and that's a good mental model for writing queries. As we saw, though, we need a different model for the actual implementation. That model is more akin to a Turing machine than a pipeline. There's a read/write head that sits over a particular step. It "reads" the step, changes its "state", and then moves either right or left.
+We compared programs to pipelines earlier, and that's a good mental model for writing queries. As we saw, though, we need a different model for the actual implementation. That model is more like a Turing machine than a pipeline. There's a read/write head that sits over a particular step. It "reads" the step, changes its "state", and then moves either right or left.
 
 Reading the step means evaluating the pipetype function. As we saw above, each of those functions accepts as input the entire graph, its own arguments, maybe a gremlin, and its own local state. As output it provides a gremlin, false, or a signal of 'pull' or 'done'. This output is what our quasi-Turing machine reads in order to change the machine's state.
 
@@ -882,12 +882,12 @@ This second point isn't usually an issue, because of the phase separation betwee
 
 Interestingly, our fluent interface hides another difference between our query language and regular programming languages. The query `g.v('Thor').in().out().run()` could be rewritten as `run(out(in(v(g, 'Thor'))))` if we weren't using method chaining. In JS we would first process `g` and `'Thor'`, then `v`, then `in`, `out` and `run`, working from the inside out. In a language with non-strict semantics we would work from the outside in, processing each consecutive nested layer of arguments only as needed.
 
-So if we start evaluating our query at the end of the statement, with `run`, and work our way back to `v('Thor')`, calculating results only as needed, then we've effectively achieved non-strictness. The secret is in the linearity of our queries. Branches complicate the process graph, and also introduce opportunities for duplicate calls, which require memoization to avoid wasted work. The simplicity of our query language means we can implement an equally simple interpreter based on our linear read/write head model.
+So if we start evaluating our query at the end of the statement, with `run`, and work our way back to `v('Thor')`, calculating results only as needed, then we've effectively achieved non-strictness. The secret is in the linearity of our queries. Branches complicate the process graph, and also introduce opportunities for duplicate calls, which require memorization to avoid wasted work. The simplicity of our query language means we can implement an equally simple interpreter based on our linear read/write head model.
 
-In addition to allowing runtime optimizations this style has many other benefits related to the ease of instrumentation: history, reversibility, stepwise debugging, query statistics -- all these are easy to add dynamically because we control the interpreter and have left it as a virtual machine evaluator instead of reducing the program to a single thunk.
+In addition to allowing runtime optimizations, this style has many other benefits related to the ease of instrumentation: history, reversibility, stepwise debugging, query statistics. All these are easy to add dynamically because we control the interpreter and have left it as a virtual machine evaluator instead of reducing the program to a single thunk.
 
 
-## Interpreter, unveiled
+## Interpreter, Unveiled
 
 ```javascript
 Dagoba.Q.run = function() {                             // a machine for query processing
@@ -901,7 +901,7 @@ Dagoba.Q.run = function() {                             // a machine for query p
   var step, state, pipetype
 
   while(done < max) {
-    step = this.program[pc]                             // step is an array: first the pipe type, then its args
+    step = this.program[pc]                             // step is an array: first the pipetype, then its args
     state = (this.state[pc] = this.state[pc] || {})     // the state for this step: ensure it's always an object
     pipetype = Dagoba.getPipetype(step[0])              // a pipetype is just a function
 ```
@@ -951,7 +951,7 @@ Handling the 'done' case is even easier: set `maybe_gremlin` to false and mark t
   }
 ```
 
-We're done with the current step, and we've moved the head to the next one. If we're at the end of the program and `maybe_gremlin` contains a gremlin then we'll add it to the results, set `maybe_gremlin` to false and move the head back to the last step in the program. 
+We're done with the current step, and we've moved the head to the next one. If we're at the end of the program and `maybe_gremlin` contains a gremlin, we'll add it to the results, set `maybe_gremlin` to false and move the head back to the last step in the program. 
 
 This is also the initialization state, since `pc` starts as `max`. So we start here and work our way back, and end up here again at least once for each final result the query returns.
 
@@ -967,9 +967,9 @@ This is also the initialization state, since `pc` starts as `max`. So we start h
 We're out of the driver loop now: the query has ended, the results are in, and we just need to process and return them. If any gremlin has its result set we'll return that, otherwise we'll return the gremlin's final vertex. Are there other things we might want to return? What are the tradeoffs here? 
 
 
-## Query transformers
+## Query Transformers
 
-So we have this nice compact little interpreter for our query programs now, but we're still missing something. Every modern DBMS comes with a query optimizer as an essential part of the system. For non-relational databases optimizing our query plan rarely yields the exponential speedups seen in their relational cousins [footnote: Or, more pointedly, a poorly phrased query is less likely to yield exponential slowdowns. As an end-user of an RDBMS the aesthetics of query quality can often be quite opaque.], but it's still an important aspect of database design.
+So we have this nice compact interpreter for our query programs now, but we're still missing something. Every modern DBMS comes with a query optimizer as an essential part of the system. For non-relational databases, optimizing our query plan rarely yields the exponential speedups seen in their relational cousins [footnote: Or, more pointedly, a poorly phrased query is less likely to yield exponential slowdowns. As an end-user of an RDBMS the aesthetics of query quality can often be quite opaque.], but it's still an important aspect of database design.
 
 What's the simplest thing we could do that could reasonably be called a query optimizer? Well, we could write little functions for transforming our query programs before we run them. We'll pass a program in as input and get a different program back out as output. 
 
@@ -987,9 +987,9 @@ Dagoba.addTransformer = function(fun, priority) {
 }
 ```
 
-Now we can add query transformers to our system. A query transformer is a function that accepts program and returns a program, plus a priority level. Higher priority transformers are placed closer to the front of the list. We're ensuring fun is a function, because we're going to evaluate it later. [footnote: Note that we're keeping the domain of the priority parameter open, so it can be an integer, a rational, a negative number, or even things like Infinity or NaN.]
+Now we can add query transformers to our system. A query transformer is a function that accepts program and returns a program, plus a priority level. Higher priority transformers are placed closer to the front of the list. We're ensuring `fun` is a function, because we're going to evaluate it later. [footnote: Note that we're keeping the domain of the priority parameter open, so it can be an integer, a rational, a negative number, or even things like Infinity or NaN.]
 
-We'll assume there won't be an enormous number of transformer additions, and walk the list linearly to add a new one. We'll leave a note in case this assumption turns out to be false -- a binary search is much more time optimal for long lists, but adds a little complexity and doesn't really speed up short lists.
+We'll assume there won't be an enormous number of transformer additions, and walk the list linearly to add a new one. We'll leave a note in case this assumption turns out to be false -- a binary search is much more time-optimal for long lists, but adds a little complexity and doesn't really speed up short lists.
 
 To run these transformers we're going to inject a single line of code in to the top of our interpreter:
 
@@ -1008,9 +1008,9 @@ Dagoba.transform = function(program) {
 }
 ```
 
-Our engine up until this point has traded simplicity for performance, but one of the nice things about this strategy is that it leaves doors open for global optimizations that may have been unavailable if we had opted to locally optimize as we designed the system. 
+Our engine up until this point has traded simplicity for performance, but one of the nice things about this strategy is that it leaves doors open for global optimizations that may have been unavailable if we had opted to optimize locally as we designed the system. 
 
-Optimizing a program can often increase complexity and reduce the elegance of the system, making it harder to reason about and maintain the system. Breaking abstraction barriers for performance gains is one of the more egregious forms, but even something seemingly innocuous like embedding performance-oriented code into business logic makes maintenance more difficult.
+Optimizing a program can often increase complexity and reduce the elegance of the system, making it harder to reason about and maintain. Breaking abstraction barriers for performance gains is one of the more egregious forms, but even something seemingly innocuous like embedding performance-oriented code into business logic makes maintenance more difficult.
 
 In light of that, this type of "orthogonal optimization" is particularly appealing. We can add optimizers in modules or even user code, instead of having them tightly coupled to the engine. We can test them in isolation, or in groups, and with the addition of generative testing we could even automate that process, ensuring that our available optimizers play nicely together.
 
@@ -1019,9 +1019,19 @@ We can also use this transformer system to add new functionality unrelated to op
 
 ## Aliases
 
-Making a query like `g.v('Thor').out().in()` is quite compact, but is this Thor's siblings or his mates? Neither interpretation is fully satisfying. It'd be nicer to say what mean: either `g.v('Thor').parents().children()` or `g.v('Thor').children().parents()`.
+Making a query like `g.v('Thor').out().in()` is quite compact, but is this Thor's siblings or his mates? Neither interpretation is fully satisfying. It'd be nicer to say what you mean: either 
 
-We can use query transformers to make aliases with just a couple extra helper functions:
+```javascript
+g.v('Thor').parents().children()
+``` 
+
+or
+
+```javascript
+g.v('Thor').children().parents()
+```
+
+We can use query transformers to make aliases with just a couple of extra helper functions:
 
 ```javascript
 Dagoba.addAlias = function(newname, oldname, defaults) {
@@ -1037,7 +1047,7 @@ Dagoba.addAlias = function(newname, oldname, defaults) {
 
 ```
 
-We're adding a new name for an existing step, so we'll need to create a query transformer that converts the new name to the old name whenever it's encountered. We'll also need to add the new name as a method on the main query object, so it can be pulled in to the query program.
+We're adding a new name for an existing step, so we'll need to create a query transformer that converts the new name to the old name whenever it's encountered. We'll also need to add the new name as a method on the main query object, so it can be pulled into the query program.
 
 We call another helper function to merge the incoming step's arguments with the alias's default arguments. If the incoming step is missing an argument then we'll use the alias's argument for that slot.
 
@@ -1073,15 +1083,25 @@ Dagoba.addAlias('siblings', [['as', 'me'], ['out', 'parent'], ['in', 'parent'], 
 Dagoba.addAlias('cousins', [['out', 'parent'], ['as', 'folks'], ['out', 'parent'], ['in', 'parent'], ['except', 'folks'], ['in', 'parent'], ['unique']])
 ```
 
-That `cousins` alias is kind of cumbersome. Maybe we could expand our addAlias function to allow ourselves to use other aliases in our aliases, and then call it like this:
+That `cousins` alias is kind of cumbersome. Maybe we could expand our `addAlias` function to allow ourselves to use other aliases in our aliases, and call it like this:
 
 ```javascript
 Dagoba.addAlias('cousins', ['parents', ['as', 'folks'], 'parents', 'children', ['except', 'folks'], 'children', 'unique'])
 ```
 
-Now instead of `g.v('Forseti').parents().as('parents').parents().children().except('parents').children().unique()` we can just say `g.v('Forseti').cousins()`.
+Now instead of 
 
-We've introduced a bit of a pickle, though: while our addAlias function is resolving an alias it also has to resolve other aliases. What if `parents` called some other alias, and while we were resolving `cousins` we then had to stop to resolve `parents` and then resolve its aliases and so on? What if one of `parents` aliases ultimately called `cousins`?
+```javascript
+g.v('Forseti').parents().as('parents').parents().children().except('parents').children().unique()` 
+```
+
+we can just say 
+
+```javascript
+g.v('Forseti').cousins()
+```
+
+We've introduced a bit of a pickle, though: while our addAlias function is resolving an alias it also has to resolve other aliases. What if `parents` called some other alias, and while we were resolving `cousins` we had to stop to resolve `parents` and then resolve its aliases and so on? What if one of `parents` aliases ultimately called `cousins`?
 
 This brings us in to the realm of dependency resolution, a core component of modern package managers. There are a lot of fancy tricks for choosing ideal versions, tree shaking, general optimizations and the like, but the basic idea is fairly simple. We're going to make a graph of all the dependencies and their relationships, and then try to find a way to line up the vertices while making all the arrows go from left to right. If we can, then this particular sorting of the vertices is called a 'topological ordering', and we've proven that our dependency graph has no cycles: it is a Directed Acyclic Graph (DAG). If we fail to do so then our graph has at least one cycle. [footnote: You can learn more about dependency resolution in the Contingent chapter of this book.]
 
@@ -1090,13 +1110,13 @@ On the other hand, we expect that our queries will generally be rather short (10
 
 ## Performance
 
-All production graph databases share a very particular performance characteristic: graph traversal queries are constant time with respect to total graph size. [footnote: The fancy term for this is "index-free adjacency".] In a non-graph database, asking for the list of someone's friends can require time proportional to the number of entries, because in the naive worst-case you have to look at every entry. The means if a query over ten entries takes a millisecond then a query over ten million entries will take almost two weeks. Your friend list would arrive faster if sent by Pony Express! [footnote: Though only in operation for 18 months due to the arrival of the transcontinental telegraph and the outbreak of the American Civil War, the Pony Express is still remembered today for delivering mail coast to coast in just ten days.]
+All production graph databases share a particular performance characteristic: graph traversal queries are constant time with respect to total graph size. [footnote: The fancy term for this is "index-free adjacency".] In a non-graph database, asking for the list of someone's friends can require time proportional to the number of entries, because in the naive worst-case you have to look at every entry. This means if a query over ten entries takes a millisecond, then a query over ten million entries will take almost two weeks. Your friend list would arrive faster if sent by Pony Express! [footnote: The Pony Express is still remembered today for delivering mail coast to coast in just ten days.]
 
-To alleviate this dismal performance most databases index over oft-queried fields, which turns an O(n) search into an O(log n) search. This gives considerably better search performance, but at the cost of some write performance and a lot of space -- indices can easily double the size of a database. Careful balancing of the space/time tradeoffs of indices is part of the perpetual tuning process for most databases.
+To alleviate this dismal performance most databases index over oft-queried fields, which turns an $O(n)$ search into an $O(log n)$ search. This gives considerably better search performance, but at the cost of some write performance and a lot of space -- indices can easily double the size of a database. Careful balancing of the space/time tradeoffs of indices is part of the perpetual tuning process for most databases.
 
-Graph databases sidestep this issue by making direct connections between vertices and edges, so graph traversals are just pointer jumps: no need to scan through every item, no need for indices, no extra work at all. Now finding your friends has the same price regardless of the total number of people in the graph, with no additional space cost or write time cost. One downside to this approach is that the pointers work best when the whole graph is in memory on the same machine. Effectively sharding a graph database across multiple machines is still an active area of research. [footnote: Sharding a graph database requires partitioning the graph. Optimal graph partitioning is NP-hard, even for simple graphs like trees and grids, and good approximations also have exponential asymptotic complexity. [http://arxiv.org/pdf/1311.3144v2.pdf, http://dl.acm.org/citation.cfm?doid=1007912.1007931] ]
+Graph databases sidestep this issue by making direct connections between vertices and edges, so graph traversals are just pointer jumps; no need to scan through every item, no need for indices, no extra work at all. Now finding your friends has the same price regardless of the total number of people in the graph, with no additional space cost or write time cost. One downside to this approach is that the pointers work best when the whole graph is in memory on the same machine. Effectively sharding a graph database across multiple machines is still an active area of research. [footnote: Sharding a graph database requires partitioning the graph. Optimal graph partitioning is NP-hard, even for simple graphs like trees and grids, and good approximations also have exponential asymptotic complexity. [http://arxiv.org/pdf/1311.3144v2.pdf, http://dl.acm.org/citation.cfm?doid=1007912.1007931] ]
 
-We can see this at work in the microcosm of Dagoba if we replace the functions for finding edges. Here's a naive version that searches through all the edges in linear time. It harkens back to our very first implementation, but uses all the structures we've since built.
+We can see this at work in the microcosm of Dagoba if we replace the functions for finding edges. Here's a naive version that searches through all the edges in linear time. It's similar to our very first implementation, but uses all the structures we've since built.
 
 ```javascript
 Dagoba.G.findInEdges  = function(vertex) { return this.edges.filter(function(edge) {return edge._in._id  == vertex._id} ) }
@@ -1126,9 +1146,9 @@ Run these yourself to experience the graph database difference.
 
 Having a graph in memory is great, but how do we get it there in the first place? We saw that our graph constructor can take a list of vertices and edges and create a graph for us, but once the graph has been built how do we get the vertices and edges back out?
 
-Our natural inclination is to do something like `JSON.stringify(graph)`, which produces the terribly helpful error `TypeError: Converting circular structure to JSON`. During the graph construction process the vertices were linked to their edges, and the edges are all linked to their vertices, so now everything refers to everything else. So how can we extract our nice neat lists again? JSON replacer functions to the rescue.
+Our natural inclination is to do something like `JSON.stringify(graph)`, which produces the terribly helpful error "TypeError: Converting circular structure to JSON". During the graph construction process the vertices were linked to their edges, and the edges are all linked to their vertices, so now everything refers to everything else. So how can we extract our nice neat lists again? JSON replacer functions to the rescue.
 
-The `JSON.stringify` function takes a value to stringify, but it also takes two additional parameters: a replacer function and a whitespace number [footnote: Pro tip: given a deep tree deep_tree, running `JSON.stringify(deep_tree, 0, 2)` in the JS console is a quick way to make it human readable]. The replacer allows you to customize how the stringification proceeds. 
+The `JSON.stringify` function takes a value to stringify, but it also takes two additional parameters: a replacer function and a whitespace number [footnote: Pro tip: Given a deep tree `deep_tree`, running `JSON.stringify(deep_tree, 0, 2)` in the JS console is a quick way to make it human readable.]. The replacer allows you to customize how the stringification proceeds. 
 
 We need to treat the vertices and edges a bit differently, so we're going to manually merge the two sides into a single JSON string.
 
@@ -1154,9 +1174,9 @@ Dagoba.cleanEdge = function(key, value) {
 
 The only difference between them is what they do when a cycle is about to be formed: for vertices, we skip the edge list entirely. For edges, we replace each vertex with its id. That gets rid of all the cycles we created while building the graph.
 
-We're manually manipulating JSON in `Dagoba.jsonify`, which generally isn't recommended as the JSON format is insufferably persnickety. Even in a dose this small it's easy to miss something and hard to visually confirm correctness.
+We're manually manipulating JSON in `Dagoba.jsonify`, which generally isn't recommended as the JSON format is persnickety. Even in a dose this small it's easy to miss something and hard to visually confirm correctness.
 
-We could merge the two replacer functions into a single function, and then use that new replacer function over the whole graph by doing `JSON.stringify(graph, my_cool_replacer)`. This frees us from having to manually massage the JSON output, but the resulting code may be quite a bit messier. Try it yourself and see if you can come up with a well-factored solution that avoids hand-coded JSON. (Bonus points if it fits in a tweet.)
+We could merge the two replacer functions into a single function, and use that new replacer function over the whole graph by doing `JSON.stringify(graph, my_cool_replacer)`. This frees us from having to manually massage the JSON output, but the resulting code may be quite a bit messier. Try it yourself and see if you can come up with a well-factored solution that avoids hand-coded JSON. (Bonus points if it fits in a tweet.)
 
 
 ## Persistence
@@ -1195,50 +1215,84 @@ Dagoba.depersist = function (name) {
 }
 ```
 
-We preface the name with a faux namespace to avoid polluting the localStorage properties of the domain, as it can get quite crowded in there. There's also usually a low storage limit, so for larger graphs we'd probably want to use a Blob of some sort. 
+We preface the name with a faux namespace to avoid polluting the `localStorage` properties of the domain, as it can get quite crowded in there. There's also usually a low storage limit, so for larger graphs we'd probably want to use a Blob of some sort. 
 
-There are also potential issues if multiple browser windows from the same domain are persisting and depersisting simultaneously. The localStorage space is shared between those windows, and they're potentially on different event loops, so there's the possibility for one to carelessly overwrite the work of another. The spec says there should be a mutex required for read/write access to localStorage, but it's inconsistently implemented between different browsers, and even with it a simple implementation like ours could still encounter issues.
+There are also potential issues if multiple browser windows from the same domain are persisting and depersisting simultaneously. The `localStorage` space is shared between those windows, and they're potentially on different event loops, so there's the possibility for one to carelessly overwrite the work of another. The spec says there should be a mutex required for read/write access to `localStorage`, but it's inconsistently implemented between different browsers, and even with it a simple implementation like ours could still encounter issues.
 
-If we wanted our persistence implementation to be multi-window concurrency aware then we could make use of the storage events that are fired when localStorage is changed to update our local graph accordingly. 
+If we wanted our persistence implementation to be multi-window–concurrency aware then we could make use of the storage events that are fired when `localStorage` is changed to update our local graph accordingly. 
 
 
 ## Updates
 
-Our 'out' pipetype copies the vertex's out-going edges and pops one off each time it needs one. Building that new data structure takes time and space, and pushes more work on to the memory manager. We could have instead used the vertex's out-going edge list directly, keeping track of our place with a counter variable. Can you think of a problem with that approach?
+Our `out` pipetype copies the vertex's out-going edges and pops one off each time it needs one. Building that new data structure takes time and space, and pushes more work on to the memory manager. We could have instead used the vertex's out-going edge list directly, keeping track of our place with a counter variable. Can you think of a problem with that approach?
 
-Well, if someone deletes an edge we've visited while we're in the middle of a query, that would change the size of our edge list, and we'd then skip an edge because our counter is off. To solve this we could lock the vertices involved our query, but then we'd either lose our capacity to regularly update the graph, or the ability to have long-lived query objects responding to requests for more results on-demand. Even though we're in a single-threaded event loop, our queries can span multiple asynchronous re-entries, which means concurrency concerns like this are a very real problem.
+If someone deletes an edge we've visited while we're in the middle of a query, that would change the size of our edge list, and we'd then skip an edge because our counter is off. To solve this we could lock the vertices involved in our query, but then we'd either lose our capacity to regularly update the graph, or the ability to have long-lived query objects responding to requests for more results on-demand. Even though we're in a single-threaded event loop, our queries can span multiple asynchronous re-entries, which means concurrency concerns like this are a very real problem.
 
 So we'll pay the performance price to copy the edge list. There's still a problem, though, in that long-lived queries may not see a completely consistent chronology. We will traverse every edge belonging to a vertex at the moment we visit it, but we visit vertices at different clock times during our query. Suppose we save a query like `var q = g.v('Odin').children().children().take(2)` and then call `q.run()` to gather two of Odin's grandchildren. Some time later we need to pull another two grandchildren, so we call `q.run()` again. If Odin has had a new grandchild in the intervening time, we may or may not see it, depending on whether the parent vertex was visited the first time we ran the query.
 
 One way to fix this non-determinism is to change the update handlers to add versioning to the data. We'll then change the driver loop to pass the graph's current version in to the query, so we're always seeing a consistent view of the world as it existed when the query was first initialized. Adding versioning to our database also opens the door to true transactions, and automated rollback/retries in an STM-like fashion. 
 
 
-## Future directions
+## Future Directions
 
-We saw one way of gathering ancestors earlier: `g.v('Thor').out().as('parent').out().as('grandparent').out().as('great-grandparent').merge(['parent', 'grandparent', 'great-grandparent']).run()`
+We saw one way of gathering ancestors earlier: 
+
+```javascript
+g.v('Thor').out().as('parent').out().as('grandparent').out().as('great-grandparent').merge(['parent', 'grandparent', 'great-grandparent']).run()
+```
 
 This is pretty clumsy, and doesn't scale well -- what if we wanted six layers of ancestors? Or to look through an arbitrary number of ancestors until we found what we wanted?
 
-It'd be nice if we could say something like this instead: `g.v('Thor').out().all().times(3).run()`. What we'd like to get out of this is something like the query above -- maybe `g.v('Thor').out().as('a').out().as('b').out().as('c').merge(['a', 'b', 'c']).run()` after the query transformers have all run.
+It'd be nice if we could say something like this instead:
 
-We could run the `times` transformer first, to produce `g.v('Thor').out().all().out().all().out().all().run()`. Then run the `all` transformer and have it transform each `all` into a uniquely labeled `as`, and put a `merge` after the last `as`. 
+```javascript
+g.v('Thor').out().all().times(3).run() 
+```
 
-There's a few problems with this, though. For one, this as/merge technique only works if every pathway is present in the graph -- if we're missing an entry for one of Thor's great-grandparents that will limit our results. For another, what happens if we want to do this to just part of a query and not the whole thing? What if there are multiple `all`s?  
+What we'd like to get out of this is something like the query above -- maybe:
+
+```javascript
+g.v('Thor').out().as('a').out().as('b').out().as('c').merge(['a', 'b', 'c']).run()
+```
+
+after the query transformers have all run.
+
+We could run the `times` transformer first, to produce 
+
+```javascript
+g.v('Thor').out().all().out().all().out().all().run()
+```
+
+Then run the `all` transformer and have it transform each `all` into a uniquely labeled `as`, and put a `merge` after the last `as`. 
+
+There are a few problems with this, though. For one, this `as`/`merge` technique only works if every pathway is present in the graph; if we're missing an entry for one of Thor's great-grandparents that will limit our results. For another, what happens if we want to do this to just part of a query and not the whole thing? What if there are multiple `all`s?  
 
 To solve that first problem we're going to have to treat `all`s as something more than just as/merge. We need each parent gremlin to actually skip the intervening steps. We can think of this as a kind of teleportation -- jumping from one part of the pipeline directly to another -- or we can think of it as a certain kind of branching pipeline, but either way it complicates our model somewhat. Another approach would be to think of the gremlin as passing through the intervening pipes in a sort of suspended animation, until awoken by a special pipe. Scoping the freezing/thawing pipes may be tricky, however.
 
-The next two problems are easier: to modify just part of a query we'll wrap that portion in special start/end steps, like `g.v('Thor').out().start().in().out().end().times(4).run()`. Actually, if the interpreter knows about these special pipetypes we don't need the end step, because the end of a sequence is always a special pipetype. We'll call these special pipetypes 'adverbs', because they modify regular pipetypes like adverbs modify verbs. 
+The next two problems are easier. To modify just part of a query we'll wrap that portion in special start/end steps, like `g.v('Thor').out().start().in().out().end().times(4).run()`. Actually, if the interpreter knows about these special pipetypes we don't need the end step, because the end of a sequence is always a special pipetype. We'll call these special pipetypes "adverbs", because they modify regular pipetypes like adverbs modify verbs. 
 
-To handle multiple `all`s we need to run all `all` transformers twice: one time before the times transformer, to mark all `all`s uniquely, and again after times' time to remark all marked `all`s uniquely all over.
+To handle multiple `all`s we need to run all `all` transformers twice: one time before the `times` transformer, to mark all `all`s uniquely, and again after `times`' time to re-mark all marked `all`s uniquely all over.
 
-There's still the issue of searching through an unbounded number of ancestors -- for example, how do we find out which of Ymir's descendants are scheduled to survive Ragnarök? We could make individual queries like `g.v('Ymir').in().filter({survives: true})` and `g.v('Ymir').in().in().in().in().filter({survives: true})` and manually collect the results ourselves, but that's pretty awful. 
+There's still the issue of searching through an unbounded number of ancestors -- for example, how do we find out which of Ymir's descendants are scheduled to survive Ragnarök? We could make individual queries like 
 
-We'd like to use an adverb like this: `g.v('Ymir').in().filter({survives: true}).every()`, which would work like `all`+`times` but without enforcing a limit. We may want to impose a particular strategy on the traversal, though, like a stolid BFS or YOLO DFS, so `g.v('Ymir').in().filter({survives: true}).bfs()` would be more flexible. Phrasing it this way allows us to state complicated queries like "check for Ragnarök survivors, skipping every other generation" in a straightforward fashion: `g.v('Ymir').in().filter({survives: true}).in().bfs()`.
+```javascript
+g.v('Ymir').in().filter({survives: true}) 
+```
+
+and 
+
+```javascript
+g.v('Ymir').in().in().in().in().filter({survives: true}) 
+```
+
+and manually collect the results ourselves, but that's pretty awful. 
+
+We'd like to use an adverb like this: `g.v('Ymir').in().filter({survives: true}).every()`, which would work like `all`+`times` but without enforcing a limit. We may want to impose a particular strategy on the traversal, though, like a BFS or DFS, so `g.v('Ymir').in().filter({survives: true}).bfs()` would be more flexible. Phrasing it this way allows us to state complicated queries like "check for Ragnarök survivors, skipping every other generation" in a straightforward fashion: `g.v('Ymir').in().filter({survives: true}).in().bfs()`.
 
 
 ## Wrapping up
 
-So what have we learned? Graph databases are great for storing interconnected* data that you plan to query via graph traversals. Adding non-strict semantics allows for a fluent interface over queries you could never express in an eager system for performance reasons, and allows you to cross async boundaries. Time makes things complicated, and time from multiple perspectives (i.e. concurrency) makes things very complicated, so whenever we can avoid introducing a temporal dependency (e.g. state, observable effects, etc) we make reasoning about our system easier. Building in a simple, decoupled and painfully unoptimized style leaves the door open for global optimizations later on, and using a driver loop allows for orthogonal optimizations -- each without introducing the brittleness and complexity that is the hallmark of most optimization techniques. 
+So what have we learned? Graph databases are great for storing interconnected* data that you plan to query via graph traversals. Adding non-strict semantics allows for a fluent interface over queries you could never express in an eager system for performance reasons, and allows you to cross async boundaries. Time makes things complicated, and time from multiple perspectives (i.e., concurrency) makes things very complicated, so whenever we can avoid introducing a temporal dependency (e.g., state, observable effects, etc.) we make reasoning about our system easier. Building in a simple, decoupled and painfully unoptimized style leaves the door open for global optimizations later on, and using a driver loop allows for orthogonal optimizations -- each without introducing the brittleness and complexity that is the hallmark of most optimization techniques. 
 
 That last point can't be overstated: keep it simple. Eschew optimization in favor of simplicity. Work hard to achieve simplicity by finding the right model. Explore many possibilities. The chapters in this book provide ample evidence that highly non-trivial applications can have a small, tight kernel. Once you find that kernel for the application you are building, fight to keep complexity from polluting it. Build hooks for attaching additional functionality, and maintain your abstraction barriers at all costs. Using these techniques well is not easy, but they can give you leverage over otherwise intractable problems. 
 
