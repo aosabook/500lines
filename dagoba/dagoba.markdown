@@ -45,7 +45,7 @@ But how do we extend that to grandparents? We need to do a subquery, or use some
 
 What would we like to write? Something both concise and flexible; something that models our query in a natural way and extends to other queries like it. `second_cousins_once_removed('Thor')` is concise, but it doesn't give us any flexibility. The SQL above is flexible, but lacks concision.
 
-Something like `Thor.parents.parents.parents.children.children.children` strikes a reasonably good balance. The primitives give us flexibility to ask many similar questions, but the query is also concise and natural. This particular phrasing gives us too many results, as it includes first cousins and siblings, but we're going for gestalt here.
+Something like `Thor.parents.parents.children.children` strikes a reasonably good balance. The primitives give us flexibility to ask many similar questions, but the query is also concise and natural. This particular phrasing gives us too many results, as it includes first cousins and siblings, but we're going for gestalt here.
 
 What's the simplest thing we can build that gives us this kind of interface? We could make a list of vertices and a list of edges, just like the relational schema, and then build some helper functions. It might look something like this:
 
@@ -244,7 +244,7 @@ Each step in our program can have *state*, and `query.state` is a list of per-st
 
 A *gremlin* is a creature that travels through the graph doing our bidding. A gremlin might be a surprising thing to find in a database, but they trace their heritage back to Tinkerpop's [Blueprints](http://euranova.eu/upl_docs/publications/an-empirical-comparison-of-graph-databases.pdf), and the [Gremlin and Pacer query languages](http://edbt.org/Proceedings/2013-Genova/papers/workshops/a29-holzschuher.pdf). They remember where they've been and allow us to find answers to interesting questions.
 
-Remember that question we wanted to answer? The one about Thor's second cousins once removed? We decided `Thor.parents.parents.parents.children.children.children` was a pretty good way of expressing that. Each `parents` or `children` instance is a step in our program. Each of those steps contains a reference to its *pipetype*, which is the function that performs that step's operation.
+Remember that question we wanted to answer? The one about Thor's second cousins once removed? We decided `Thor.parents.parents.children.children` was a pretty good way of expressing that. Each `parents` or `children` instance is a step in our program. Each of those steps contains a reference to its *pipetype*, which is the function that performs that step's operation.
 
 That query in our actual system might look like `g.v('Thor').out().out().out().in().in().in()`. Each of the steps is a function call, and so they can take *arguments*. The interpreter passes the step's arguments in to the step's pipetype function, so in the query `g.v('Thor').out(2, 3)` the `out` pipetype function would receive `[2, 3]` as its first parameter.
 
