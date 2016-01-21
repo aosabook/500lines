@@ -90,7 +90,7 @@ children = function(x) { return E.reduce(
   function(acc, e) { return ~x.indexOf(e[0]) ? acc.concat(e[1]) : acc }, [] )}
 ```
 
-Now we can say something like: `children(children(parents(parents([8]))))`. It reads backwards and gets us lost in silly parens, but is otherwise pretty close to what we wanted. Take a minute to look at the code. Can you see any ways to improve it?
+Now we can say something like: `children(children(children(parents(parents(parents([8]))))))`. It reads backwards and gets us lost in silly parens, but is otherwise pretty close to what we wanted. Take a minute to look at the code. Can you see any ways to improve it?
 
 Well, we're treating the edges as a global variable, which means we can only ever have one database at a time using these helper functions. That's pretty limiting.
 
@@ -875,7 +875,7 @@ var thunk = sum2(1, 2, 3)
 thunk()                   // -> 6
 ```
 
-None of the thunks are invoked until one is actually needed, which usually implies some type of output is required: in our case the result of a query. Each time the interpreter encounters a new function call, we wrap it in a thunk. Recall our original formulation of a query: `children(children(parents(parents([8]))))`. Each of those layers would be a thunk, wrapped up like an onion.
+None of the thunks are invoked until one is actually needed, which usually implies some type of output is required: in our case the result of a query. Each time the interpreter encounters a new function call, we wrap it in a thunk. Recall our original formulation of a query: `children(children(children(parents(parents(parents([8]))))))`. Each of those layers would be a thunk, wrapped up like an onion.
 
 There are a couple of tradeoffs with this approach: one is that spatial performance becomes more difficult to reason about, because of the potentially vast thunk graphs that can be created. Another is that our program is now expressed as a single thunk, and we can't do much with it at that point.
 
