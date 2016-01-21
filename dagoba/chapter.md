@@ -492,10 +492,9 @@ A unique pipe is purely a filter: it either passes the gremlin through unchanged
 
 We initialize by trying to collect a gremlin. If the gremlin's current vertex is in our cache, then we've seen it before so we try to collect a new one. Otherwise, we add the gremlin's current vertex to our cache and pass it along. Easy peasy.
 
-[STOPPED HERE]
 #### Filter
 
-We've seen two simplistic ways of filtering, but sometimes we need more elaborate constraints. What if we wanted Thor's siblings whose weight in skippund is greater than their height in fathoms? This query would give us our answer: 
+We've seen two simplistic ways of filtering, but sometimes we need more elaborate constraints. What if we want to find all of Thor's siblings whose weight in skippund is greater than their height in fathoms? This query would give us our answer: 
 
 ```javascript
 g.v('Thor').out().in().unique()
@@ -503,7 +502,7 @@ g.v('Thor').out().in().unique()
  .run()
 ```
 
-If we wanted to know which of Thor's siblings survive Ragnarök we can pass filter an object:
+If we want to know which of Thor's siblings survive Ragnarök we can pass filter an object:
 
 ```javascript
 g.v('Thor').out().in().unique().filter({survives: true}).run()
@@ -702,7 +701,7 @@ Dagoba.makeGremlin = function(vertex, state) {
 
 Any object that has a vertex property and a state property is a gremlin by this definition, so we could just inline the constructor, but wrapping it in a function allows us to add new properties to all gremlins in a single place.
 
-We can also take an existing gremlin and send it to a new vertex, as we saw in the 'back' pipetype and the `simpleTraversal` function.
+We can also take an existing gremlin and send it to a new vertex, as we saw in the `back` pipetype and the `simpleTraversal` function.
 
 ```javascript
 Dagoba.gotoVertex = function(gremlin, vertex) {         // clone the gremlin 
@@ -734,7 +733,7 @@ This function receives its arguments as a list. If the first one is an object it
 
 Otherwise, if there are arguments it gets passed to `findVerticesByIds`, which handles queries like `g.v('Thor', 'Odin').run()`.
 
-If there are no arguments at all, then our query looks like `g.v().run()`. This isn't something you'll want to do frequently with large graphs, especially since we're slicing the vertex list before returning it. We slice because some call sites manipulate the returned list directly by popping items off as they work through them. We could optimize this use case by cloning at the call site, or by avoiding those manipulations (we could keep a counter in state instead of popping).
+If there are no arguments at all, then our query looks like `g.v().run()`. This isn't something you'll want to do frequently with large graphs, especially since we're slicing the vertex list before returning it. We slice because some call sites manipulate the returned list directly by popping items off as they work through them. We could optimize this use case by cloning at the call site, or by avoiding those manipulations. (We could keep a counter in state instead of popping.)
 
 ```javascript
 Dagoba.G.findVerticesByIds = function(ids) {
@@ -761,12 +760,12 @@ Dagoba.G.searchVertices = function(filter) {            // find vertices that ma
 }
 ```
 
-The searchVertices function uses the objectFilter helper on every vertex in the graph. We'll look at objectFilter in the next section, but in the meantime can you think of with a way to search through the vertices lazily?
+The `searchVertices` function uses the `objectFilter` helper on every vertex in the graph. We'll look at `objectFilter` in the next section, but in the meantime, can you think of a way to search through the vertices lazily?
 
 
 #### Filtering
 
-We saw that simpleTraversal uses a filtering function on the edges it encounters. It's a simple function, but powerful enough for our purposes.
+We saw that `simpleTraversal` uses a filtering function on the edges it encounters. It's a simple function, but powerful enough for our purposes.
 
 ```javascript
 Dagoba.filterEdges = function(filter) {
@@ -787,7 +786,7 @@ Dagoba.filterEdges = function(filter) {
 
 The first case is no filter at all: `g.v('Odin').in().run()` traverses all edges pointing in to Odin.
 
-The second filters on the edge's label: `g.v('Odin').in('parent').run()` traverses those edges with a label of 'parent'.
+The second case filters on the edge's label: `g.v('Odin').in('parent').run()` traverses those edges with a label of 'parent'.
 
 The third case accepts an array of labels: `g.v('Odin').in(['parent', 'spouse']).run()` traverses both parent and spouse edges.
 
@@ -805,14 +804,16 @@ Dagoba.objectFilter = function(thing, filter) {         // thing has to match al
 
 This allows us to query the edge using a filter object: 
 
+```javascript
 `g.v('Odin').in({_label: 'spouse', order: 2}).run()` // finds Odin's second wife
+```
 
 
 ## The Interpreter's Nature
 
 We've arrived at the top of the narrative mountain, ready to receive our prize: the interpreter. The code is actually fairly compact, but the model has a bit of subtlety.
 
-We compared programs to pipelines earlier, and that's a good mental model for writing queries. As we saw, though, we need a different model for the actual implementation. That model is more like a Turing machine than a pipeline. There's a read/write head that sits over a particular step. It "reads" the step, changes its "state", and then moves either right or left.
+We compared programs to pipelines earlier, and that's a good mental model for writing queries. As we saw, though, we need a different model for the actual implementation. That model is more like a Turing machine than a pipeline: there's a read/write head that sits over a particular step. It "reads" the step, changes its "state", and then moves either right or left.
 
 Reading the step means evaluating the pipetype function. As we saw above, each of those functions accepts as input the entire graph, its own arguments, maybe a gremlin, and its own local state. As output it provides a gremlin, false, or a signal of 'pull' or 'done'. This output is what our quasi-Turing machine reads in order to change the machine's state.
 
@@ -882,7 +883,7 @@ This second point isn't usually an issue, because of the phase separation betwee
 
 Interestingly, our fluent interface hides another difference between our query language and regular programming languages. The query `g.v('Thor').in().out().run()` could be rewritten as `run(out(in(v(g, 'Thor'))))` if we weren't using method chaining. In JS we would first process `g` and `'Thor'`, then `v`, then `in`, `out` and `run`, working from the inside out. In a language with non-strict semantics we would work from the outside in, processing each consecutive nested layer of arguments only as needed.
 
-So if we start evaluating our query at the end of the statement, with `run`, and work our way back to `v('Thor')`, calculating results only as needed, then we've effectively achieved non-strictness. The secret is in the linearity of our queries. Branches complicate the process graph, and also introduce opportunities for duplicate calls, which require memorization to avoid wasted work. The simplicity of our query language means we can implement an equally simple interpreter based on our linear read/write head model.
+So if we start evaluating our query at the end of the statement, with `run`, and work our way back to `v('Thor')`, calculating results only as needed, then we've effectively achieved non-strictness. The secret is in the linearity of our queries. Branches complicate the process graph and also introduce opportunities for duplicate calls, which require memorization to avoid wasted work. The simplicity of our query language means we can implement an equally simple interpreter based on our linear read/write head model.
 
 In addition to allowing runtime optimizations, this style has many other benefits related to the ease of instrumentation: history, reversibility, stepwise debugging, query statistics. All these are easy to add dynamically because we control the interpreter and have left it as a virtual machine evaluator instead of reducing the program to a single thunk.
 
@@ -969,7 +970,7 @@ We're out of the driver loop now: the query has ended, the results are in, and w
 
 ## Query Transformers
 
-So we have this nice compact interpreter for our query programs now, but we're still missing something. Every modern DBMS comes with a query optimizer as an essential part of the system. For non-relational databases, optimizing our query plan rarely yields the exponential speedups seen in their relational cousins [footnote: Or, more pointedly, a poorly phrased query is less likely to yield exponential slowdowns. As an end-user of an RDBMS the aesthetics of query quality can often be quite opaque.], but it's still an important aspect of database design.
+Now we have a nice compact interpreter for our query programs, but we're still missing something. Every modern DBMS comes with a query optimizer as an essential part of the system. For non-relational databases, optimizing our query plan rarely yields the exponential speedups seen in their relational cousins [footnote: Or, more pointedly, a poorly phrased query is less likely to yield exponential slowdowns. As an end-user of an RDBMS the aesthetics of query quality can often be quite opaque.], but it's still an important aspect of database design.
 
 What's the simplest thing we could do that could reasonably be called a query optimizer? Well, we could write little functions for transforming our query programs before we run them. We'll pass a program in as input and get a different program back out as output. 
 
@@ -987,7 +988,7 @@ Dagoba.addTransformer = function(fun, priority) {
 }
 ```
 
-Now we can add query transformers to our system. A query transformer is a function that accepts program and returns a program, plus a priority level. Higher priority transformers are placed closer to the front of the list. We're ensuring `fun` is a function, because we're going to evaluate it later. [footnote: Note that we're keeping the domain of the priority parameter open, so it can be an integer, a rational, a negative number, or even things like Infinity or NaN.]
+Now we can add query transformers to our system. A query transformer is a function that accepts a program and returns a program, plus a priority level. Higher priority transformers are placed closer to the front of the list. We're ensuring `fun` is a function, because we're going to evaluate it later. [footnote: Note that we're keeping the domain of the priority parameter open, so it can be an integer, a rational, a negative number, or even things like Infinity or NaN.]
 
 We'll assume there won't be an enormous number of transformer additions, and walk the list linearly to add a new one. We'll leave a note in case this assumption turns out to be false --- a binary search is much more time-optimal for long lists, but adds a little complexity and doesn't really speed up short lists.
 
@@ -998,7 +999,7 @@ Dagoba.Q.run = function() {                             // our virtual machine f
   this.program = Dagoba.transform(this.program)         // activate the transformers
 ```
 
-And use that to call this function, which just passes our program through each transformer in turn.
+We'll use that to call this function, which just passes our program through each transformer in turn:
 
 ```javascript
 Dagoba.transform = function(program) {
@@ -1008,9 +1009,9 @@ Dagoba.transform = function(program) {
 }
 ```
 
-Our engine up until this point has traded simplicity for performance, but one of the nice things about this strategy is that it leaves doors open for global optimizations that may have been unavailable if we had opted to optimize locally as we designed the system. 
+Up until this point, our engine has traded simplicity for performance, but one of the nice things about this strategy is that it leaves doors open for global optimizations that may have been unavailable if we had opted to optimize locally as we designed the system. 
 
-Optimizing a program can often increase complexity and reduce the elegance of the system, making it harder to reason about and maintain. Breaking abstraction barriers for performance gains is one of the more egregious forms, but even something seemingly innocuous like embedding performance-oriented code into business logic makes maintenance more difficult.
+Optimizing a program can often increase complexity and reduce the elegance of the system, making it harder to reason about and maintain. Breaking abstraction barriers for performance gains is one of the more egregious forms of optimization, but even something seemingly innocuous like embedding performance-oriented code into business logic makes maintenance more difficult.
 
 In light of that, this type of "orthogonal optimization" is particularly appealing. We can add optimizers in modules or even user code, instead of having them tightly coupled to the engine. We can test them in isolation, or in groups, and with the addition of generative testing we could even automate that process, ensuring that our available optimizers play nicely together.
 
@@ -1075,7 +1076,7 @@ Dagoba.addAlias('parents', 'out', ['parent'])
 Dagoba.addAlias('children', 'in', ['parent'])
 ```
 
-Now we can add edges for spouses, step-parents, or even jilted ex-lovers. If we enhance our addAlias function we can introduce new aliases for grandparents, siblings, or even cousins:
+Now we can add edges for spouses, step-parents, or even jilted ex-lovers. If we enhance our `addAlias` function we can introduce new aliases for grandparents, siblings, or even cousins:
 
 ```javascript
 Dagoba.addAlias('grandparents', [['out', 'parent'], ['out', 'parent']])
@@ -1101,7 +1102,7 @@ we can just say
 g.v('Forseti').cousins()
 ```
 
-We've introduced a bit of a pickle, though: while our addAlias function is resolving an alias it also has to resolve other aliases. What if `parents` called some other alias, and while we were resolving `cousins` we had to stop to resolve `parents` and then resolve its aliases and so on? What if one of `parents` aliases ultimately called `cousins`?
+We've introduced a bit of a pickle, though: while our `addAlias` function is resolving an alias it also has to resolve other aliases. What if `parents` called some other alias, and while we were resolving `cousins` we had to stop to resolve `parents` and then resolve its aliases and so on? What if one of `parents` aliases ultimately called `cousins`?
 
 This brings us in to the realm of dependency resolution, a core component of modern package managers. There are a lot of fancy tricks for choosing ideal versions, tree shaking, general optimizations and the like, but the basic idea is fairly simple. We're going to make a graph of all the dependencies and their relationships, and then try to find a way to line up the vertices while making all the arrows go from left to right. If we can, then this particular sorting of the vertices is called a 'topological ordering', and we've proven that our dependency graph has no cycles: it is a Directed Acyclic Graph (DAG). If we fail to do so then our graph has at least one cycle. [footnote: You can learn more about dependency resolution in the Contingent chapter of this book.]
 
@@ -1172,7 +1173,7 @@ Dagoba.cleanEdge = function(key, value) {
 }
 ```
 
-The only difference between them is what they do when a cycle is about to be formed: for vertices, we skip the edge list entirely. For edges, we replace each vertex with its id. That gets rid of all the cycles we created while building the graph.
+The only difference between them is what they do when a cycle is about to be formed: for vertices, we skip the edge list entirely. For edges, we replace each vertex with its ID. That gets rid of all the cycles we created while building the graph.
 
 We're manually manipulating JSON in `Dagoba.jsonify`, which generally isn't recommended as the JSON format is persnickety. Even in a dose this small it's easy to miss something and hard to visually confirm correctness.
 
@@ -1214,6 +1215,7 @@ Dagoba.depersist = function (name) {
   return Dagoba.fromString(flatgraph)
 }
 ```
+STOPPED HERE
 
 We preface the name with a faux namespace to avoid polluting the `localStorage` properties of the domain, as it can get quite crowded in there. There's also usually a low storage limit, so for larger graphs we'd probably want to use a Blob of some sort. 
 
