@@ -1,5 +1,10 @@
 module Catechism::Matchers
   class RaiseError < Struct.new(:subject, :error_class, :negated)
+    def initialize(subject, error_class, negated)
+      super(subject, error_class, negated)
+      raise failure_message unless valid?
+    end
+    
     def raised?
       begin
         subject.call

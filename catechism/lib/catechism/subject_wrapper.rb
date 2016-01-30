@@ -7,18 +7,15 @@ class Catechism::SubjectWrapper < Struct.new(:subject)
   attr_reader :negated
 
   def to_equal(expected)
-    matcher = Catechism::Matchers::Equal.new(subject, expected, negated)
-    raise matcher.failure_message unless matcher.valid?
+    Catechism::Matchers::Equal.new(subject, expected, negated)
   end
 
   def to_be_nil
-    matcher = Catechism::Matchers::Equal.new(subject, nil, negated)
-    raise matcher.failure_message unless matcher.valid?
+    Catechism::Matchers::Equal.new(subject, nil, negated)
   end
 
   def to_raise_error(error_class = StandardError)
-    matcher = Catechism::Matchers::RaiseError.new(subject, error_class, negated)
-    raise matcher.failure_message unless matcher.valid?
+    Catechism::Matchers::RaiseError.new(subject, error_class, negated)
   end
 
   def to_send(method_name)
