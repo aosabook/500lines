@@ -227,20 +227,20 @@ whenever we call `redraw()`.
 The frequency of the animation is determined by `frameRate()`.
 
 ```java
-    private static final int WIDTH = 360;
-    private static final int HEIGHT = 240;
+private static final int WIDTH = 360;
+private static final int HEIGHT = 240;
 
-    public void setup() {
-        noLoop();
+public void setup() {
+  noLoop();
 
-        // Set up the view.
-        size(WIDTH, HEIGHT);
-        background(0);
-    }
-        
-    public void draw() {
-        background(0);
-    }
+  // Set up the view.
+  size(WIDTH, HEIGHT);
+  background(0);
+}
+    
+public void draw() {
+  background(0);
+}
 ```
 
 These don’t really do much yet, but run the app again adjusting the constants
@@ -366,17 +366,17 @@ problems than anything requiring IO.
 ```java
 // Called on key press.
 private void chooseFile() {
-	// Choose the file.
-	selectInput("Select a file to process:", "fileSelected");
+  // Choose the file.
+  selectInput("Select a file to process:", "fileSelected");
 }
 
 public void fileSelected(File file) {
-	if (file == null) {
-		println("User hit cancel.");
-	} else {
-		// save the image
-		redraw(); // update the display
-	}
+  if (file == null) {
+    println("User hit cancel.");
+  } else {
+    // save the image
+    redraw(); // update the display
+  }
 }
 ```
 
@@ -389,7 +389,7 @@ this for us. We just need to implement
 
 ```java
 public void keyPressed() {
-	print(“key pressed: ” + key);
+  print(“key pressed: ” + key);
 }
 ```
 
@@ -548,22 +548,22 @@ image are shown in .
 
 ```java
 public void applyColorFilter(PApplet applet, IFAImage img, int minRed,
-			int minGreen, int minBlue, int colorRange) {	
-	img.loadPixels();
-	int numberOfPixels = img.getPixels().length;
-	for (int i = 0; i < numberOfPixels; i++) {
-		int pixel = img.getPixel(i);
-		float alpha = pixelColorHelper.alpha(applet, pixel);
-		float red = pixelColorHelper.red(applet, pixel);
-		float green = pixelColorHelper.green(applet, pixel);
-		float blue = pixelColorHelper.blue(applet, pixel);
-			
-		red = (red >= minRed) ? red : 0;
-		green = (green >= minGreen) ? green : 0;
-		blue = (blue >= minBlue) ? blue : 0;
-		
-		image.setPixel(i, pixelColorHelper.color(applet, red, green, blue, alpha));
-	}
+      int minGreen, int minBlue, int colorRange) {  
+  img.loadPixels();
+  int numberOfPixels = img.getPixels().length;
+  for (int i = 0; i < numberOfPixels; i++) {
+    int pixel = img.getPixel(i);
+    float alpha = pixelColorHelper.alpha(applet, pixel);
+    float red = pixelColorHelper.red(applet, pixel);
+    float green = pixelColorHelper.green(applet, pixel);
+    float blue = pixelColorHelper.blue(applet, pixel);
+      
+    red = (red >= minRed) ? red : 0;
+    green = (green >= minGreen) ? green : 0;
+    blue = (blue >= minBlue) ? blue : 0;
+    
+    image.setPixel(i, pixelColorHelper.color(applet, red, green, blue, alpha));
+  }
 }
 ```
 
@@ -634,7 +634,7 @@ range one-third of that instead, 120, both these hues become 75 after rounding.
 We can change the range of hues using `colorMode`. If we call:
 
 ```java
-	colorMode(HSB, 120);
+  colorMode(HSB, 120);
 ```
 
 We have just made our hue detection a bit less than half as exact as if we used
@@ -696,57 +696,57 @@ with a large number of pixels it can take a noticeable amount of time.
 
 ```java
 public HSBColor getDominantHue(PApplet applet, IFAImage image, int hueRange) {
-		image.loadPixels();
-		int numberOfPixels = image.getPixels().length;
-		int[] hues = new int[hueRange];
-		float[] saturations = new float[hueRange];
-		float[] brightnesses = new float[hueRange];
+  image.loadPixels();
+  int numberOfPixels = image.getPixels().length;
+  int[] hues = new int[hueRange];
+  float[] saturations = new float[hueRange];
+  float[] brightnesses = new float[hueRange];
 
-		for (int i = 0; i < numberOfPixels; i++) {
-			int pixel = image.getPixel(i);
-			int hue = Math.round(pixelColorHelper.hue(applet, pixel));
-			float saturation = pixelColorHelper.saturation(applet, pixel);
-			float brightness = pixelColorHelper.brightness(applet, pixel);
-			hues[hue]++;
-			saturations[hue] += saturation;
-			brightnesses[hue] += brightness;
-		}
+  for (int i = 0; i < numberOfPixels; i++) {
+    int pixel = image.getPixel(i);
+    int hue = Math.round(pixelColorHelper.hue(applet, pixel));
+    float saturation = pixelColorHelper.saturation(applet, pixel);
+    float brightness = pixelColorHelper.brightness(applet, pixel);
+    hues[hue]++;
+    saturations[hue] += saturation;
+    brightnesses[hue] += brightness;
+  }
 
-		// Find the most common hue.
-		int hueCount = hues[0];
-		int hue = 0;
-		for (int i = 1; i < hues.length; i++) {
-			if (hues[i] > hueCount) {
-				hueCount = hues[i];
-				hue = i;
-			}
-		}
+  // Find the most common hue.
+  int hueCount = hues[0];
+  int hue = 0;
+  for (int i = 1; i < hues.length; i++) {
+    if (hues[i] > hueCount) {
+      hueCount = hues[i];
+      hue = i;
+    }
+  }
 
-		// Return the color to display.
-		float s = saturations[hue] / hueCount;
-		float b = brightnesses[hue] / hueCount;
-		return new HSBColor(hue, s, b);
-	}
+  // Return the color to display.
+  float s = saturations[hue] / hueCount;
+  float b = brightnesses[hue] / hueCount;
+  return new HSBColor(hue, s, b);
+}
 
 
 public void processImageForHue(PApplet applet, IFAImage image, int hueRange,
-		int hueTolerance, boolean showHue) {
-	applet.colorMode(PApplet.HSB, (hueRange - 1));
-	image.loadPixels();
-	int numberOfPixels = image.getPixels().length;
-	HSBColor dominantHue = getDominantHue(applet, image, hueRange);
-	// Manipulate photo, grayscale any pixel that isn't close to that hue.
-	float lower = dominantHue.h - hueTolerance;
-	float upper = dominantHue.h + hueTolerance;
-	for (int i = 0; i < numberOfPixels; i++) {
-		int pixel = image.getPixel(i);
-		float hue = pixelColorHelper.hue(applet, pixel);
-		if (hueInRange(hue, hueRange, lower, upper) == showHue) {
-			float brightness = pixelColorHelper.brightness(applet, pixel);
-			image.setPixel(i, pixelColorHelper.color(applet, brightness));
-		}
-	}
-	image.updatePixels();
+    int hueTolerance, boolean showHue) {
+  applet.colorMode(PApplet.HSB, (hueRange - 1));
+  image.loadPixels();
+  int numberOfPixels = image.getPixels().length;
+  HSBColor dominantHue = getDominantHue(applet, image, hueRange);
+  // Manipulate photo, grayscale any pixel that isn't close to that hue.
+  float lower = dominantHue.h - hueTolerance;
+  float upper = dominantHue.h + hueTolerance;
+  for (int i = 0; i < numberOfPixels; i++) {
+    int pixel = image.getPixel(i);
+    float hue = pixelColorHelper.hue(applet, pixel);
+    if (hueInRange(hue, hueRange, lower, upper) == showHue) {
+      float brightness = pixelColorHelper.brightness(applet, pixel);
+      image.setPixel(i, pixelColorHelper.color(applet, brightness));
+    }
+  }
+  image.updatePixels();
 }
 ```
 
@@ -811,42 +811,42 @@ import processing.core.PApplet;
 
 public class PixelColorHelper {
 
-	public float alpha(PApplet applet, int pixel) {
-		return applet.alpha(pixel);
-	}
+  public float alpha(PApplet applet, int pixel) {
+    return applet.alpha(pixel);
+  }
 
-	public float blue(PApplet applet, int pixel) {
-		return applet.blue(pixel);
-	}
+  public float blue(PApplet applet, int pixel) {
+    return applet.blue(pixel);
+  }
 
-	public float brightness(PApplet applet, int pixel) {
-		return applet.brightness(pixel);
-	}
+  public float brightness(PApplet applet, int pixel) {
+    return applet.brightness(pixel);
+  }
 
-	public int color(PApplet applet, float greyscale) {
-		return applet.color(greyscale);
-	}
+  public int color(PApplet applet, float greyscale) {
+    return applet.color(greyscale);
+  }
 
-	public int color(PApplet applet, float red, float green, float blue,
+  public int color(PApplet applet, float red, float green, float blue,
            float alpha) {
-		return applet.color(red, green, blue, alpha);
-	}
+    return applet.color(red, green, blue, alpha);
+  }
 
-	public float green(PApplet applet, int pixel) {
-		return applet.green(pixel);
-	}
+  public float green(PApplet applet, int pixel) {
+    return applet.green(pixel);
+  }
 
-	public float hue(PApplet applet, int pixel) {
-		return applet.hue(pixel);
-	}
+  public float hue(PApplet applet, int pixel) {
+    return applet.hue(pixel);
+  }
 
-	public float red(PApplet applet, int pixel) {
-		return applet.red(pixel);
-	}
+  public float red(PApplet applet, int pixel) {
+    return applet.red(pixel);
+  }
 
-	public float saturation(PApplet applet, int pixel) {
-		return applet.saturation(pixel);
-	}
+  public float saturation(PApplet applet, int pixel) {
+    return applet.saturation(pixel);
+  }
 }
 ```
 
@@ -862,58 +862,57 @@ import processing.core.PImage;
 
 public class IFAImage {
 
-	private PImage image;
+  private PImage image;
 
-	public IFAImage() {
-		image = null;
-	}
+  public IFAImage() {
+    image = null;
+  }
 
-	public PImage image() {
-		return image;
-	}
+  public PImage image() {
+    return image;
+  }
 
-	public void update(PApplet applet, String filepath) {
-		image = null;
-		image = applet.loadImage(filepath);
-	}
+  public void update(PApplet applet, String filepath) {
+    image = null;
+    image = applet.loadImage(filepath);
+  }
 
-	// Wrapped methods from PImage.
+  // Wrapped methods from PImage.
+  public int getHeight() {
+    return image.height;
+  }
 
-	public int getHeight() {
-		return image.height;
-	}
+  public int getPixel(int px) {
+    return image.pixels[px];
+  }
 
-	public int getPixel(int px) {
-		return image.pixels[px];
-	}
+  public int[] getPixels() {
+    return image.pixels;
+  }
 
-	public int[] getPixels() {
-		return image.pixels;
-	}
+  public int getWidth() {
+    return image.width;
+  }
 
-	public int getWidth() {
-		return image.width;
-	}
+  public void loadPixels() {
+    image.loadPixels();
+  }
 
-	public void loadPixels() {
-		image.loadPixels();
-	}
+  public void resize(int width, int height) {
+    image.resize(width, height);
+  }
 
-	public void resize(int width, int height) {
-		image.resize(width, height);
-	}
+  public void save(String filepath) {
+    image.save(filepath);
+  }
 
-	public void save(String filepath) {
-		image.save(filepath);
-	}
+  public void setPixel(int px, int color) {
+    image.pixels[px] = color;
+  }
 
-	public void setPixel(int px, int color) {
-		image.pixels[px] = color;
-	}
-
-	public void updatePixels() {
-		image.updatePixels();
-	}
+  public void updatePixels() {
+    image.updatePixels();
+  }
 }
 ```
 
@@ -940,15 +939,15 @@ package com.catehuston.imagefilter.model;
 
 public class HSBColor {
 
-	public final float h;
-	public final float s;
-	public final float b;
+  public final float h;
+  public final float s;
+  public final float b;
 
-	public HSBColor(float h, float s, float b) {
-		this.h = h;
-		this.s = s;
-		this.b = b;
-	}
+  public HSBColor(float h, float s, float b) {
+    this.h = h;
+    this.s = s;
+    this.b = b;
+  }
 }
 ```
 
@@ -968,100 +967,99 @@ import com.catehuston.imagefilter.model.IFAImage;
 
 public class ColorHelper {
 
-	private final PixelColorHelper pixelColorHelper;
+  private final PixelColorHelper pixelColorHelper;
 
-	public ColorHelper(PixelColorHelper pixelColorHelper) {
-		this.pixelColorHelper = pixelColorHelper;
-	}
+  public ColorHelper(PixelColorHelper pixelColorHelper) {
+    this.pixelColorHelper = pixelColorHelper;
+  }
 
-	public boolean hueInRange(float hue, int hueRange, float lower, float upper) {
-		// Need to compensate for it being circular - can go around.
-		if (lower < 0) {
-			lower += hueRange;
-		}
-		if (upper > hueRange) {
-			upper -= hueRange;
-		}
-		if (lower < upper) {
-			return hue < upper && hue > lower;
-		} else {
-			return hue < upper || hue > lower;
-		}
-	}
+  public boolean hueInRange(float hue, int hueRange, float lower, float upper) {
+    // Need to compensate for it being circular - can go around.
+    if (lower < 0) {
+      lower += hueRange;
+    }
+    if (upper > hueRange) {
+      upper -= hueRange;
+    }
+    if (lower < upper) {
+      return hue < upper && hue > lower;
+    } else {
+      return hue < upper || hue > lower;
+    }
+  }
 
-	public HSBColor getDominantHue(PApplet applet, IFAImage image, int hueRange) {
-		image.loadPixels();
-		int numberOfPixels = image.getPixels().length;
-		int[] hues = new int[hueRange];
-		float[] saturations = new float[hueRange];
-		float[] brightnesses = new float[hueRange];
+  public HSBColor getDominantHue(PApplet applet, IFAImage image, int hueRange) {
+    image.loadPixels();
+    int numberOfPixels = image.getPixels().length;
+    int[] hues = new int[hueRange];
+    float[] saturations = new float[hueRange];
+    float[] brightnesses = new float[hueRange];
 
-		for (int i = 0; i < numberOfPixels; i++) {
-			int pixel = image.getPixel(i);
-			int hue = Math.round(pixelColorHelper.hue(applet, pixel));
-			float saturation = pixelColorHelper.saturation(applet, pixel);
-			float brightness = pixelColorHelper.brightness(applet, pixel);
-			hues[hue]++;
-			saturations[hue] += saturation;
-			brightnesses[hue] += brightness;
-		}
+    for (int i = 0; i < numberOfPixels; i++) {
+      int pixel = image.getPixel(i);
+      int hue = Math.round(pixelColorHelper.hue(applet, pixel));
+      float saturation = pixelColorHelper.saturation(applet, pixel);
+      float brightness = pixelColorHelper.brightness(applet, pixel);
+      hues[hue]++;
+      saturations[hue] += saturation;
+      brightnesses[hue] += brightness;
+    }
 
-		// Find the most common hue.
-		int hueCount = hues[0];
-		int hue = 0;
-		for (int i = 1; i < hues.length; i++) {
-			if (hues[i] > hueCount) {
-				hueCount = hues[i];
-				hue = i;
-			}
-		}
+    // Find the most common hue.
+    int hueCount = hues[0];
+    int hue = 0;
+    for (int i = 1; i < hues.length; i++) {
+      if (hues[i] > hueCount) {
+        hueCount = hues[i];
+        hue = i;
+      }
+    }
 
-		// Return the color to display.
-		float s = saturations[hue] / hueCount;
-		float b = brightnesses[hue] / hueCount;
-		return new HSBColor(hue, s, b);
-	}
+    // Return the color to display.
+    float s = saturations[hue] / hueCount;
+    float b = brightnesses[hue] / hueCount;
+    return new HSBColor(hue, s, b);
+  }
 
-	public void processImageForHue(PApplet applet, IFAImage image, int hueRange,
-			int hueTolerance, boolean showHue) {
-		applet.colorMode(PApplet.HSB, (hueRange - 1));
-		image.loadPixels();
-		int numberOfPixels = image.getPixels().length;
-		HSBColor dominantHue = getDominantHue(applet, image, hueRange);
-		// Manipulate photo, grayscale any pixel that isn't close to that hue.
-		float lower = dominantHue.h - hueTolerance;
-		float upper = dominantHue.h + hueTolerance;
-		for (int i = 0; i < numberOfPixels; i++) {
-			int pixel = image.getPixel(i);
-			float hue = pixelColorHelper.hue(applet, pixel);
-			if (hueInRange(hue, hueRange, lower, upper) == showHue) {
-				float brightness = pixelColorHelper.brightness(applet, pixel);
-				image.setPixel(i, pixelColorHelper.color(applet, brightness));
-			}
-		}
-		image.updatePixels();
-	}
+  public void processImageForHue(PApplet applet, IFAImage image, int hueRange,
+      int hueTolerance, boolean showHue) {
+    applet.colorMode(PApplet.HSB, (hueRange - 1));
+    image.loadPixels();
+    int numberOfPixels = image.getPixels().length;
+    HSBColor dominantHue = getDominantHue(applet, image, hueRange);
+    // Manipulate photo, grayscale any pixel that isn't close to that hue.
+    float lower = dominantHue.h - hueTolerance;
+    float upper = dominantHue.h + hueTolerance;
+    for (int i = 0; i < numberOfPixels; i++) {
+      int pixel = image.getPixel(i);
+      float hue = pixelColorHelper.hue(applet, pixel);
+      if (hueInRange(hue, hueRange, lower, upper) == showHue) {
+        float brightness = pixelColorHelper.brightness(applet, pixel);
+        image.setPixel(i, pixelColorHelper.color(applet, brightness));
+      }
+    }
+    image.updatePixels();
+  }
 
-	public void applyColorFilter(PApplet applet, IFAImage image, int minRed,
-			int minGreen, int minBlue, int colorRange) {
-		applet.colorMode(PApplet.RGB, colorRange);
-		image.loadPixels();
-		int numberOfPixels = image.getPixels().length;
-		for (int i = 0; i < numberOfPixels; i++) {
-			int pixel = image.getPixel(i);
-			float alpha = pixelColorHelper.alpha(applet, pixel);
-			float red = pixelColorHelper.red(applet, pixel);
-			float green = pixelColorHelper.green(applet, pixel);
-			float blue = pixelColorHelper.blue(applet, pixel);
+  public void applyColorFilter(PApplet applet, IFAImage image, int minRed,
+      int minGreen, int minBlue, int colorRange) {
+    applet.colorMode(PApplet.RGB, colorRange);
+    image.loadPixels();
+    int numberOfPixels = image.getPixels().length;
+    for (int i = 0; i < numberOfPixels; i++) {
+      int pixel = image.getPixel(i);
+      float alpha = pixelColorHelper.alpha(applet, pixel);
+      float red = pixelColorHelper.red(applet, pixel);
+      float green = pixelColorHelper.green(applet, pixel);
+      float blue = pixelColorHelper.blue(applet, pixel);
 
-			red = (red >= minRed) ? red : 0;
-			green = (green >= minGreen) ? green : 0;
-			blue = (blue >= minBlue) ? blue : 0;
+      red = (red >= minRed) ? red : 0;
+      green = (green >= minGreen) ? green : 0;
+      blue = (blue >= minBlue) ? blue : 0;
 
-            image.setPixel(i, pixelColorHelper.color(applet, red, green, blue,
-                alpha));
-		}
-	}
+      image.setPixel(i, pixelColorHelper.color(applet, red, green, blue, alpha));
+    }
+  }
 }
 ```
 
@@ -1091,87 +1089,87 @@ package com.catehuston.imagefilter.color;
 @RunWith(MockitoJUnitRunner.class)
 public class ColorHelperTest {
 
-	@Mock PApplet applet;
-	@Mock IFAImage image;
-	@Mock PixelColorHelper pixelColorHelper;
+  @Mock PApplet applet;
+  @Mock IFAImage image;
+  @Mock PixelColorHelper pixelColorHelper;
 
-	ColorHelper colorHelper;
+  ColorHelper colorHelper;
 
-	private static final int px1 = 1000;
-	private static final int px2 = 1010;
-	private static final int px3 = 1030;
-	private static final int px4 = 1040;
-	private static final int px5 = 1050;
-	private static final int[] pixels = { px1, px2, px3, px4, px5 };
+  private static final int px1 = 1000;
+  private static final int px2 = 1010;
+  private static final int px3 = 1030;
+  private static final int px4 = 1040;
+  private static final int px5 = 1050;
+  private static final int[] pixels = { px1, px2, px3, px4, px5 };
 
-	@Before public void setUp() throws Exception {
-		colorHelper = new ColorHelper(pixelColorHelper);
-		when(image.getPixels()).thenReturn(pixels);
-		setHsbValuesForPixel(0, px1, 30F, 5F, 10F);
-		setHsbValuesForPixel(1, px2, 20F, 6F, 11F);
-		setHsbValuesForPixel(2, px3, 30F, 7F, 12F);
-		setHsbValuesForPixel(3, px4, 50F, 8F, 13F);
-		setHsbValuesForPixel(4, px5, 30F, 9F, 14F);
-	}
+  @Before public void setUp() throws Exception {
+    colorHelper = new ColorHelper(pixelColorHelper);
+    when(image.getPixels()).thenReturn(pixels);
+    setHsbValuesForPixel(0, px1, 30F, 5F, 10F);
+    setHsbValuesForPixel(1, px2, 20F, 6F, 11F);
+    setHsbValuesForPixel(2, px3, 30F, 7F, 12F);
+    setHsbValuesForPixel(3, px4, 50F, 8F, 13F);
+    setHsbValuesForPixel(4, px5, 30F, 9F, 14F);
+  }
 
-	private void setHsbValuesForPixel(int px, int color, float h, float s, float b) {
-		when(image.getPixel(px)).thenReturn(color);
-		when(pixelColorHelper.hue(applet, color)).thenReturn(h);
-		when(pixelColorHelper.saturation(applet, color)).thenReturn(s);
-		when(pixelColorHelper.brightness(applet, color)).thenReturn(b);
-	}
+  private void setHsbValuesForPixel(int px, int color, float h, float s, float b) {
+    when(image.getPixel(px)).thenReturn(color);
+    when(pixelColorHelper.hue(applet, color)).thenReturn(h);
+    when(pixelColorHelper.saturation(applet, color)).thenReturn(s);
+    when(pixelColorHelper.brightness(applet, color)).thenReturn(b);
+  }
 
-	private void setRgbValuesForPixel(int px, int color, float r, float g, float b, 
+  private void setRgbValuesForPixel(int px, int color, float r, float g, float b, 
             float alpha) {
-		when(image.getPixel(px)).thenReturn(color);
-		when(pixelColorHelper.red(applet, color)).thenReturn(r);
-		when(pixelColorHelper.green(applet, color)).thenReturn(g);
-		when(pixelColorHelper.blue(applet, color)).thenReturn(b);
-		when(pixelColorHelper.alpha(applet, color)).thenReturn(alpha);
-	}
+    when(image.getPixel(px)).thenReturn(color);
+    when(pixelColorHelper.red(applet, color)).thenReturn(r);
+    when(pixelColorHelper.green(applet, color)).thenReturn(g);
+    when(pixelColorHelper.blue(applet, color)).thenReturn(b);
+    when(pixelColorHelper.alpha(applet, color)).thenReturn(alpha);
+  }
 
     @Test public void testHsbColorFromImage() {
-		HSBColor color = colorHelper.getDominantHue(applet, image, 100);
-		verify(image).loadPixels();
+    HSBColor color = colorHelper.getDominantHue(applet, image, 100);
+    verify(image).loadPixels();
 
-		assertEquals(30F, color.h, 0);
-		assertEquals(7F, color.s, 0);
-		assertEquals(12F, color.b, 0);
-	}
+    assertEquals(30F, color.h, 0);
+    assertEquals(7F, color.s, 0);
+    assertEquals(12F, color.b, 0);
+  }
 
-	@Test public void testProcessImageNoHue() {
-		when(pixelColorHelper.color(applet, 11F)).thenReturn(11);
-		when(pixelColorHelper.color(applet, 13F)).thenReturn(13);
-		colorHelper.processImageForHue(applet, image, 60, 2, false);
-		verify(applet).colorMode(PApplet.HSB, 59);
-		verify(image, times(2)).loadPixels();
-		verify(image).setPixel(1, 11);
-		verify(image).setPixel(3, 13);
-	}
+  @Test public void testProcessImageNoHue() {
+    when(pixelColorHelper.color(applet, 11F)).thenReturn(11);
+    when(pixelColorHelper.color(applet, 13F)).thenReturn(13);
+    colorHelper.processImageForHue(applet, image, 60, 2, false);
+    verify(applet).colorMode(PApplet.HSB, 59);
+    verify(image, times(2)).loadPixels();
+    verify(image).setPixel(1, 11);
+    verify(image).setPixel(3, 13);
+  }
 
-    @Test public void testApplyColorFilter() {
-		setRgbValuesForPixel(0, px1, 10F, 12F, 14F, 60F);
-		setRgbValuesForPixel(1, px2, 20F, 22F, 24F, 70F);
-		setRgbValuesForPixel(2, px3, 30F, 32F, 34F, 80F);
-		setRgbValuesForPixel(3, px4, 40F, 42F, 44F, 90F);
-		setRgbValuesForPixel(4, px5, 50F, 52F, 54F, 100F);
+  @Test public void testApplyColorFilter() {
+    setRgbValuesForPixel(0, px1, 10F, 12F, 14F, 60F);
+    setRgbValuesForPixel(1, px2, 20F, 22F, 24F, 70F);
+    setRgbValuesForPixel(2, px3, 30F, 32F, 34F, 80F);
+    setRgbValuesForPixel(3, px4, 40F, 42F, 44F, 90F);
+    setRgbValuesForPixel(4, px5, 50F, 52F, 54F, 100F);
 
-		when(pixelColorHelper.color(applet, 0F, 0F, 0F, 60F)).thenReturn(5);
-		when(pixelColorHelper.color(applet, 20F, 0F, 0F, 70F)).thenReturn(15);
-		when(pixelColorHelper.color(applet, 30F, 32F, 0F, 80F)).thenReturn(25);
-		when(pixelColorHelper.color(applet, 40F, 42F, 44F, 90F)).thenReturn(35);
-		when(pixelColorHelper.color(applet, 50F, 52F, 54F, 100F)).thenReturn(45);
+    when(pixelColorHelper.color(applet, 0F, 0F, 0F, 60F)).thenReturn(5);
+    when(pixelColorHelper.color(applet, 20F, 0F, 0F, 70F)).thenReturn(15);
+    when(pixelColorHelper.color(applet, 30F, 32F, 0F, 80F)).thenReturn(25);
+    when(pixelColorHelper.color(applet, 40F, 42F, 44F, 90F)).thenReturn(35);
+    when(pixelColorHelper.color(applet, 50F, 52F, 54F, 100F)).thenReturn(45);
 
-		colorHelper.applyColorFilter(applet, image, 15, 25, 35, 100);
-		verify(applet).colorMode(PApplet.RGB, 100);
-		verify(image).loadPixels();
+    colorHelper.applyColorFilter(applet, image, 15, 25, 35, 100);
+    verify(applet).colorMode(PApplet.RGB, 100);
+    verify(image).loadPixels();
 
-		verify(image).setPixel(0, 5);
-		verify(image).setPixel(1, 15);
-		verify(image).setPixel(2, 25);
-		verify(image).setPixel(3, 35);
-		verify(image).setPixel(4, 45);
-	}
+    verify(image).setPixel(0, 5);
+    verify(image).setPixel(1, 15);
+    verify(image).setPixel(2, 25);
+    verify(image).setPixel(3, 35);
+    verify(image).setPixel(4, 45);
+  }
 }
 ```
 
@@ -1199,42 +1197,42 @@ import com.catehuston.imagefilter.color.ColorHelper;
 
 public class ImageState {
 
-	enum ColorMode {
-		COLOR_FILTER,
-		SHOW_DOMINANT_HUE,
-		HIDE_DOMINANT_HUE
-	}
+  enum ColorMode {
+    COLOR_FILTER,
+    SHOW_DOMINANT_HUE,
+    HIDE_DOMINANT_HUE
+  }
 
-	private final ColorHelper colorHelper;
-	private IFAImage image;
-	private String filepath;
+  private final ColorHelper colorHelper;
+  private IFAImage image;
+  private String filepath;
 
-	public static final int INITIAL_HUE_TOLERANCE = 5;
+  public static final int INITIAL_HUE_TOLERANCE = 5;
 
-	ColorMode colorModeState = ColorMode.COLOR_FILTER;
-	int blueFilter = 0;
-	int greenFilter = 0;
-	int hueTolerance = 0;
-	int redFilter = 0;
+  ColorMode colorModeState = ColorMode.COLOR_FILTER;
+  int blueFilter = 0;
+  int greenFilter = 0;
+  int hueTolerance = 0;
+  int redFilter = 0;
 
-	public ImageState(ColorHelper colorHelper) {
-		this.colorHelper = colorHelper;
-		image = new IFAImage();
-		hueTolerance = INITIAL_HUE_TOLERANCE;
-	}
-    /* ... getters & setters */
-    public void updateImage(PApplet applet, int hueRange, int rgbColorRange, 
-            int imageMax) { ... }
+  public ImageState(ColorHelper colorHelper) {
+    this.colorHelper = colorHelper;
+    image = new IFAImage();
+    hueTolerance = INITIAL_HUE_TOLERANCE;
+  }
+  /* ... getters & setters */
+  public void updateImage(PApplet applet, int hueRange, int rgbColorRange, 
+          int imageMax) { ... }
 
-    public void processKeyPress(char key, int inc, int rgbColorRange,
-            int hueIncrement, int hueRange) { ... }
+  public void processKeyPress(char key, int inc, int rgbColorRange,
+          int hueIncrement, int hueRange) { ... }
 
-    public void setUpImage(PApplet applet, int imageMax) { ... }
+  public void setUpImage(PApplet applet, int imageMax) { ... }
 
-    public void resetImage(PApplet applet, int imageMax) { ... }
+  public void resetImage(PApplet applet, int imageMax) { ... }
 
-    // For testing purposes only.
-	protected void set(IFAImage image, ColorMode colorModeState,
+  // For testing purposes only.
+  protected void set(IFAImage image, ColorMode colorModeState,
             int redFilter, int greenFilter, int blueFilter, int hueTolerance) { ... }
 }
 ```
@@ -1250,135 +1248,135 @@ package com.catehuston.imagefilter.model;
 @RunWith(MockitoJUnitRunner.class)
 public class ImageStateTest {
 
-	@Mock PApplet applet;
-	@Mock ColorHelper colorHelper;
-	@Mock IFAImage image;
+  @Mock PApplet applet;
+  @Mock ColorHelper colorHelper;
+  @Mock IFAImage image;
 
-	private ImageState imageState;
+  private ImageState imageState;
 
-	@Before public void setUp() throws Exception {
-		imageState = new ImageState(colorHelper);
-	}
+  @Before public void setUp() throws Exception {
+    imageState = new ImageState(colorHelper);
+  }
 
-	private void assertState(ColorMode colorMode, int redFilter,
-			int greenFilter, int blueFilter, int hueTolerance) {
-		assertEquals(colorMode, imageState.getColorMode());
-		assertEquals(redFilter, imageState.redFilter());
-		assertEquals(greenFilter, imageState.greenFilter());
-		assertEquals(blueFilter, imageState.blueFilter());
-		assertEquals(hueTolerance, imageState.hueTolerance());
-	}
+  private void assertState(ColorMode colorMode, int redFilter,
+      int greenFilter, int blueFilter, int hueTolerance) {
+    assertEquals(colorMode, imageState.getColorMode());
+    assertEquals(redFilter, imageState.redFilter());
+    assertEquals(greenFilter, imageState.greenFilter());
+    assertEquals(blueFilter, imageState.blueFilter());
+    assertEquals(hueTolerance, imageState.hueTolerance());
+  }
 
-	@Test public void testUpdateImageDominantHueHidden() {
-		imageState.setFilepath("filepath");
-		imageState.set(image, ColorMode.HIDE_DOMINANT_HUE, 5, 10, 15, 10);
+  @Test public void testUpdateImageDominantHueHidden() {
+    imageState.setFilepath("filepath");
+    imageState.set(image, ColorMode.HIDE_DOMINANT_HUE, 5, 10, 15, 10);
 
-		imageState.updateImage(applet, 100, 100, 500);
+    imageState.updateImage(applet, 100, 100, 500);
 
-		verify(image).update(applet, "filepath");
-		verify(colorHelper).processImageForHue(applet, image, 100, 10, false);
-		verify(colorHelper).applyColorFilter(applet, image, 5, 10, 15, 100);
-		verify(image).updatePixels();
-	}
+    verify(image).update(applet, "filepath");
+    verify(colorHelper).processImageForHue(applet, image, 100, 10, false);
+    verify(colorHelper).applyColorFilter(applet, image, 5, 10, 15, 100);
+    verify(image).updatePixels();
+  }
 
-	@Test public void testUpdateDominantHueShowing() {
-		imageState.setFilepath("filepath");
-		imageState.set(image, ColorMode.SHOW_DOMINANT_HUE, 5, 10, 15, 10);
+  @Test public void testUpdateDominantHueShowing() {
+    imageState.setFilepath("filepath");
+    imageState.set(image, ColorMode.SHOW_DOMINANT_HUE, 5, 10, 15, 10);
 
-		imageState.updateImage(applet, 100, 100, 500);
+    imageState.updateImage(applet, 100, 100, 500);
 
-		verify(image).update(applet, "filepath");
-		verify(colorHelper).processImageForHue(applet, image, 100, 10, true);
-		verify(colorHelper).applyColorFilter(applet, image, 5, 10, 15, 100);
-		verify(image).updatePixels();
-	}
+    verify(image).update(applet, "filepath");
+    verify(colorHelper).processImageForHue(applet, image, 100, 10, true);
+    verify(colorHelper).applyColorFilter(applet, image, 5, 10, 15, 100);
+    verify(image).updatePixels();
+  }
 
-	@Test public void testUpdateRGBOnly() {
-		imageState.setFilepath("filepath");
-		imageState.set(image, ColorMode.COLOR_FILTER, 5, 10, 15, 10);
+  @Test public void testUpdateRGBOnly() {
+    imageState.setFilepath("filepath");
+    imageState.set(image, ColorMode.COLOR_FILTER, 5, 10, 15, 10);
 
-		imageState.updateImage(applet, 100, 100, 500);
+    imageState.updateImage(applet, 100, 100, 500);
 
-		verify(image).update(applet, "filepath");
-		verify(colorHelper, never()).processImageForHue(any(PApplet.class), 
+    verify(image).update(applet, "filepath");
+    verify(colorHelper, never()).processImageForHue(any(PApplet.class), 
                 any(IFAImage.class), anyInt(), anyInt(), anyBoolean());
-		verify(colorHelper).applyColorFilter(applet, image, 5, 10, 15, 100);
-		verify(image).updatePixels();
-	}
+    verify(colorHelper).applyColorFilter(applet, image, 5, 10, 15, 100);
+    verify(image).updatePixels();
+  }
 
-	@Test public void testKeyPress() {
-		imageState.processKeyPress('r', 5, 100, 2, 200);
-		assertState(ColorMode.COLOR_FILTER, 5, 0, 0, 5);
+  @Test public void testKeyPress() {
+    imageState.processKeyPress('r', 5, 100, 2, 200);
+    assertState(ColorMode.COLOR_FILTER, 5, 0, 0, 5);
 
-		imageState.processKeyPress('e', 5, 100, 2, 200);
-		assertState(ColorMode.COLOR_FILTER, 0, 0, 0, 5);
+    imageState.processKeyPress('e', 5, 100, 2, 200);
+    assertState(ColorMode.COLOR_FILTER, 0, 0, 0, 5);
 
-		imageState.processKeyPress('g', 5, 100, 2, 200);
-		assertState(ColorMode.COLOR_FILTER, 0, 5, 0, 5);
+    imageState.processKeyPress('g', 5, 100, 2, 200);
+    assertState(ColorMode.COLOR_FILTER, 0, 5, 0, 5);
 
-		imageState.processKeyPress('f', 5, 100, 2, 200);
-		assertState(ColorMode.COLOR_FILTER, 0, 0, 0, 5);
+    imageState.processKeyPress('f', 5, 100, 2, 200);
+    assertState(ColorMode.COLOR_FILTER, 0, 0, 0, 5);
 
-		imageState.processKeyPress('b', 5, 100, 2, 200);
-		assertState(ColorMode.COLOR_FILTER, 0, 0, 5, 5);
+    imageState.processKeyPress('b', 5, 100, 2, 200);
+    assertState(ColorMode.COLOR_FILTER, 0, 0, 5, 5);
 
-		imageState.processKeyPress('v', 5, 100, 2, 200);
-		assertState(ColorMode.COLOR_FILTER, 0, 0, 0, 5);
+    imageState.processKeyPress('v', 5, 100, 2, 200);
+    assertState(ColorMode.COLOR_FILTER, 0, 0, 0, 5);
 
-		imageState.processKeyPress('h', 5, 100, 2, 200);
-		assertState(ColorMode.HIDE_DOMINANT_HUE, 0, 0, 0, 5);
+    imageState.processKeyPress('h', 5, 100, 2, 200);
+    assertState(ColorMode.HIDE_DOMINANT_HUE, 0, 0, 0, 5);
 
-		imageState.processKeyPress('i', 5, 100, 2, 200);
-		assertState(ColorMode.HIDE_DOMINANT_HUE, 0, 0, 0, 7);
+    imageState.processKeyPress('i', 5, 100, 2, 200);
+    assertState(ColorMode.HIDE_DOMINANT_HUE, 0, 0, 0, 7);
 
-		imageState.processKeyPress('u', 5, 100, 2, 200);
-		assertState(ColorMode.HIDE_DOMINANT_HUE, 0, 0, 0, 5);
+    imageState.processKeyPress('u', 5, 100, 2, 200);
+    assertState(ColorMode.HIDE_DOMINANT_HUE, 0, 0, 0, 5);
 
-		imageState.processKeyPress('h', 5, 100, 2, 200);
-		assertState(ColorMode.COLOR_FILTER, 0, 0, 0, 5);
+    imageState.processKeyPress('h', 5, 100, 2, 200);
+    assertState(ColorMode.COLOR_FILTER, 0, 0, 0, 5);
 
-		imageState.processKeyPress('s', 5, 100, 2, 200);
-		assertState(ColorMode.SHOW_DOMINANT_HUE, 0, 0, 0, 5);
+    imageState.processKeyPress('s', 5, 100, 2, 200);
+    assertState(ColorMode.SHOW_DOMINANT_HUE, 0, 0, 0, 5);
 
-		imageState.processKeyPress('s', 5, 100, 2, 200);
-		assertState(ColorMode.COLOR_FILTER, 0, 0, 0, 5);
+    imageState.processKeyPress('s', 5, 100, 2, 200);
+    assertState(ColorMode.COLOR_FILTER, 0, 0, 0, 5);
 
-		// Random key should do nothing.
-		imageState.processKeyPress('z', 5, 100, 2, 200);
-		assertState(ColorMode.COLOR_FILTER, 0, 0, 0, 5);
-	}
+    // Random key should do nothing.
+    imageState.processKeyPress('z', 5, 100, 2, 200);
+    assertState(ColorMode.COLOR_FILTER, 0, 0, 0, 5);
+  }
 
-	@Test public void testSave() {
-		imageState.set(image, ColorMode.SHOW_DOMINANT_HUE, 5, 10, 15, 10);
-		imageState.setFilepath("filepath");
-		imageState.processKeyPress('w', 5, 100, 2, 200);
+  @Test public void testSave() {
+    imageState.set(image, ColorMode.SHOW_DOMINANT_HUE, 5, 10, 15, 10);
+    imageState.setFilepath("filepath");
+    imageState.processKeyPress('w', 5, 100, 2, 200);
 
-		verify(image).save("filepath-new.png");
-	}
+    verify(image).save("filepath-new.png");
+  }
 
-	@Test public void testSetupImageLandscape() {
-		imageState.set(image, ColorMode.SHOW_DOMINANT_HUE, 5, 10, 15, 10);
-		when(image.getWidth()).thenReturn(20);
-		when(image.getHeight()).thenReturn(8);
-		imageState.setUpImage(applet, 10);
-		verify(image).update(applet, null);
-		verify(image).resize(10, 4);
-	}
+  @Test public void testSetupImageLandscape() {
+    imageState.set(image, ColorMode.SHOW_DOMINANT_HUE, 5, 10, 15, 10);
+    when(image.getWidth()).thenReturn(20);
+    when(image.getHeight()).thenReturn(8);
+    imageState.setUpImage(applet, 10);
+    verify(image).update(applet, null);
+    verify(image).resize(10, 4);
+  }
 
-	@Test public void testSetupImagePortrait() {
-		imageState.set(image, ColorMode.SHOW_DOMINANT_HUE, 5, 10, 15, 10);
-		when(image.getWidth()).thenReturn(8);
-		when(image.getHeight()).thenReturn(20);
-		imageState.setUpImage(applet, 10);
-		verify(image).update(applet, null);
-		verify(image).resize(4, 10);
-	}
+  @Test public void testSetupImagePortrait() {
+    imageState.set(image, ColorMode.SHOW_DOMINANT_HUE, 5, 10, 15, 10);
+    when(image.getWidth()).thenReturn(8);
+    when(image.getHeight()).thenReturn(20);
+    imageState.setUpImage(applet, 10);
+    verify(image).update(applet, null);
+    verify(image).resize(4, 10);
+  }
 
-	@Test public void testResetImage() {
-		imageState.set(image, ColorMode.SHOW_DOMINANT_HUE, 5, 10, 15, 10);
-		imageState.resetImage(applet, 10);
-		assertState(ColorMode.COLOR_FILTER, 0, 0, 0, 5);
-	}
+  @Test public void testResetImage() {
+    imageState.set(image, ColorMode.SHOW_DOMINANT_HUE, 5, 10, 15, 10);
+    imageState.resetImage(applet, 10);
+    assertState(ColorMode.COLOR_FILTER, 0, 0, 0, 5);
+  }
 }
 ```
 
@@ -1418,126 +1416,126 @@ import com.catehuston.imagefilter.model.ImageState;
 @SuppressWarnings("serial")
 public class ImageFilterApp extends PApplet {
 
-	static final String INSTRUCTIONS = "...";
+  static final String INSTRUCTIONS = "...";
 
-	static final int FILTER_HEIGHT = 2;
-	static final int FILTER_INCREMENT = 5;
-	static final int HUE_INCREMENT = 2;
-	static final int HUE_RANGE = 100;
-	static final int IMAGE_MAX = 640;
-	static final int RGB_COLOR_RANGE = 100;
-	static final int SIDE_BAR_PADDING = 10;
-	static final int SIDE_BAR_WIDTH = RGB_COLOR_RANGE + 2 * SIDE_BAR_PADDING + 50;
+  static final int FILTER_HEIGHT = 2;
+  static final int FILTER_INCREMENT = 5;
+  static final int HUE_INCREMENT = 2;
+  static final int HUE_RANGE = 100;
+  static final int IMAGE_MAX = 640;
+  static final int RGB_COLOR_RANGE = 100;
+  static final int SIDE_BAR_PADDING = 10;
+  static final int SIDE_BAR_WIDTH = RGB_COLOR_RANGE + 2 * SIDE_BAR_PADDING + 50;
 
-	private ImageState imageState;
+  private ImageState imageState;
 
-	boolean redrawImage = true;
+  boolean redrawImage = true;
 
-	@Override
-	public void setup() {
-		noLoop();
-		imageState = new ImageState(new ColorHelper(new PixelColorHelper()));
+  @Override
+  public void setup() {
+    noLoop();
+    imageState = new ImageState(new ColorHelper(new PixelColorHelper()));
 
-		// Set up the view.
-		size(IMAGE_MAX + SIDE_BAR_WIDTH, IMAGE_MAX);
-		background(0);
+    // Set up the view.
+    size(IMAGE_MAX + SIDE_BAR_WIDTH, IMAGE_MAX);
+    background(0);
 
-		chooseFile();
-	}
+    chooseFile();
+  }
 
-	@Override
-	public void draw() {
-		// Draw image.
-		if (imageState.image().image() != null && redrawImage) {
-			background(0);
-			drawImage();
-		}
+  @Override
+  public void draw() {
+    // Draw image.
+    if (imageState.image().image() != null && redrawImage) {
+      background(0);
+      drawImage();
+    }
 
-		colorMode(RGB, RGB_COLOR_RANGE);
-		fill(0);
-		rect(IMAGE_MAX, 0, SIDE_BAR_WIDTH, IMAGE_MAX);
-		stroke(RGB_COLOR_RANGE);
-		line(IMAGE_MAX, 0, IMAGE_MAX, IMAGE_MAX);
+    colorMode(RGB, RGB_COLOR_RANGE);
+    fill(0);
+    rect(IMAGE_MAX, 0, SIDE_BAR_WIDTH, IMAGE_MAX);
+    stroke(RGB_COLOR_RANGE);
+    line(IMAGE_MAX, 0, IMAGE_MAX, IMAGE_MAX);
 
-		// Draw red line
-		int x = IMAGE_MAX + SIDE_BAR_PADDING;
-		int y = 2 * SIDE_BAR_PADDING;
-		stroke(RGB_COLOR_RANGE, 0, 0);
-		line(x, y, x + RGB_COLOR_RANGE, y);
-		line(x + imageState.redFilter(), y - FILTER_HEIGHT,
-				x + imageState.redFilter(), y + FILTER_HEIGHT);
+    // Draw red line
+    int x = IMAGE_MAX + SIDE_BAR_PADDING;
+    int y = 2 * SIDE_BAR_PADDING;
+    stroke(RGB_COLOR_RANGE, 0, 0);
+    line(x, y, x + RGB_COLOR_RANGE, y);
+    line(x + imageState.redFilter(), y - FILTER_HEIGHT,
+        x + imageState.redFilter(), y + FILTER_HEIGHT);
 
-		// Draw green line
-		y += 2 * SIDE_BAR_PADDING;
-		stroke(0, RGB_COLOR_RANGE, 0);
-		line(x, y, x + RGB_COLOR_RANGE, y);
-		line(x + imageState.greenFilter(), y - FILTER_HEIGHT,
-				x + imageState.greenFilter(), y + FILTER_HEIGHT);
+    // Draw green line
+    y += 2 * SIDE_BAR_PADDING;
+    stroke(0, RGB_COLOR_RANGE, 0);
+    line(x, y, x + RGB_COLOR_RANGE, y);
+    line(x + imageState.greenFilter(), y - FILTER_HEIGHT,
+        x + imageState.greenFilter(), y + FILTER_HEIGHT);
 
-		// Draw blue line
-		y += 2 * SIDE_BAR_PADDING;
-		stroke(0, 0, RGB_COLOR_RANGE);
-		line(x, y, x + RGB_COLOR_RANGE, y);
-		line(x + imageState.blueFilter(), y - FILTER_HEIGHT,
-				x + imageState.blueFilter(), y + FILTER_HEIGHT);
+    // Draw blue line
+    y += 2 * SIDE_BAR_PADDING;
+    stroke(0, 0, RGB_COLOR_RANGE);
+    line(x, y, x + RGB_COLOR_RANGE, y);
+    line(x + imageState.blueFilter(), y - FILTER_HEIGHT,
+        x + imageState.blueFilter(), y + FILTER_HEIGHT);
 
-		// Draw white line.
-		y += 2 * SIDE_BAR_PADDING;
-		stroke(HUE_RANGE);
-		line(x, y, x + 100, y);
-		line(x + imageState.hueTolerance(), y - FILTER_HEIGHT,
-				x + imageState.hueTolerance(), y + FILTER_HEIGHT);
+    // Draw white line.
+    y += 2 * SIDE_BAR_PADDING;
+    stroke(HUE_RANGE);
+    line(x, y, x + 100, y);
+    line(x + imageState.hueTolerance(), y - FILTER_HEIGHT,
+        x + imageState.hueTolerance(), y + FILTER_HEIGHT);
 
-		y += 4 * SIDE_BAR_PADDING;
-		fill(RGB_COLOR_RANGE);
-		text(INSTRUCTIONS, x, y);
+    y += 4 * SIDE_BAR_PADDING;
+    fill(RGB_COLOR_RANGE);
+    text(INSTRUCTIONS, x, y);
 
-		updatePixels();
-	}
+    updatePixels();
+  }
 
-	// Callback for selectInput(), has to be public to be found.
-	public void fileSelected(File file) {
-		if (file == null) {
-			println("User hit cancel.");
-		} else {
-			imageState.setFilepath(file.getAbsolutePath());
-			imageState.setUpImage(this, IMAGE_MAX);
-			redrawImage = true;
-			redraw();
-		}
-	}
+  // Callback for selectInput(), has to be public to be found.
+  public void fileSelected(File file) {
+    if (file == null) {
+      println("User hit cancel.");
+    } else {
+      imageState.setFilepath(file.getAbsolutePath());
+      imageState.setUpImage(this, IMAGE_MAX);
+      redrawImage = true;
+      redraw();
+    }
+  }
 
-	private void drawImage() {
-		imageMode(CENTER);
-		imageState.updateImage(this, HUE_RANGE, RGB_COLOR_RANGE, IMAGE_MAX);
-		image(imageState.image().image(), IMAGE_MAX/2, IMAGE_MAX/2, 
+  private void drawImage() {
+    imageMode(CENTER);
+    imageState.updateImage(this, HUE_RANGE, RGB_COLOR_RANGE, IMAGE_MAX);
+    image(imageState.image().image(), IMAGE_MAX/2, IMAGE_MAX/2, 
                 imageState.image().getWidth(), imageState.image().getHeight());
-		redrawImage = false;
-	}
+    redrawImage = false;
+  }
 
-	@Override
-	public void keyPressed() {
-		switch(key) {
-		case 'c':
-			chooseFile();
-			break;
-		case 'p':
-			redrawImage = true;
-			break;
-		case ' ':
-			imageState.resetImage(this, IMAGE_MAX);
-			redrawImage = true;
-			break;
-		}
-		imageState.processKeyPress(key, FILTER_INCREMENT, RGB_COLOR_RANGE, 
+  @Override
+  public void keyPressed() {
+    switch(key) {
+    case 'c':
+      chooseFile();
+      break;
+    case 'p':
+      redrawImage = true;
+      break;
+    case ' ':
+      imageState.resetImage(this, IMAGE_MAX);
+      redrawImage = true;
+      break;
+    }
+    imageState.processKeyPress(key, FILTER_INCREMENT, RGB_COLOR_RANGE, 
                 HUE_INCREMENT, HUE_RANGE);
-		redraw();
-	}
+    redraw();
+  }
 
-	private void chooseFile() {
-		// Choose the file.
-		selectInput("Select a file to process:", "fileSelected");
-	}
+  private void chooseFile() {
+    // Choose the file.
+    selectInput("Select a file to process:", "fileSelected");
+  }
 }
 ```
 
