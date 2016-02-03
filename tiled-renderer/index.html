@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>A Tiled Renderer</title>
+  <link rel="stylesheet" type="text/css" href="stylesheets/renderer.css"/>
+</head>
+<body onload="renderer.initGL();">
+  <h1>A Tiled Renderer<span style="font-size: 10pt"> by Pierre-Antoine LaFayette</span></h1>
+
+  <img src="images/A_Song_of_Ice_and_Fire.jpg" width="720" height="480"/>
+
+  <canvas id="glCanvas" width="320" height="480"></canvas> <!-- iPhone 1 sized -->
+
+  <p class="info">Scroll the image in the WebGL canvas on the right by clicking with the mouse and dragging.</p>
+  <br/><br/>
+
+  <div id="log"></div>
+
+  <script type="text/javascript" src="src/logger.js"></script>
+  <script type="text/javascript" src="src/timer.js"></script>
+  <script type="text/javascript" src="src/matrix3.js"></script>
+  <script type="text/javascript" src="src/shader.js"></script>
+  <script type="text/javascript" src="src/renderer.js"></script>
+</body>
+</html>

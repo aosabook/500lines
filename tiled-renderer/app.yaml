@@ -1,0 +1,30 @@
+application: tiled-renderer
+version: 2
+runtime: python27
+api_version: 1
+threadsafe: true
+
+handlers:
+- url: /images
+  static_dir: images
+
+- url: /fonts
+  static_dir: fonts
+
+- url: /stylesheets
+  static_dir: stylesheets
+
+- url: /src
+  static_dir: src
+
+- url: /third_party/gl-matrix
+  static_dir: third_party/gl-matrix
+
+- url: /.*
+  script: index.application
+
+libraries:
+- name: webapp2
+  version: latest
+- name: jinja2
+  version: latest
