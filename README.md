@@ -128,14 +128,6 @@ Contributors
     <td>taavi.burns@gmail.com</td>
   </tr>
   <tr>
-    <td>Kragen Javier Sitaker</td>
-    <td><a href="http://canonical.org/">Canonical Hackers</a></td>
-    <td>search-engine</td>
-    <td>@kragen</td>
-    <td>@kragen</td>
-    <td>kragen@canonical.org</td>
-  </tr>
-  <tr>
     <td>Guido van Rossum</td>
     <td>Dropbox</td>
     <td>crawler</td>
@@ -335,11 +327,4 @@ Contributors
     <td><a href="https://github.com/malini">malini</a></td>
     <td></td>
   </tr>
-  <tr>
-    <td>Alex Clemmer</td>
-    <td></td>
-    <td>Python 3 lexer and parser</td>
-    <td>@hausdorff</td>
-    <td>@hausdorff_space</td>
-    <td>clemmer.alexander@gmail.com</td>
-  </tr></table>
+</table>
