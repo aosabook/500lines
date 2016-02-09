@@ -35,7 +35,7 @@ Using a graph database will allow us to solve some interesting problems in an el
 
 So what kinds of problems can we solve with a graph database? Well, suppose that you enjoy tracking ancestral trees: parents, grandparents, cousins twice removed, that kind of thing. You'd like to develop a system that allows you to make natural and elegant queries like "Who are Thor's second cousins once removed?" or "What is Freyja's connection to the Valkyries?"
 
-A reasonable schema for this data structure would be to have a table of entities and a table of relationships. A query for Thor's parents might look like:
+A reasonable schema for this data structure would be to have a table of entities and a table of relationships. A query for Thor's parents might look like
 
 ```javascript
 SELECT e.* FROM entities as e, relationships as r WHERE r.out = "Thor" AND r.type = "parent" AND r.in = e.id
@@ -217,7 +217,7 @@ And that's all the graph structure we need for now!
 
 There are really only two parts to this system: the part that holds the graph and the part that answers questions about the graph. The part that holds the graph is pretty simple, as we've seen. The query part is a little trickier.
 
-We'll start just like before, with a prototype and a query factory:
+We'll start just like before, with a prototype and a query factory.
 
 ```javascript
 Dagoba.Q = {}                                           // prototype
@@ -234,7 +234,7 @@ Dagoba.query = function(graph) {                        // factory (only called 
 }
 ```
 
-Now's a good time to introduce some friends:
+Now's a good time to introduce some friends.
 
 A *program* is a series of *steps*. Each step is like a pipe in a pipeline --- a piece of data comes in one end, is transformed in some fashion, and goes out the other end. Our pipeline doesn't quite work like that, but it's a good first approximation. 
 
@@ -1215,20 +1215,19 @@ Dagoba.depersist = function (name) {
   return Dagoba.fromString(flatgraph)
 }
 ```
-STOPPED HERE
 
-We preface the name with a faux namespace to avoid polluting the `localStorage` properties of the domain, as it can get quite crowded in there. There's also usually a low storage limit, so for larger graphs we'd probably want to use a Blob of some sort. 
+We preface the name with a faux namespace to avoid polluting the `localStorage` properties of the domain, as it can get quite crowded in there. There's also usually a low storage limit, so for larger graphs we'd probably want to use a BLOB of some sort. 
 
-There are also potential issues if multiple browser windows from the same domain are persisting and depersisting simultaneously. The `localStorage` space is shared between those windows, and they're potentially on different event loops, so there's the possibility for one to carelessly overwrite the work of another. The spec says there should be a mutex required for read/write access to `localStorage`, but it's inconsistently implemented between different browsers, and even with it a simple implementation like ours could still encounter issues.
+There are also potential issues if multiple browser windows from the same domain are persisting and depersisting simultaneously. The `localStorage` space is shared between those windows, and they're potentially on different event loops, so there's the possibility of one carelessly overwriting the work of another. The spec says there should be a mutex required for read/write access to `localStorage`, but it's inconsistently implemented between different browsers, and even with it a simple implementation like ours could still encounter issues.
 
-If we wanted our persistence implementation to be multi-window–concurrency aware then we could make use of the storage events that are fired when `localStorage` is changed to update our local graph accordingly. 
+If we wanted our persistence implementation to be multi-window–concurrency aware, then we could make use of the storage events that are fired when `localStorage` is changed to update our local graph accordingly. 
 
 
 ## Updates
 
 Our `out` pipetype copies the vertex's out-going edges and pops one off each time it needs one. Building that new data structure takes time and space, and pushes more work on to the memory manager. We could have instead used the vertex's out-going edge list directly, keeping track of our place with a counter variable. Can you think of a problem with that approach?
 
-If someone deletes an edge we've visited while we're in the middle of a query, that would change the size of our edge list, and we'd then skip an edge because our counter is off. To solve this we could lock the vertices involved in our query, but then we'd either lose our capacity to regularly update the graph, or the ability to have long-lived query objects responding to requests for more results on-demand. Even though we're in a single-threaded event loop, our queries can span multiple asynchronous re-entries, which means concurrency concerns like this are a very real problem.
+If someone deletes an edge we've visited while we're in the middle of a query, that would change the size of our edge list, and we'd then skip an edge because our counter would be off. To solve this we could lock the vertices involved in our query, but then we'd either lose our capacity to regularly update the graph, or the ability to have long-lived query objects responding to requests for more results on-demand. Even though we're in a single-threaded event loop, our queries can span multiple asynchronous re-entries, which means concurrency concerns like this are a very real problem.
 
 So we'll pay the performance price to copy the edge list. There's still a problem, though, in that long-lived queries may not see a completely consistent chronology. We will traverse every edge belonging to a vertex at the moment we visit it, but we visit vertices at different clock times during our query. Suppose we save a query like `var q = g.v('Odin').children().children().take(2)` and then call `q.run()` to gather two of Odin's grandchildren. Some time later we need to pull another two grandchildren, so we call `q.run()` again. If Odin has had a new grandchild in the intervening time, we may or may not see it, depending on whether the parent vertex was visited the first time we ran the query.
 
@@ -1259,7 +1258,7 @@ g.v('Thor').out().as('a').out().as('b').out().as('c').merge(['a', 'b', 'c']).run
 
 after the query transformers have all run.
 
-We could run the `times` transformer first, to produce 
+We could run the `times` transformer first, to produce this:
 
 ```javascript
 g.v('Thor').out().all().out().all().out().all().run()
@@ -1271,11 +1270,17 @@ There are a few problems with this, though. For one, this `as`/`merge` technique
 
 To solve that first problem we're going to have to treat `all`s as something more than just as/merge. We need each parent gremlin to actually skip the intervening steps. We can think of this as a kind of teleportation --- jumping from one part of the pipeline directly to another --- or we can think of it as a certain kind of branching pipeline, but either way it complicates our model somewhat. Another approach would be to think of the gremlin as passing through the intervening pipes in a sort of suspended animation, until awoken by a special pipe. Scoping the freezing/thawing pipes may be tricky, however.
 
-The next two problems are easier. To modify just part of a query we'll wrap that portion in special start/end steps, like `g.v('Thor').out().start().in().out().end().times(4).run()`. Actually, if the interpreter knows about these special pipetypes we don't need the end step, because the end of a sequence is always a special pipetype. We'll call these special pipetypes "adverbs", because they modify regular pipetypes like adverbs modify verbs. 
+The next two problems are easier. To modify just part of a query we'll wrap that portion in special start/end steps, like:
 
-To handle multiple `all`s we need to run all `all` transformers twice: one time before the `times` transformer, to mark all `all`s uniquely, and again after `times`' time to re-mark all marked `all`s uniquely all over.
+```javascript
+g.v('Thor').out().start().in().out().end().times(4).run()
+```
 
-There's still the issue of searching through an unbounded number of ancestors --- for example, how do we find out which of Ymir's descendants are scheduled to survive Ragnarök? We could make individual queries like 
+Actually, if the interpreter knows about these special pipetypes we don't need the end step, because the end of a sequence is always a special pipetype. We'll call these special pipetypes "adverbs", because they modify regular pipetypes like adverbs modify verbs. 
+
+To handle multiple `all`s we need to run all `all` transformers twice: once before the `times` transformer, to mark all `all`s uniquely, and again after `times`' time to re-mark all marked `all`s uniquely.
+
+There's still the issue of searching through an unbounded number of ancestors --- for example, how do we find out which of Ymir's descendants are scheduled to survive Ragnarök? We could make individual queries like:
 
 ```javascript
 g.v('Ymir').in().filter({survives: true}) 
@@ -1312,7 +1317,7 @@ So what have we learned? Graph databases are great for storing interconnected* d
 
 That last point can't be overstated: keep it simple. Eschew optimization in favor of simplicity. Work hard to achieve simplicity by finding the right model. Explore many possibilities. The chapters in this book provide ample evidence that highly non-trivial applications can have a small, tight kernel. Once you find that kernel for the application you are building, fight to keep complexity from polluting it. Build hooks for attaching additional functionality, and maintain your abstraction barriers at all costs. Using these techniques well is not easy, but they can give you leverage over otherwise intractable problems. 
 
-[footnote on interconnected: Not *too* interconnected, though --- you'd like the number of edges to grow in direct proportion to the number of vertices. In other words the average number of edges connected to a vertex shouldn't vary with the size of the graph. Most systems we'd consider putting in a graph database already have this property: if we add 100,000 Nigerian films to our movie database that doesn't increase the degree of the Kevin Bacon vertex.]
+[footnote on interconnected: Not *too* interconnected, though --- you'd like the number of edges to grow in direct proportion to the number of vertices. In other words, the average number of edges connected to a vertex shouldn't vary with the size of the graph. Most systems we'd consider putting in a graph database already have this property: if we add 100,000 Nigerian films to our movie database, the degree of the Kevin Bacon vertex won't increase.]
 
 
 ### Acknowledgements
