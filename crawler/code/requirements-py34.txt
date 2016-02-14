@@ -1,9 +1,0 @@
-# Requirements to run crawl.py, the web crawler example, with Python 3.4.
-# The asyncio module is included in Python 3.4's standard library, but the
-# example code also requires the aiohttp package. First install pip:
-#
-#     https://pip.pypa.io/en/latest/installing.html
-#
-# Then install this package with "pip install -r requirements-py34.txt".
-
-aiohttp>=0.16

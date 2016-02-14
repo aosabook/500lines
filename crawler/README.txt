@@ -1,7 +1,7 @@
 Authors: A. Jesse Jiryu Davis and Guido van Rossum
 Project: Web crawler
 Requirements:
-  * Python 3.4, or 3.3 + asyncio
+  * Python 3.4+
   * aiohttp
 
 This is a web crawler. You give it a URL and it will crawl that
@@ -12,23 +12,15 @@ finding links is intentionally naive -- those parts are easily
 modified, and not of particular interest (just use your favorite HTML
 parser instead of a regular expression).
 
-The point of the example is to show off how to write a reasonably
-complex HTTP client application using the asyncio module.  This module, originally
-nicknamed Tulip, is new in the Python 3.4 standard library, based on
-PEP 3156.  The module is also available from PyPI for Python 3.3, but
-it doesn't work on older Python versions, since it uses the new 'yield
-from' syntax that was introduced in Python 3.3.  (But don't despair; a
-backport named Trollius exists on PyPI that substitutes 'yield'.)  The
-example uses an HTTP client implementation for asyncio called "aiohttp",
-by Andrew Svetlov, Nikolay Kim, and others.
+The point of the example is to show off how to write a reasonably complex HTTP
+client application using the asyncio module. This module, originally nicknamed
+Tulip, is new in the Python 3.4 standard library, based on PEP 3156. The
+example uses an HTTP client implementation for asyncio called "aiohttp", by
+Andrew Svetlov, Nikolay Kim, and others.
 
-If you are using Python 3.3, install the crawler's requirements like:
+Install the crawler's requirements like:
 
-    pip install -r requirements-py33.txt
-
-If you are using Python 3.4:
-
-    pip install -r requirements-py34.txt
+    python3 -m pip install -r requirements.txt
 
 In order to be fast and efficient, the program opens multiple parallel
 connections to the server and reuses connections for multiple
@@ -42,7 +34,7 @@ URLs) in under 50 seconds.
 
 Example command line (the -q reduces log output):
 
-    python3.4 crawl.py -q xkcd.com
+    python3 crawl.py -q xkcd.com
 
 Use --help to see all options.
 
