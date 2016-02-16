@@ -1,7 +1,7 @@
 title: A Simple Web Server
 author: Greg Wilson
 
-_Greg Wilson is the founder of Software Carpentry, a crash course in computing skills for scientists and engineers.  He has worked for 30 years in in both industry and academia, and is the author or editor of several books on computing, including the 2008 Jolt Award winner "Beautiful Code" and the first two volumes of "The Architecture of Open Source Applications". Greg received a Ph.D. in Computer Science from the University of Edinburgh in 1993._
+_Greg Wilson is the founder of Software Carpentry, a crash course in computing skills for scientists and engineers.  He has worked for 30 years in in both industry and academia, and is the author or editor of several books on computing, including the 2008 Jolt Award winner "Beautiful Code" and the first two volumes of "The Architecture of Open Source Applications". Greg received a PhD in Computer Science from the University of Edinburgh in 1993._
 
 ## Introduction
 
@@ -110,16 +110,17 @@ and other codes have other meanings.
 The status phrase repeats that information in a human-readable phrase like "OK" or "not found".
 
 For the purposes of this chapter
-there are only two other things we need to know about HTTP
+there are only two other things we need to know about HTTP.
+
 The first is that it is *stateless*:
 each request is handled on its own,
 and the server doesn't remember anything between one request and the next.
 If an application wants to keep track of something like a user's identity,
 it must do so itself.
-The usual way to do this is with a cookie,
-which is just a short character string that the server sends to the client,
-and the client later returns to the server.
 
+The usual way to do this is with a cookie,
+which is a short character string that the server sends to the client,
+and the client later returns to the server.
 When a user signs in,
 the server creates a new cookie,
 stores it in a database,
@@ -127,7 +128,8 @@ and sends it to her browser.
 Each time her browser sends the cookie back,
 the server uses it to look up information about what the user is doing.
 
-The second is that a URL can be supplemented with parameters
+The second thing we need to know about HTTP 
+is that a URL can be supplemented with parameters
 to provide even more information.
 For example,
 if we're using a search engine,
@@ -138,7 +140,7 @@ We do this by adding '?' to the URL
 followed by 'key=value' pairs separated by '&amp;'.
 For example,
 the URL `http://www.google.ca?q=Python`
-ask Google to search for pages related to Python:
+asks Google to search for pages related to Python:
 the key is the letter 'q',
 and the value is 'Python'.
 The longer query
@@ -170,7 +172,7 @@ Python comes with such a library called `urllib2`
 but it exposes a lot of plumbing that most people never want to care about.
 Instead,
 we recommend using the [Requests](https://pypi.python.org/pypi/requests) library.
-Here's an example that uses it to download a page from our web site:
+Here's an example that uses it to download a page from the AOSA book site:
 
 ```python
 import requests
@@ -202,7 +204,7 @@ and `text` is the actual data
 We're now ready to write our first simple web server.
 The basic idea is simple:
 
-1.  wait for someone to connect to our server and send an HTTP request;
+1.  Wait for someone to connect to our server and send an HTTP request;
 2.  parse that request;
 3.  figure out what it's asking for;
 4.  fetch that data (or generate it dynamically);
@@ -463,7 +465,7 @@ Note that we open the file in binary mode --- the 'b' in 'rb' --- so that
 Python won't try to "help" us by altering byte sequences that look like a Windows line ending.
 Note also that reading the whole file into memory when serving it is a bad idea in real life,
 where the file might be several gigabytes of video data.
-Handling that situation is outside the scope of this chapter...
+Handling that situation is outside the scope of this chapter.
 
 To finish off this class,
 we need to write the error handling method
@@ -656,6 +658,8 @@ the helper method `index_path` constructs the path to the `index.html` file;
 putting it in the case handler prevents clutter in the main `RequestHandler`.
 `test` checks whether the path is a directory containing an `index.html` page,
 and `act` just asks the main request handler to serve that page.
+
+STOPPED HERE
 
 The only change needed to `RequestHandler` to include this logic
 is to add a `case_directory_index_file` object to our `Cases` list:
