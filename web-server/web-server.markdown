@@ -659,8 +659,6 @@ putting it in the case handler prevents clutter in the main `RequestHandler`.
 `test` checks whether the path is a directory containing an `index.html` page,
 and `act` just asks the main request handler to serve that page.
 
-STOPPED HERE
-
 The only change needed to `RequestHandler` to include this logic
 is to add a `case_directory_index_file` object to our `Cases` list:
 
@@ -744,7 +742,7 @@ Of course,
 most people won't want to edit the source of their web server
 in order to add new functionality.
 To save them from having to do so,
-servers have from the start supported a mechanism called
+servers have always supported a mechanism called
 the Common Gateway Interface (CGI),
 which provides a standard way for a web server to run an external program
 in order to satisfy a request.
