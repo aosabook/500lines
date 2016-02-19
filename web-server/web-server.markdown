@@ -1,7 +1,7 @@
 title: A Simple Web Server
 author: Greg Wilson
 
-_Greg Wilson is the founder of Software Carpentry, a crash course in computing skills for scientists and engineers.  He has worked for 30 years in in both industry and academia, and is the author or editor of several books on computing, including the 2008 Jolt Award winner "Beautiful Code" and the first two volumes of "The Architecture of Open Source Applications". Greg received a PhD in Computer Science from the University of Edinburgh in 1993._
+_Greg Wilson is the founder of Software Carpentry, a crash course in computing skills for scientists and engineers.  He has worked for 30 years in both industry and academia, and is the author or editor of several books on computing, including the 2008 Jolt Award winner *Beautiful Code* and the first two volumes of *The Architecture of Open Source Applications*. Greg received a PhD in Computer Science from the University of Edinburgh in 1993._
 
 ## Introduction
 
@@ -36,7 +36,7 @@ such as `174.136.14.108`;
 the Domain Name System (DNS) matches these numbers to symbolic names like `aosabook.org`
 that are easier for human beings to remember.
 
-A port number is just a number in the range 0-65535
+A port number is a number in the range 0-65535
 that uniquely identifies the socket on the host machine.
 (If an IP address is like a company's phone number,
 then a port number is like an extension.)
