@@ -13,7 +13,7 @@ and that correct code is one of the most transparent forms of thought._
 _Daniel Rocco loves Python, coffee, craft, stout, object and system design,
 bourbon, teaching, trees, and Latin guitar. Thrilled that he gets to write
 Python for a living, he is always on the lookout for opportunities to learn
-from others in the community and to contribute back by sharing knowledge. He is
+from others in the community, and to contribute by sharing knowledge. He is
 a frequent speaker at PyAtl on introductory topics, testing, design, and shiny
 things; he loves seeing the spark of wonder and delight in people's eyes when
 someone shares a novel, surprising, or beautiful idea. Daniel lives in Atlanta
@@ -48,22 +48,22 @@ then it will not only rebuild the `main.o` object file
 but will also rebuild `prog` itself.
 
 Build systems are a common semester project
-posed for undergraduate computer science students -
+assigned to undergraduate computer science students —
 not only because build systems are used in nearly all software projects,
 but because their construction involves fundamental data structures
 and algorithms involving directed graphs
 (which this chapter will later discuss in more detail).
+
 With decades of use and practice behind build systems,
 one might expect them to have become completely general-purpose
 and ready for even the most extravagant demands.
-
 But, in fact, one kind of common interaction between build artifacts —
 the problem of dynamic cross-referencing —
 is handled so poorly by most build systems
 that in this chapter we are inspired
-to not only rehearse the standard solution
-and data structures used classically to solve the `make` problem,
-but to extend that solution dramatically to a far more demanding domain.
+to not only rehearse the classic solution
+and data structures used to solve the `make` problem,
+but to extend that solution dramatically, to a far more demanding domain.
 
 The problem, again, is cross-referencing.
 Where do cross-references tend to emerge?
@@ -111,7 +111,7 @@ and `toctree` command might be:
 
   • Installation
 
-  • Newcomers Tutorial
+  • Newcomers' Tutorial
       • Hello, World
       • Adding Logging
 
@@ -127,14 +127,14 @@ the actual title of each chapter and section
 is pulled from the three chapter source files themselves.
 
 If you later reconsider the tutorial’s chapter title —
-after all, the word “newcomer” sounds so antique,
+after all, the word “newcomer” sounds so quaint,
 as if your users are settlers who have just arrived in pioneer Wyoming —
 then you would edit the first line of `tutorial.rst`
 and write something better:
 
 ```
-  -Newcomers Tutorial
-  +Beginners Tutorial
+  -Newcomers' Tutorial
+  +Beginners' Tutorial
    ==================
 
    Welcome to the tutorial!
@@ -144,7 +144,7 @@ and write something better:
 When you are ready to rebuild,
 Sphinx will do exactly the right thing!
 It will rebuild both the tutorial chapter itself,
-and also rebuild the index.
+and the index.
 (Piping the output into `cat` makes Sphinx
 announce each rebuilt file on a separate line,
 instead of using bare carriage returns
@@ -165,8 +165,8 @@ Sphinx has rebuilt everything so that the output is consistent.
 What if your edit to `tutorial.rst` is more minor?
 
 ```
-   Beginners Tutorial
-   ==================
+   Beginners' Tutorial
+   ===================
 
   -Welcome to the tutorial!
   +Welcome to our project tutorial!
@@ -238,7 +238,7 @@ of the tutorial chapter into the cross reference’s anchor tag:
 ```html
    <p>Before reading this, try reading our
    <a class="reference internal" href="tutorial.html">
-     <em>Beginners Tutorial</em>
+     <em>Beginners' Tutorial</em>
    </a>!</p>
 ```
 
@@ -320,7 +320,7 @@ instead of leaving the output in an inconsistent state.
 The result would be a system like the old static `make` tool,
 but which learned the dependencies between files as they were built —
 that added and removed dependencies dynamically
-as cross references were added, updated, and then later deleted.
+as cross references were added, updated, and deleted.
 
 In the sections that follow we will construct such a tool in Python,
 named Contingent,
@@ -329,7 +329,7 @@ while performing the fewest possible rebuild steps.
 While Contingent can be applied to any problem domain,
 we will run it against a small version of the problem outlined above.
 
-## Linking Tasks To Make a Graph
+## Linking Tasks to Make a Graph
 
 Any build system needs a way to link inputs and outputs.
 The three markup texts in our discussion above,
@@ -337,8 +337,8 @@ for example,
 each produce a corresponding HTML output file.
 The most natural way to express these relationships
 is as a collection of boxes and arrows —
-or, in mathematician terminology, *nodes* and *edges*
-to form a *graph* (\aosafigref{500l.contingent.graph}.)
+or, in mathematician terminology, *nodes* and *edges* —
+to form a *graph* (\aosafigref{500l.contingent.graph}).
 
 \aosafigure[240pt]{contingent-images/figure1.png}{Three files generated by parsing three input texts.}{500l.contingent.graph}
 
@@ -359,7 +359,7 @@ that can be used without being imported.
 The **tuple** is a read-only sequence
 used to hold heterogeneous data —
 each slot in a tuple typically means something different.
-Here, a tuple (e.g. holds together a hostname and port number,
+Here, a tuple holds together a hostname and port number,
 and would lose its meaning if the elements were re-ordered:
 
 ```python
@@ -394,7 +394,7 @@ The **dict** is an associative data structure for storing values
 accessible by a key.
 Dicts let the programmer chose the key
 by which each value is indexed,
-instead of using automatic integer indexing like the tuple and list.
+instead of using automatic integer indexing as the tuple and list do.
 The lookup is backed by a hash table,
 which means that dict key lookup runs at the same speed
 whether the dict has a dozen or a million keys!
@@ -413,7 +413,7 @@ of the underlying tuples, lists, sets, and dicts.
 Given that each of our graph edges needs
 to know at least its origin node and its destination node,
 the simplest possible representation would be a tuple.
-The top edge in Figure 1 might look like:
+The top edge in Figure 1 might look like:  
 
 ```python
     ('tutorial.rst', 'tutorial.html')
@@ -546,7 +546,7 @@ You may have been surprised
 by the absence of classes in the above discussion
 of Python data structures.
 After all, classes are a frequent mechanism for structuring applications
-and a hardly less frequent subject of heated debate
+and a hardly less-frequent subject of heated debate
 among their adherents and detractors.
 Classes were once thought important enough that
 entire educational curricula were designed around them,
@@ -573,7 +573,7 @@ with implementation details encapsulated behind
 a consistent and memorable interface.
 
 So instead of putting a hostname and a port number together in a tuple
-and having to remember later which came first and which came second,
+and having to remember which came first and which came second,
 you create an `Address` class
 whose instances each have a `host` and a `port` attribute.
 You can then pass `Address` objects around
@@ -594,7 +594,7 @@ the powerful built-in data structures Python offers us
 while minimizing the volume of details we are required to
 keep in our heads at any one time.
 Classes provide the mechanism for resolving this apparent quandary:
-used effectively, a class provides a *facade*
+used effectively, a class provides a facade
 around some small subset of the system's overall design.
 When working within one subset — a `Graph`, for example —
 we can forget the implementation details of other subsets
@@ -655,7 +655,7 @@ and extensive standard library.
 
 With these considerations in mind,
 let’s return to the `Graph` class,
-examining its design and implmentation to see
+examining its design and implementation to see
 the interplay between data structures and class interfaces.
 When a new `Graph` instance is constructed,
 a pair of dictionaries has already been built
@@ -807,6 +807,7 @@ the content of `api.rst` changes:
 This `Graph` is telling Contingent that,
 when `api.rst` changes,
 `api.html` is now stale and must be rebuilt.
+
 How about `index.html`?
 
 ```
@@ -856,6 +857,8 @@ This manual walk-through illustrates what we
 will eventually have Contingent do for us:
 the graph `g` captures the inputs and consequences
 for the various artifacts in our project's documentation.
+
+STOPPED HERE
 
 ## Learning Connections
 
