@@ -858,8 +858,6 @@ will eventually have Contingent do for us:
 the graph `g` captures the inputs and consequences
 for the various artifacts in our project's documentation.
 
-STOPPED HERE
-
 ## Learning Connections
 
 We now have a way for Contingent
@@ -897,7 +895,7 @@ simplified input and output document formats.
 Our input documents will consist of a title on the first line,
 with the remainder of the text forming the body.
 Cross references will simply be source file names
-enclosed in back ticks,
+enclosed in backticks,
 which on output are replaced with the title
 from the corresponding document in the output.
 
@@ -933,7 +931,7 @@ Now that we have some source material to work with,
 what functions would a Contingent-based blog builder
 need?
 
-In the simplistic examples above,
+In the simple examples above,
 the HTML output files proceed directly from the source,
 but in a realistic system,
 turning source into markup involves several steps:
@@ -996,7 +994,7 @@ but it illustrates the interpretive responsibilities
 that parsers are required to carry out.
 Parsing in general is a very interesting subject
 and many books have been written
-either partially or completely dedicated to it.
+either partially or completely about it.
 In a system like Sphinx,
 the parser must understand the many markup tokens,
 directives, and commands defined by the system,
@@ -1091,7 +1089,7 @@ We hope you enjoy it.
 that transitively connects all the tasks
 required to produce the output,
 from reading the input file,
-parsing and transforming the document,
+to parsing and transforming the document,
 and rendering the result:
 
 \aosafigure[240pt]{contingent-images/figure3.png}{A task graph.}{500l.contingent.graph3}
@@ -1109,7 +1107,7 @@ Contingent can assume that it has been called —
 and that its output will be used —
 by the task currently at the top of the stack.
 Maintaining the stack will require that several extra steps
-surround the invocation of a task \ *T*:
+surround the invocation of a task *T*:
 
 1. Push *T* onto the stack.
 2. Execute *T*, letting it call any other tasks it needs.
@@ -1290,8 +1288,8 @@ the <a href="tutorial.txt">Beginners Tutorial</a> first.
 
 It worked!
 From the output, we can see that
-our transform substituted the docuent titles
-for the directives in our source docuents,
+our transform substituted the document titles
+for the directives in our source documents,
 indicating that Contingent was able to
 discover the connections between the various tasks
 needed to build our documents.
@@ -1377,7 +1375,7 @@ an algorithm which winds up being fairly easy to write in Python
 through a hidden a recursive helper function.
 Check out the `graphlib.py` source code for the details.
 
-If upon detecting a change
+If, upon detecting a change,
 we are careful to re-run every task in the recursive consequences,
 then Contingent will be able to avoid rebuilding too little.
 Our second challenge, however,
@@ -1396,9 +1394,9 @@ This optimization will involve a final data structure.
 We will give the `Project` a `_todo` set
 with which to remember every task
 for which at least one input value has changed,
-and that therefore requires re-execution.
+and which therefore requires re-execution.
 Because only tasks in `_todo` are out-of-date,
-the build process can skip running any other tasks
+the build process can skip running any tasks
 unless they appear there.
 
 Again, Python’s convenient and unified design
