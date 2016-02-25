@@ -1,7 +1,7 @@
 title: A Simple Web Server
 author: Greg Wilson
 
-_Greg Wilson is the founder of Software Carpentry, a crash course in computing skills for scientists and engineers.  He has worked for 30 years in both industry and academia, and is the author or editor of several books on computing, including the 2008 Jolt Award winner *Beautiful Code* and the first two volumes of *The Architecture of Open Source Applications*. Greg received a PhD in Computer Science from the University of Edinburgh in 1993._
+_[Greg Wilson](https://twitter.com/gvwilson) is the founder of Software Carpentry, a crash course in computing skills for scientists and engineers.  He has worked for 30 years in both industry and academia, and is the author or editor of several books on computing, including the 2008 Jolt Award winner *Beautiful Code* and the first two volumes of *The Architecture of Open Source Applications*. Greg received a PhD in Computer Science from the University of Edinburgh in 1993._
 
 ## Introduction
 
@@ -175,7 +175,7 @@ Here's an example that uses it to download a page from the AOSA book site:
 
 ```python
 import requests
-response = requests.get('http://aosabook.org/en/500lines/web-server/testpage.html')
+response = requests.get('http://aosabook.org/en/500L/web-server/testpage.html')
 print 'status code:', response.status_code
 print 'content length:', response.headers['content-length']
 print response.text
@@ -338,7 +338,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.wfile.write(page)
 ```
 
-The template[^templates] for the page we want to display is
+The template for the page we want to display is
 just a string containing an HTML table
 with some formatting placeholders:
 
@@ -373,8 +373,6 @@ and the method that fills this in is:
         page = self.Page.format(**values)
         return page
 ```
-
-[^templates]: You can find a full treatment of templates in \aosachapref{s:template-engine}.
 
 The main body of the program is unchanged:
 as before,
