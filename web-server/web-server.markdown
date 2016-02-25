@@ -121,7 +121,7 @@ it must do so itself.
 The usual way to do this is with a cookie,
 which is a short character string that the server sends to the client,
 and the client later returns to the server.
-When a user signs in,
+When a user performs some function that requires state to be saved across several requests,
 the server creates a new cookie,
 stores it in a database,
 and sends it to her browser.
@@ -170,8 +170,7 @@ so most people use libraries to do most of the work.
 Python comes with such a library called `urllib2`
 (because it's a replacement for an earlier library called `urllib`),
 but it exposes a lot of plumbing that most people never want to care about.
-Instead,
-we recommend using the [Requests](https://pypi.python.org/pypi/requests) library.
+The [Requests](https://pypi.python.org/pypi/requests) library is an easier-to-use alternative to `urllib2`.
 Here's an example that uses it to download a page from the AOSA book site:
 
 ```python
