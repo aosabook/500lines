@@ -166,7 +166,7 @@ What if your edit to `tutorial.rst` is more minor?
 
 ```
    Beginners Tutorial
-   ===================
+   ==================
 
   -Welcome to the tutorial!
   +Welcome to our project tutorial!
