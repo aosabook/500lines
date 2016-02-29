@@ -1,4 +1,6 @@
-# Dagoba: an in-memory graph database
+# Dagoba: an in-memory graph database [^titlefoot]
+
+[^titlefoot] This database started life as a library for managing Directed Acyclic Graphs, or DAGs. It was originally intended to come with a silent 'h' at the end, an homage to the swampy fictional planet, but reading the back of a chocolate bar one day we discovered the sans-h version refers to a place for silently contemplating the connections between things, which seems even more fitting.
 
 > "When we try to pick out anything by itself we find that it is bound fast by a thousand invisible cords that cannot be broken, to everything in the universe."
 > --- John Muir
@@ -411,7 +413,7 @@ Dagoba.addPipetype('out', Dagoba.simpleTraversal('out'))
 Dagoba.addPipetype('in',  Dagoba.simpleTraversal('in'))
 ```
 
-The `simpleTraversal` function returns a pipetype handler that accepts a gremlin as its input, and spawns a new gremlin each time it's queried. Once those gremlins are gone, it sends back a `pull` request to get a new gremlin from its predecessor.
+The `simpleTraversal` function returns a pipetype handler that accepts a gremlin as its input, and spawns a new gremlin each time it's queried. Once those gremlins are gone, it sends back a 'pull' request to get a new gremlin from its predecessor.
 
 ```javascript
 Dagoba.simpleTraversal = function(dir) {
@@ -439,11 +441,13 @@ Dagoba.simpleTraversal = function(dir) {
 
 The first couple of lines handle the differences between the in version and the out version. Then we're ready to return our pipetype function, which looks quite a bit like the vertex pipetype we just saw. That's a little surprising, since this one takes in a gremlin whereas the vertex pipetype creates gremlins *ex nihilo*.
 
-But we can see the same beats being hit here, with the addition of a query initialization step. If there's no gremlin and we're out of available edges then we pull. If we have a gremlin but haven't yet set state then we find any edges going the appropriate direction and add them to our state. If there's a gremlin but its current vertex has no appropriate edges then we pull. And finally we pop off an edge and return a freshly cloned gremlin on the vertex to which it points.
+Yet we can see the same beats being hit here, with the addition of a query initialization step. If there's no gremlin and we're out of available edges then we pull. If we have a gremlin but haven't yet set state then we find any edges going the appropriate direction and add them to our state. If there's a gremlin but its current vertex has no appropriate edges then we pull. And finally we pop off an edge and return a freshly cloned gremlin on the vertex to which it points.
 
-Glancing at this code we see `!state.edges.length` repeated in each of the three clauses. It's tempting to refactor this to reduce the complexity of those conditionals. There are two issues keeping us from doing so. One is relatively minor: the third `!state.edges.length` means something different from the first two, since `state.edges` has been changed between the second and third conditional. This actually encourages us to refactor, because having the same label mean two different things inside a single function usually isn't ideal.
+Glancing at this code we see `!state.edges.length` repeated in each of the three clauses. It's tempting to refactor this to reduce the complexity of those conditionals. There are two issues keeping us from doing so.
 
-But this isn't the only pipetype function we're writing, and we'll see these ideas of query initialization and/or state initialization repeated over and over. When writing code, there's always a balancing act between structured qualities and unstructured qualities. Too much structure and you pay a high cost in boilerplate and abstraction complexity. Too little structure and you'll have to keep all the plumbing minutia in your head.
+One is relatively minor: the third `!state.edges.length` means something different from the first two, since `state.edges` has been changed between the second and third conditional. This actually encourages us to refactor, because having the same label mean two different things inside a single function usually isn't ideal.
+
+The second is more serious. This isn't the only pipetype function we're writing, and we'll see these ideas of query initialization and/or state initialization repeated over and over. When writing code, there's always a balancing act between structured qualities and unstructured qualities. Too much structure and you pay a high cost in boilerplate and abstraction complexity. Too little structure and you'll have to keep all the plumbing minutia in your head.
 
 In this case, with a dozen or so pipetypes, the right choice seems to be to style each of the pipetype functions as similarly as possible, and label the constituent pieces with comments. So we resist our impulse to refactor this particular pipetype, because doing so would reduce uniformity, but we also resist the urge to engineer a formal structural abstraction for query initialization, state initialization, and the like. If there were hundreds of pipetypes that latter choice would probably be the right one: the complexity cost of the abstraction is constant, while the benefit accrues linearly with the number of units. When handling that many moving pieces, anything you can do to enforce regularity among them is helpful.
 
@@ -503,7 +507,9 @@ We initialize by trying to collect a gremlin. If the gremlin's current vertex is
 
 #### Filter
 
-We've seen two simplistic ways of filtering, but sometimes we need more elaborate constraints. What if we want to find all of Thor's siblings whose weight in skippund is greater than their height in fathoms? This query would give us our answer:
+We've seen two simplistic ways of filtering, but sometimes we need more elaborate constraints. What if we want to find all of Thor's siblings whose weight is greater than their height [^weight]? This query would give us our answer:
+
+[^weight]: With weight in skippund and height in fathoms, naturally. Depending on the density of Asgardian flesh this may return many results, or none at all. (Or just Volstagg, if we're allowing Shakespeare by way of Jack Kirby into our pantheon.)
 
 ```javascript
 g.v('Thor').out().in().unique()
@@ -589,7 +595,7 @@ We initialize `state.taken` to zero if it doesn't already exist. JavaScript has 
 
 [^explicit]: Some would argue it's best to be explicit all the time. Others would argue that a good system for implicits makes for more concise, readable code, with less boilerplate and a smaller surface area for bugs. One thing we can all agree on is that making effective use of JavaScript's implicit coercion requires memorizing a lot of non-intuitive special cases, making it a minefield for the uninitiated.
 
-Then when `state.taken` reaches `args[0]` we return `done`, sealing off the pipes before us. We also reset the `state.taken` counter, allowing us to repeat the query later.
+Then when `state.taken` reaches `args[0]` we return 'done', sealing off the pipes before us. We also reset the `state.taken` counter, allowing us to repeat the query later.
 
 We do those two steps before query initialization to handle the cases of `take(0)` and `take()` [^takereturn]. Then we increment our counter and return the gremlin.
 
@@ -650,13 +656,13 @@ g.v('Thor').out().in().unique()
            .filter(function(asgardian) {return asgardian._id != 'Thor'}).run()
 ```
 
-It's more straightforward with 'as' and 'except':
+It's more straightforward with `as` and `except`:
 
 ```javascript
 g.v('Thor').as('me').out().in().except('me').unique().run()
 ```
 
-But there are also queries that would be difficult to try to filter. What if we wanted Thor's uncles and aunts? How would we filter out his parents? It's easy with 'as' and 'except' [^unexpectedresults]:
+But there are also queries that would be difficult to try to filter. What if we wanted Thor's uncles and aunts? How would we filter out his parents? It's easy with `as` and `except` [^unexpectedresults]:
 
 ```javascript
 g.v('Thor').out().as('parent').out().in().except('parent').unique().run()
@@ -831,7 +837,7 @@ We compared programs to pipelines earlier, and that's a good mental model for wr
 
 Reading the step means evaluating the pipetype function. As we saw above, each of those functions accepts as input the entire graph, its own arguments, maybe a gremlin, and its own local state. As output it provides a gremlin, false, or a signal of 'pull' or 'done'. This output is what our quasi-Turing machine reads in order to change the machine's state.
 
-That state comprises just two variables: one to record steps that are `done`, and another to record the `results` of the query. Those are updated, and then either the machine head moves or the query finishes and the result is returned.
+That state comprises just two variables: one to record steps that are 'done', and another to record the `results` of the query. Those are updated, and then either the machine head moves or the query finishes and the result is returned.
 
 We've now described all the state in our machine. We'll have a list of results that starts empty:
 
@@ -839,7 +845,7 @@ We've now described all the state in our machine. We'll have a list of results t
   var results = []
 ```
 
-An index of the last `done` step that starts behind the first step:
+An index of the last 'done' step that starts behind the first step:
 
 ```javascript
   var done = -1
