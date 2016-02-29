@@ -110,7 +110,7 @@ Do you see any other issues?
 Let's solve a few of the problems we've discovered. Having our vertices and edges be global constructs limits us to one graph at a time, but we'd like to have more. To solve this we'll need some structure. Let's start with a namespace.
 
 ```javascript
-Dagoba = {}                                             // the namespace
+Dagoba = {}                                     // the namespace
 ```
 
 We'll use an object as our namespace. An object in JavaScript is mostly just an unordered set of key/value pairs. We only have four basic data structures to choose from in JavaScript, so we'll be using this one a lot. (A fun question to ask people at parties is "What are the four basic data structures in JavaScript?")
@@ -154,15 +154,15 @@ Dagoba.G.addEdges    = function(es) { es.forEach(this.addEdge  .bind(this)) }
 Okay, that was too easy --- we're just passing off the work to `addVertex` and `addEdge`. We should define those now too.
 
 ```javascript
-Dagoba.G.addVertex = function(vertex) {             // accepts a vertex-like object
+Dagoba.G.addVertex = function(vertex) {         // accepts a vertex-like object
   if(!vertex._id)
     vertex._id = this.autoid++
   else if(this.findVertexById(vertex._id))
     return Dagoba.error('A vertex with that ID already exists')
 
   this.vertices.push(vertex)
-  this.vertexIndex[vertex._id] = vertex             // a fancy index thing
-  vertex._out = []; vertex._in = []                 // placeholders for edge pointers
+  this.vertexIndex[vertex._id] = vertex         // a fancy index thing
+  vertex._out = []; vertex._in = []             // placeholders for edge pointers
   return vertex._id
 }
 ```
@@ -188,7 +188,7 @@ Now that we've got our new vertex we'll add it to our graph's list of vertices, 
 [^edgelistadt]: We use the term *list* to refer to the abstract data structure requiring push and iterate operations. We use JavaScript's "array" concrete data structure to fulfill the API required by the list abstraction. Technically both "list of edges" and "array of edges" are correct, so which we use at a given moment depends on context: if we are relying on the specific details of JavaScript arrays, like the `.length` property, we will say "array of edges". Otherwise we say "list of edges", as an indication that any list implementation would suffice.
 
 ```javascript
-Dagoba.G.addEdge = function(edge) {         // accepts an edge-like object
+Dagoba.G.addEdge = function(edge) {             // accepts an edge-like object
   edge._in  = this.findVertexById(edge._in)
   edge._out = this.findVertexById(edge._out)
 
@@ -196,8 +196,8 @@ Dagoba.G.addEdge = function(edge) {         // accepts an edge-like object
     return Dagoba.error("That edge's " + (edge._in ? 'out' : 'in')
                                        + " vertex wasn't found")
 
-  edge._out._out.push(edge)                 // add to edge's out vertex's out edges
-  edge._in._in.push(edge)                   // vice versa
+  edge._out._out.push(edge)                     // edge's out vertex's out edges
+  edge._in._in.push(edge)                       // vice versa
 
   this.edges.push(edge)
 }
@@ -226,13 +226,13 @@ We'll start just like before, with a prototype and a query factory.
 ```javascript
 Dagoba.Q = {}
 
-Dagoba.query = function(graph) {                        // factory
+Dagoba.query = function(graph) {                // factory
   var query = Object.create( Dagoba.Q )
 
-  query.   graph = graph                                // the graph itself
-  query.   state = []                                   // state for each step
-  query. program = []                                   // list of steps to take
-  query.gremlins = []                                   // gremlins for each step
+  query.   graph = graph                        // the graph itself
+  query.   state = []                           // state for each step
+  query. program = []                           // list of steps to take
+  query.gremlins = []                           // gremlins for each step
 
   return query
 }
@@ -267,9 +267,9 @@ Each step is a composite entity, combining the pipetype function with the argume
 We'll use a small set of query initializers that generate a new query from a graph. Here's one that starts most of our examples: the `v` method. It builds a new query, then uses our `add` helper to populate the initial query program. This makes use of the `vertex` pipetype, which we'll look at soon.
 
 ```javascript
-Dagoba.G.v = function() {                        // query initializer: g.v() -> query
+Dagoba.G.v = function() {                       // query initializer: g.v() -> query
   var query = Dagoba.query(this)
-  query.add('vertex', [].slice.call(arguments))  // add a step to our program
+  query.add('vertex', [].slice.call(arguments)) // add a step to our program
   return query
 }
 ```
@@ -342,7 +342,7 @@ Note that adding a new pipetype with the same name replaces the existing one, wh
 
 ```javascript
 Dagoba.getPipetype = function(name) {
-  var pipetype = Dagoba.Pipetypes[name]             // a pipe type is just a function
+  var pipetype = Dagoba.Pipetypes[name]                 // a pipe type is a function
 
   if(!pipetype)
     Dagoba.error('Unrecognized pipe type: ' + name)
@@ -354,12 +354,14 @@ Dagoba.getPipetype = function(name) {
 If we can't find a pipetype, we generate an error and return the default pipetype, which acts like an empty conduit: if a message comes in one side, it gets passed out the other.
 
 ```javascript
-Dagoba.fauxPipetype = function(_, _, maybe_gremlin) {
-  return maybe_gremlin || 'pull'                    // coerce to the trivial pipetype
+Dagoba.fauxPipetype = function(_, _, maybe_gremlin) {   // pass the result upstream
+  return maybe_gremlin || 'pull'                        // or send a pull downstream
 }
 ```
 
-See those underscores? We use those to label params that won't be used in our function. Most other pipetypes will use all three parameters, and have all three parameter names. This allows us to distinguish at a glance which parameters a particular pipetype relies on.[footnote: Actually, we only used this underscore technique here to make the comments line up nicely. No, seriously. If programs "must be written for people to read, and only incidentally for machines to execute", [citation: Structure and Interpretation of Computer Programs, Abelson and Sussman] then it immediately follows that our predominant concern should be making code pretty.]
+See those underscores? We use those to label params that won't be used in our function. Most other pipetypes will use all three parameters, and have all three parameter names. This allows us to distinguish at a glance which parameters a particular pipetype relies on.[^underscores]
+
+[^underscores]: Actually, we only used this underscore technique here to make the comments line up nicely. No, seriously. If programs "must be written for people to read, and only incidentally for machines to execute", [citation: Structure and Interpretation of Computer Programs, Abelson and Sussman] then it immediately follows that our predominant concern should be making code pretty.
 
 
 #### Vertex
@@ -369,13 +371,13 @@ Most pipetypes we meet will take a gremlin and produce more gremlins, but this p
 ```javascript
 Dagoba.addPipetype('vertex', function(graph, args, gremlin, state) {
   if(!state.vertices)
-    state.vertices = graph.findVertices(args)      // state initialization
+    state.vertices = graph.findVertices(args)       // state initialization
 
-  if(!state.vertices.length)                       // all done
+  if(!state.vertices.length)                        // all done
     return 'done'
 
-  var vertex = state.vertices.pop()                // OPT: requires vertex cloning
-  return Dagoba.makeGremlin(vertex, gremlin.state) // gremlins from as/back queries
+  var vertex = state.vertices.pop()                 // OPT: requires vertex cloning
+  return Dagoba.makeGremlin(vertex, gremlin.state)  // gremlins from as/back queries
 })
 ```
 
@@ -570,14 +572,14 @@ Our query can function in an asynchronous environment, allowing us to collect mo
 
 ```javascript
 Dagoba.addPipetype('take', function(graph, args, gremlin, state) {
-  state.taken = state.taken || 0                        // state initialization
+  state.taken = state.taken || 0                              // state initialization
 
   if(state.taken == args[0]) {
     state.taken = 0
-    return 'done'                                       // all done
+    return 'done'                                             // all done
   }
 
-  if(!gremlin) return 'pull'                            // query initialization
+  if(!gremlin) return 'pull'                                  // query initialization
   state.taken++
   return gremlin
 })
@@ -765,7 +767,7 @@ Dagoba.G.findVertexById = function(vertex_id) {
 Note the use of `vertexIndex` here. Without that index we'd have to go through each vertex in our list one at a time to decide if it matched the ID --- turning a constant time operation into a linear time one, and any $O(n)$ operations that directly rely on it into $O(n^2)$ operations.
 
 ```javascript
-Dagoba.G.searchVertices = function(filter) {          // match on filter's properties
+Dagoba.G.searchVertices = function(filter) {        // match on filter's properties
   return this.vertices.filter(function(vertex) {
     return Dagoba.objectFilter(vertex, filter)
   })
@@ -782,16 +784,16 @@ We saw that `simpleTraversal` uses a filtering function on the edges it encounte
 ```javascript
 Dagoba.filterEdges = function(filter) {
   return function(edge) {
-    if(!filter)                              // no filter means everything is valid
+    if(!filter)                                 // no filter: everything is valid
       return true
 
-    if(typeof filter == 'string')            // filter is string: label must match
+    if(typeof filter == 'string')               // string filter: label must match
       return edge._label == filter
 
-    if(Array.isArray(filter))                // filter is array: must contain label
+    if(Array.isArray(filter))                   // array filter: must contain label
       return !!~filter.indexOf(edge._label)
 
-    return Dagoba.objectFilter(edge, filter) // use the filter as an object
+    return Dagoba.objectFilter(edge, filter)    // object filter: check edge keys
   }
 }
 ```
@@ -817,7 +819,7 @@ Dagoba.objectFilter = function(thing, filter) {
 This allows us to query the edge using a filter object:
 
 ```javascript
-`g.v('Odin').in({_label: 'spouse', order: 2}).run()` // finds Odin's second wife
+`g.v('Odin').in({_label: 'spouse', order: 2}).run()`    // finds Odin's second wife
 ```
 
 
@@ -974,7 +976,7 @@ We're done with the current step, and we've moved the head to the next one. If w
 This is also the initialization state, since `pc` starts as `max`. So we start here and work our way back, and end up here again at least once for each final result the query returns.
 
 ```javascript
-  results = results.map(function(gremlin) {  // return projected results, or vertices
+  results = results.map(function(gremlin) { // return projected results, or vertices
     return gremlin.result != null
          ? gremlin.result : gremlin.vertex } )
 
@@ -1000,7 +1002,7 @@ Dagoba.addTransformer = function(fun, priority) {
   if(typeof fun != 'function')
     return Dagoba.error('Invalid transformer function')
 
-  for(var i = 0; i < Dagoba.T.length; i++)                      // OPT: binary search
+  for(var i = 0; i < Dagoba.T.length; i++)  // OPT: binary search
     if(priority > Dagoba.T[i].priority) break
 
   Dagoba.T.splice(i, 0, {priority: priority, fun: fun})
@@ -1016,8 +1018,8 @@ We'll assume there won't be an enormous number of transformer additions, and wal
 To run these transformers we're going to inject a single line of code in to the top of our interpreter:
 
 ```javascript
-Dagoba.Q.run = function() {                       // our virtual machine for querying
-  this.program = Dagoba.transform(this.program)   // activate the transformers
+Dagoba.Q.run = function() {                     // our virtual machine for querying
+  this.program = Dagoba.transform(this.program) // activate the transformers
 ```
 
 We'll use that to call this function, which just passes our program through each transformer in turn:
@@ -1047,13 +1049,13 @@ We can use query transformers to make aliases with just a couple of extra helper
 
 ```javascript
 Dagoba.addAlias = function(newname, oldname, defaults) {
-  defaults = defaults || []                        // default arguments for the alias
+  defaults = defaults || []                     // default arguments for the alias
   Dagoba.addTransformer(function(program) {
     return program.map(function(step) {
       if(step[0] != newname) return step
       return [oldname, Dagoba.extend(step[1], defaults)]
     })
-    }, 100)                                        // 100 because aliases run early
+    }, 100)                                     // 100 because aliases run early
 
   Dagoba.addPipetype(newname, function() {})
 }
@@ -1225,8 +1227,8 @@ In JavaScript an object's `toString` function is called whenever that object is 
 The `fromString` function isn't part of the language specification, but it's handy to have around.
 
 ```javascript
-Dagoba.fromString = function(str) {                     // another graph constructor
-  var obj = JSON.parse(str)                             // this can throw
+Dagoba.fromString = function(str) {             // another graph constructor
+  var obj = JSON.parse(str)                     // this can throw
   return Dagoba.graph(obj.V, obj.E)
 }
 ```
