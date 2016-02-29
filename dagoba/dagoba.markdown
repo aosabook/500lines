@@ -257,7 +257,7 @@ We'll need a way to add steps to our query. Here's a helper function for that:
 ```javascript
 Dagoba.Q.add = function(pipetype, args) { // add a new step to the query
   var step = [pipetype, args]
-  this.program.push(step)                 // step is a pair of pipe type and its args
+  this.program.push(step)                 // step is a pair of pipetype and its args
   return this
 }
 ```
@@ -344,10 +344,10 @@ Note that adding a new pipetype with the same name replaces the existing one, wh
 
 ```javascript
 Dagoba.getPipetype = function(name) {
-  var pipetype = Dagoba.Pipetypes[name]                 // a pipe type is a function
+  var pipetype = Dagoba.Pipetypes[name]                 // a pipetype is a function
 
   if(!pipetype)
-    Dagoba.error('Unrecognized pipe type: ' + name)
+    Dagoba.error('Unrecognized pipetype: ' + name)
 
   return pipetype || Dagoba.fauxPipetype
 }
@@ -923,7 +923,7 @@ Dagoba.Q.run = function() {                 // a machine for query processing
 
   while(done < max) {
     var ts = this.state
-    step = this.program[pc]                 // step is a pair of pipe type and args
+    step = this.program[pc]                 // step is a pair of pipetype and args
     state = (ts[pc] = ts[pc] || {})         // this step's state must be an object
     pipetype = Dagoba.getPipetype(step[0])  // a pipetype is just a function
 ```
