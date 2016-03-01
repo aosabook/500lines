@@ -1,16 +1,16 @@
-# Dagoba: an in-memory graph database [^titlefoot]
+title:  Dagoba: an in-memory graph database
+author: Dann Toliver
 
-[^titlefoot] This database started life as a library for managing Directed Acyclic Graphs, or DAGs. It was originally intended to come with a silent 'h' at the end, an homage to the swampy fictional planet, but reading the back of a chocolate bar one day we discovered the sans-h version refers to a place for silently contemplating the connections between things, which seems even more fitting.
+_[Dann](https://twitter.com/dann) enjoys building things, like programming languages, databases, distributed systems, communities of smart friendly humans, and pony castles with his two year old._
+
+
+## Prologue
 
 > "When we try to pick out anything by itself we find that it is bound fast by a thousand invisible cords that cannot be broken, to everything in the universe."
 > --- John Muir
 
-&nbsp;
-
 > "What went forth to the ends of the world to traverse not itself, God, the sun, Shakespeare, a commercial traveller, having itself traversed in reality itself becomes that self."
 > --- James Joyce
-
-## Prologue
 
 A long time ago, when the world was still young, all data walked happily in single file. If you wanted your data to jump over a fence, you just set the fence down in its path and each datum jumped it in turn. Punch cards in, punch cards out. Life was easy and programming was a breeze.
 
@@ -24,12 +24,14 @@ The distributed revolution changed everything, again. Data broke free of spacial
 
 [^items]: One of the very first database designs was the hierarchical model, which grouped items into tree-shaped hierarchies and is still used as the basis of IBM's IMS product, a high-speed transaction processing system. It's influence can also been seen in XML, file systems and geographic information storage. The network model, invented by Charles Bachmann and standardized by CODASYL, generalized the hierarchical model by allowing multiple parents, forming a DAG instead of a tree. These navigational database models came in to vogue in the 1960s and continued their dominance until performance gains made relational databases usable in the 1980s.
 
-[^relationaltheory]: Edgar F. Codd developed relational database theory while working at IBM, but Big Blue feared that a relational database would cannibalize the sales of IMS. While IBM eventually built a research prototype called System R, it was based around a new non-relational language called SEQUEL, instead of Codd's original Alpha language. The SEQUEL language was copied by Larry Ellison in his Oracle Database based on pre-launch conference papers, and the name changed to SQL to avoid trademark disputes.]
+[^relationaltheory]: Edgar F. Codd developed relational database theory while working at IBM, but Big Blue feared that a relational database would cannibalize the sales of IMS. While IBM eventually built a research prototype called System R, it was based around a new non-relational language called SEQUEL, instead of Codd's original Alpha language. The SEQUEL language was copied by Larry Ellison in his Oracle Database based on pre-launch conference papers, and the name changed to SQL to avoid trademark disputes.
 
 
 ## Take One
 
-Within this chapter we're going to build a graph database. As we build it we're going to explore the problem space, generate multiple solutions for our design decisions, compare those solutions to understand the tradeoffs between them, and finally choose the right solution for our system. A higher-than-usual precedence is put on code compactness, but the process will otherwise mirror that used by software professionals since time immemorial. The purpose of this chapter is to teach this process. And to build a graph database.[^purpose]
+Within this chapter we're going to build a graph database[^dagoba]. As we build it we're going to explore the problem space, generate multiple solutions for our design decisions, compare those solutions to understand the tradeoffs between them, and finally choose the right solution for our system. A higher-than-usual precedence is put on code compactness, but the process will otherwise mirror that used by software professionals since time immemorial. The purpose of this chapter is to teach this process. And to build a graph database.[^purpose]
+
+[^dagoba]: This database started life as a library for managing Directed Acyclic Graphs, or DAGs. Its name "Dagoba" was originally intended to come with a silent 'h' at the end, an homage to the swampy fictional planet, but reading the back of a chocolate bar one day we discovered the sans-h version refers to a place for silently contemplating the connections between things, which seems even more fitting.
 
 [^purpose]: The two purposes of this chapter are to teach this process, to build a graph database, and to have fun.
 
@@ -361,9 +363,9 @@ Dagoba.fauxPipetype = function(_, _, maybe_gremlin) {   // pass the result upstr
 }
 ```
 
-See those underscores? We use those to label params that won't be used in our function. Most other pipetypes will use all three parameters, and have all three parameter names. This allows us to distinguish at a glance which parameters a particular pipetype relies on.[^underscores]
+See those underscores? We use those to label params that won't be used in our function. Most other pipetypes will use all three parameters, and have all three parameter names. This allows us to distinguish at a glance which parameters a particular pipetype relies on.
 
-[^underscores]: Actually, we only used this underscore technique here to make the comments line up nicely. No, seriously. If programs "must be written for people to read, and only incidentally for machines to execute", [citation: Structure and Interpretation of Computer Programs, Abelson and Sussman] then it immediately follows that our predominant concern should be making code pretty.
+This underscore technique is also important because it makes the comments line up nicely. No, seriously. If programs ["must be written for people to read, and only incidentally for machines to execute"](https://mitpress.mit.edu/sicp/front/node3.html), then it immediately follows that our predominant concern should be making code pretty.
 
 
 #### Vertex

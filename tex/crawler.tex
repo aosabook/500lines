@@ -1,5 +1,19 @@
 \begin{aosachapter}{A Web Crawler With asyncio Coroutines}{s:crawler}{A. Jesse Jiryu Davis and Guido van Rossum}
 
+\emph{A. Jesse Jiryu Davis is a staff engineer at MongoDB in New York.
+He wrote Motor, the async MongoDB Python driver, and he is the lead
+developer of the MongoDB C Driver and a member of the PyMongo team. He
+contributes to asyncio and Tornado. He writes at
+\url{http://emptysqua.re}.}
+
+\emph{Guido van Rossum is the creator of Python, one of the major
+programming languages on and off the web. The Python community refers to
+him as the BDFL (Benevolent Dictator For Life), a title straight from a
+Monty Python skit. Guido's home on the web is
+\url{http://www.python.org/~guido/}.}
+
+\aosasecti{Introduction}\label{introduction}
+
 Classical computer science emphasizes efficient algorithms that complete
 computations as quickly as possible. But many networked programs spend
 their time not computing, but holding open many connections that are
@@ -157,7 +171,7 @@ network I/O, we create a non-blocking socket and register it with the
 default selector:
 
 \begin{verbatim}
-from selectors import DefaultSelector
+from selectors import DefaultSelector, EVENT_WRITE
 
 selector = DefaultSelector()
 
@@ -316,7 +330,7 @@ Here is the implementation of \texttt{connected}:
     def connected(self, key, mask):
         print('connected!')
         selector.unregister(key.fd)
-        request = 'GET {} HTTP/1.0\r\nHost: xkcd.com\r\n\r\n'.format(url)
+        request = 'GET {} HTTP/1.0\r\nHost: xkcd.com\r\n\r\n'.format(self.url)
         self.sock.send(request.encode('ascii'))
         
         # Register the next callback.
@@ -496,7 +510,7 @@ direct\footnote{The \texttt{@asyncio.coroutine} decorator is not
 \begin{verbatim}
     @asyncio.coroutine
     def fetch(self, url):
-        response = yield from aiohttp.request('get', url)
+        response = yield from self.session.get(url)
         body = yield from response.read()
 \end{verbatim}
 
@@ -514,14 +528,13 @@ coroutine to run next.
 There are many implementations of coroutines; even in Python there are
 several. The coroutines in the standard ``asyncio'' library in Python
 3.4 are built upon generators, a Future class, and the ``yield from''
-statement. Starting in Python 3.5, coroutines will be a native feature
-of the language itself\footnote{Python 3.5's built-in coroutines are
+statement. Starting in Python 3.5, coroutines are a native feature of
+the language itself\footnote{Python 3.5's built-in coroutines are
   described in \href{https://www.python.org/dev/peps/pep-0492/}{PEP
-  492}, ``Coroutines with async and await syntax.'' At the time of this
-  writing, Python 3.5 was in beta, due for release in September 2015.};
-however, understanding coroutines as they were first implemented in
-Python 3.4, using pre-existing language facilities, is the foundation to
-tackle Python 3.5's native coroutines.
+  492}, ``Coroutines with async and await syntax.''}; however,
+understanding coroutines as they were first implemented in Python 3.4,
+using pre-existing language facilities, is the foundation to tackle
+Python 3.5's native coroutines.
 
 To explain Python 3.4's generator-based coroutines, we will engage in an
 exposition of generators and how they are used as coroutines in asyncio,
@@ -936,7 +949,7 @@ yields are from \texttt{caller} or from the generator it delegates to.
 And from inside \texttt{gen}, we cannot tell if values are sent in from
 \texttt{caller} or from outside it. The \texttt{yield from} statement is
 a frictionless channel, through which values flow in and out of
-\texttt{gen} until it \texttt{gen} completes.
+\texttt{gen} until \texttt{gen} completes.
 
 A coroutine can delegate work to a sub-coroutine with
 \texttt{yield from} and receive the result of the work. Notice, above,
@@ -1124,7 +1137,7 @@ promised, you can fetch a URL as sleekly as this:
 \begin{verbatim}
     @asyncio.coroutine
     def fetch(self, url):
-        response = yield from aiohttp.request('get', url)
+        response = yield from self.session.get(url)
         body = yield from response.read()
 \end{verbatim}
 
@@ -1172,10 +1185,11 @@ main logic in its \texttt{crawl} method. We start \texttt{crawl} on a
 coroutine and run asyncio's event loop until \texttt{crawl} finishes:
 
 \begin{verbatim}
+loop = asyncio.get_event_loop()
+
 crawler = crawling.Crawler('http://xkcd.com',
                            max_redirect=10)
 
-loop = asyncio.get_event_loop()
 loop.run_until_complete(crawler.crawl())
 \end{verbatim}
 
@@ -1191,6 +1205,10 @@ class Crawler:
         self.max_redirect = max_redirect
         self.q = Queue()
         self.seen_urls = set()
+        
+        # aiohttp's ClientSession does connection pooling and
+        # HTTP keep-alives for us.
+        self.session = aiohttp.ClientSession(loop=loop)
         
         # Put (URL, max_redirect) in the queue.
         self.q.put((root_url, self.max_redirect))
@@ -1372,27 +1390,31 @@ not enqueue ``baz'' again.
     @asyncio.coroutine
     def fetch(self, url, max_redirect):
         # Handle redirects ourselves.
-        response = yield from aiohttp.request(
-            'get', url, allow_redirects=False)
+        response = yield from self.session.get(
+            url, allow_redirects=False)
 
-        if is_redirect(response):
-            if max_redirect > 0:
-                next_url = response.headers['location']
-                if next_url in self.seen_urls:
-                    # We have been down this path before.
-                    return
-
-                # Remember we have seen this URL.
-                self.seen_urls.add(next_url)
-                
-                # Follow the redirect. One less redirect remains.
-                self.q.put_nowait((next_url, max_redirect - 1))
-         else:
-             links = yield from self.parse_links(response)
-             # Python set-logic:
-             for link in links.difference(self.seen_urls):
-                self.q.put_nowait((link, self.max_redirect))
-            self.seen_urls.update(links)
+        try:
+            if is_redirect(response):
+                if max_redirect > 0:
+                    next_url = response.headers['location']
+                    if next_url in self.seen_urls:
+                        # We have been down this path before.
+                        return
+    
+                    # Remember we have seen this URL.
+                    self.seen_urls.add(next_url)
+                    
+                    # Follow the redirect. One less redirect remains.
+                    self.q.put_nowait((next_url, max_redirect - 1))
+             else:
+                 links = yield from self.parse_links(response)
+                 # Python set-logic:
+                 for link in links.difference(self.seen_urls):
+                    self.q.put_nowait((link, self.max_redirect))
+                self.seen_urls.update(links)
+        finally:
+            # Return connection to pool.
+            yield from response.release()
 \end{verbatim}
 
 If the response is a page, rather than a redirect, \texttt{fetch} parses
@@ -1584,11 +1606,11 @@ examining the routine itself rather than examining the entire system.''
 This chapter was written during a renaissance in the history of Python
 and async. Generator-based coroutines, whose devising you have just
 learned, were released in the ``asyncio'' module with Python 3.4 in
-March 2014. In September 2015, Python 3.5 will be released with
-coroutines built in to the language itself. These native coroutines will
-be declared with the new syntax ``async def'', and instead of ``yield
-from'', they will use the new ``await'' keyword to delegate to a
-coroutine or wait for a Future.
+March 2014. In September 2015, Python 3.5 was released with coroutines
+built in to the language itself. These native coroutinesare declared
+with the new syntax ``async def'', and instead of ``yield from'', they
+use the new ``await'' keyword to delegate to a coroutine or wait for a
+Future.
 
 Despite these advances, the core ideas remain. Python's new native
 coroutines will be syntactically distinct from generators but work very

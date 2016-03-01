@@ -1,5 +1,9 @@
 \begin{aosachapter}{Static Analysis}{s:static-analysis}{Leah Hanson}
 
+\emph{Leah Hanson is a proud alumni of Hacker School and loves helping
+people learn about Julia. She blogs at \url{http://blog.leahhanson.us/}
+and tweets at \href{https://twitter.com/astrieanna}{@astrieanna}.}
+
 \aosasecti{Introduction}\label{introduction}
 
 You may be familiar with a fancy IDE that draws red underlines under
@@ -422,7 +426,7 @@ This process of examining Julia code from Julia code is called
 introspection. When you or I introspect, we're thinking about how and
 why we think and feel. When code introspects, it examines the
 representation or execution properties of code in the same language
-(possibly it's own code). When code's introspection extends to modifying
+(possibly its own code). When code's introspection extends to modifying
 the examined code, it's called metaprogramming (programs that write or
 modify programs).
 
@@ -630,7 +634,7 @@ julia> body.args
  :( # none, line 2:)                                              
  :(z = (top(box))(Int64,(top(add_int))(x::Int64,y::Int64))::Int64)
  :( # line 3:)                                                    
- :(return (top(box))(Int64,(top(mul_int))(2,z::Int64))::Int64)    ~~
+ :(return (top(box))(Int64,(top(mul_int))(2,z::Int64))::Int64)    
 \end{verbatim}
 
 \texttt{args} holds a list of expressions: the list of expressions in

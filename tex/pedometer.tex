@@ -1,5 +1,13 @@
 \begin{aosachapter}{A Pedometer in the Real World}{s:pedometer}{Dessy Daskalov}
 
+\emph{Dessy is an engineer by trade, an entrepreneur by passion, and a
+developer at heart. She's currently the CTO and co-founder of
+\href{http://nudgerewards.com/.}{Nudge Rewards} When she's not busy
+building product with her team, she can be found teaching others to
+code, attending or hosting a Toronto tech event, and online at
+\href{http://www.dessydaskalov.com/}{dessydaskalov.com} and
+\href{https://twitter.com/dess_e}{@dess\_e}.}
+
 \aosasecti{A Perfect World}\label{a-perfect-world}
 
 Many software engineers reflecting on their training will remember
@@ -242,7 +250,7 @@ because of its low overhead and ease of implementation. The IIR filter
 we've chosen is implemented using the formula:
 
 \[
-output_{i} = \alpha_{0}(input_{i}\beta_{0} + input_{i-1}\beta_{1} + input_{i-2}\beta_{2} - output_{i-1}\alpha_{1} - output_{i-2}\alpha_{2})$
+output_{i} = \alpha_{0}(input_{i}\beta_{0} + input_{i-1}\beta_{1} + input_{i-2}\beta_{2} - output_{i-1}\alpha_{1} - output_{i-2}\alpha_{2})
 \]
 
 The design of digital filters is outside of the scope of this chapter,
@@ -732,15 +740,17 @@ exactly three elements per the innermost arrays, we throw an exception.
 Otherwise, we continue on.
 
 Note the differences in \texttt{@parsed\_data} between the two formats
-at this stage. In the \emph{combined format} it contains arrays with
+at this stage. In the \emph{combined format} it contains arrays of
 exactly \emph{one} array:
 
-\[[[[x1, y1, z1]], ... [[xn, yn, zn]]\]
+\[
+[[[x_1, y_1, z_1]], \ldots [[x_n, y_n, z_n]]
+\]
 
-In the \emph{separated format} it contains arrays with exactly
-\emph{two} arrays:
+In the \emph{separated format} it contains arrays of exactly \emph{two}
+arrays:
 
-\[[[[x_{u}1,y_{u}1,z_{u}1], [x_{g}1,y_{g}1,z_{g}1]], ... [[x_{u}n,y_{u}n,z_{u}n], [x_{g}n,y_{g}n,z_{g}n]]]\]
+\[[[[x_{u}^1,y_{u}^1,z_{u}^1], [x_{g}^1,y_{g}^1,z_{g}^1]], ... [[x_{u}^n,y_{u}^n,z_{u}^n], [x_{g}^n,y_{g}^n,z_{g}^n]]]\]
 
 The separated format is already in our desired standard format after
 this operation. Amazing. However, if the data is combined (or,

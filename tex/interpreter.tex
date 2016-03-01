@@ -1,12 +1,5 @@
 \begin{aosachapter}{A Python Interpreter Written in Python}{s:interpreter}{Allison Kaptur}
 
-\emph{Allison is an engineer at Dropbox, where she helps maintain one of
-the largest networks of Python clients in the world. Before Dropbox, she
-was a facilitator at the Recurse Center, a writers retreat for
-programmers in New York. She's spoken at PyCon North America about
-Python internals and loves weird bugs. She blogs at
-\href{http://akaptur.com}{akaptur.com}.}
-
 \aosasecti{Introduction}\label{introduction}
 
 Byterun is a Python interpreter implemented in Python. Through my work
@@ -452,9 +445,11 @@ outputs an explanation of the bytecode it has passed.
              29 RETURN_VALUE
 \end{verbatim}
 
-The first column shows the line numbers in our Python source code. The
-second column is an index into the bytecode, telling us that the
-\texttt{LOAD\_FAST} instruction appears at position zero. The third
+What does all this mean? Let's look at the first instruction
+\texttt{LOAD\_CONST} as an example. The number in the first column
+(\texttt{2}) shows the line number in our Python source code. The second
+column is an index into the bytecode, telling us that the
+\texttt{LOAD\_CONST} instruction appears at position zero. The third
 column is the instruction itself, mapped to its human-readable name. The
 fourth column, when present, is the argument to that instruction. The
 fifth column, when present, is a hint about what the argument means.
@@ -543,7 +538,7 @@ is calculated and then \texttt{POP\_JUMP\_IF\_FALSE} controls which
 instruction is executed next. At the end of line 4 --- the end of the
 loop's body --- the instruction \texttt{JUMP\_ABSOLUTE} always sends the
 interpreter back to instruction 9 at the top of the loop. When x
-\textless{} 10 becomes false, then \texttt{POP\_JUMP\_IF\_FALSE} jumps
+\textless{} 5 becomes false, then \texttt{POP\_JUMP\_IF\_FALSE} jumps
 the interpreter past the end of the loop, to instruction 34.
 
 \begin{verbatim}
@@ -1077,7 +1072,7 @@ class VirtualMachine(object):
 
     # Block stack manipulation
     def push_block(self, b_type, handler=None):
-        level = len(self.frame.stack)
+        stack_height = len(self.frame.stack)
         self.frame.block_stack.append(Block(b_type, handler, stack_height))
 
     def pop_block(self):

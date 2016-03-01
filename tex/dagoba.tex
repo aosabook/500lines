@@ -4,16 +4,18 @@
 programming languages, databases, distributed systems, communities of
 smart friendly humans, and pony castles with his two year old.}
 
+\aosasecti{Prologue}\label{prologue}
+
 \begin{quote}
 ``When we try to pick out anything by itself we find that it is bound
 fast by a thousand invisible cords that cannot be broken, to everything
-in the universe.'' -- John Muir
+in the universe.'' --- John Muir
 \end{quote}
 
 \begin{quote}
 ``What went forth to the ends of the world to traverse not itself, God,
 the sun, Shakespeare, a commercial traveller, having itself traversed in
-reality itself becomes that self.'' -- James Joyce
+reality itself becomes that self.'' --- James Joyce
 \end{quote}
 
 A long time ago, when the world was still young, all data walked happily
@@ -22,7 +24,7 @@ set the fence down in its path and each datum jumped it in turn. Punch
 cards in, punch cards out. Life was easy and programming was a breeze.
 
 Then came the random access revolution, and data grazed freely across
-the hillside. Herding data became a serious concern -- if you can access
+the hillside. Herding data became a serious concern: if you can access
 any piece of data at any time, how do you know which one to pick next?
 Techniques were developed for corralling the data by forming links
 between items \footnote{One of the very first database designs was the
@@ -40,20 +42,20 @@ assemblage. Questioning data meant picking a sheep and pulling along
 everything connected to it.
 
 Later programmers departed from this tradition, imposing a set of rules
-on how data would be aggregated\footnote{Codd developed relational
-  database theory while working at IBM, but Big Blue feared that a
-  relational database would cannibalize the sales of IMS. While IBM
-  eventually built a research prototype called System R, it was based
-  around a new non-relational language called SEQUEL, instead of Codd's
-  original Alpha language. The SEQUEL language was copied by Larry
-  Ellison in his Oracle Database based on pre-launch conference papers,
-  and the name changed to SQL to avoid trademark disputes.}. Rather than
-tying disparate data directly together they would cluster by content,
-decomposing data into bite-sized pieces, collected in kennels and
-collared with a name tag. Questions were declaratively posited,
-resulting in accumulating pieces of partially decomposed data (a state
-the relationalists refer to as ``normal'') into a frankencollection
-returned to the programmer.
+on how data would be aggregated\footnote{Edgar F. Codd developed
+  relational database theory while working at IBM, but Big Blue feared
+  that a relational database would cannibalize the sales of IMS. While
+  IBM eventually built a research prototype called System R, it was
+  based around a new non-relational language called SEQUEL, instead of
+  Codd's original Alpha language. The SEQUEL language was copied by
+  Larry Ellison in his Oracle Database based on pre-launch conference
+  papers, and the name changed to SQL to avoid trademark disputes.}.
+Rather than tying disparate data directly together they would cluster by
+content, decomposing data into bite-sized pieces, collected in pens and
+collared with name tags. Questions were posed declaratively, resulting
+in accumulating pieces of partially decomposed data (a state the
+relationalists refer to as ``normal'') into a frankencollection returned
+to the programmer.
 
 For much of recorded history this relational model reigned supreme. Its
 dominance went unchallenged through two major language wars and
@@ -65,49 +67,56 @@ Then the internet happened.
 The distributed revolution changed everything, again. Data broke free of
 spacial constraints and roamed from machine to machine. CAP-wielding
 theorists busted the relational monopoly, opening the door to a plethora
-of new herding techniques -- some of which hark back to the earliest
+of new herding techniques --- some of which hark back to the earliest
 attempts to domesticate random-access data. We're going to look at one
 of these, a style known as the graph database.
 
-\aosasecti{Take one}\label{take-one}
+\aosasecti{Take One}\label{take-one}
 
-Within this chapter we're going to build a graph database. As we build
-it we're also going to explore the problem space, generate multiple
+Within this chapter we're going to build a graph database\footnote{This
+  database started life as a library for managing Directed Acyclic
+  Graphs, or DAGs. Its name ``Dagoba'' was originally intended to come
+  with a silent `h' at the end, an homage to the swampy fictional
+  planet, but reading the back of a chocolate bar one day we discovered
+  the sans-h version refers to a place for silently contemplating the
+  connections between things, which seems even more fitting.}. As we
+build it we're going to explore the problem space, generate multiple
 solutions for our design decisions, compare those solutions to
 understand the tradeoffs between them, and finally choose the right
 solution for our system. A higher-than-usual precedence is put on code
 compactness, but the process will otherwise mirror that used by software
 professionals since time immemorial. The purpose of this chapter is to
-teach this process. And to build a graph database. \footnote{The two
+teach this process. And to build a graph database.\footnote{The two
   purposes of this chapter are to teach this process, to build a graph
   database, and to have fun.}
 
 Using a graph database will allow us to solve some interesting problems
 in an elegant fashion. Graphs are a very natural data structure for
 exploring connections between things. A graph in this sense is a set of
-vertices and a set of edges -- in other words it's a bunch of dots
+vertices and a set of edges; in other words, it's a bunch of dots
 connected by lines. And a database? A ``data base'' is like a fort for
-data. You can put data in it and get data back out of it.
+data. You put data in it and get data back out of it.
 
 So what kinds of problems can we solve with a graph database? Well,
-suppose that you are one of those who have discovered the unbridled joy
-of tracking ancestral trees: parents, children, all that kind of thing.
-You'd like to develop a system that allows you to make natural and
-elegant queries like ``Who are Thor's second cousins once removed?'' or
-``What is Freyja's connection to the Valkyries?''.
+suppose that you enjoy tracking ancestral trees: parents, grandparents,
+cousins twice removed, that kind of thing. You'd like to develop a
+system that allows you to make natural and elegant queries like ``Who
+are Thor's second cousins once removed?'' or ``What is Freyja's
+connection to the Valkyries?''
 
 A reasonable schema for this data structure would be to have a table of
 entities and a table of relationships. A query for Thor's parents might
-look like:
+look like
 
 \begin{verbatim}
-SELECT e.* FROM entities as e, relationships as r 
+SELECT e.* FROM entities as e, relationships as r
 WHERE r.out = "Thor" AND r.type = "parent" AND r.in = e.id
 \end{verbatim}
 
 But how do we extend that to grandparents? We need to do a subquery, or
 use some other type of vendor-specific extension to SQL. And by the time
-we get to second cousins once removed we're going to have ALOTTA SQL.
+we get to second cousins once removed we're going to have \emph{a lot}
+of SQL.
 
 What would we like to write? Something both concise and flexible;
 something that models our query in a natural way and extends to other
@@ -118,7 +127,7 @@ flexible, but lacks concision.
 Something like
 \texttt{Thor.parents.parents.parents.children.children.children} strikes
 a reasonably good balance. The primitives give us flexibility to ask
-many similar questions, but the query is also concise and natural. This
+many similar questions, but the query is concise and natural. This
 particular phrasing gives us too many results, as it includes first
 cousins and siblings, but we're going for gestalt here.
 
@@ -128,11 +137,10 @@ like the relational schema, and then build some helper functions. It
 might look something like this:
 
 \begin{verbatim}
-V = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
-E = [ [1,2], [1,3], [2,4], [2,5], [3,6], [3,7], [4,8], [4,9], [5,10], [5,11], 
-      [6,12], [6,13], [7,14], [7,15] ]
+V = [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 ]
+E = [ [1,2], [1,3],  [2,4],  [2,5],  [3,6],  [3,7],  [4,8]
+    , [4,9], [5,10], [5,11], [6,12], [6,13], [7,14], [7,15] ]
 
-// imperative style
 parents = function(vertices) {
   var accumulator = []
   for(var i=0; i < E.length; i++) {
@@ -159,40 +167,37 @@ Written in this more functional style our queries are shorter and
 clearer:
 
 \begin{verbatim}
-parents  = (vertices) => E.reduce((acc, [parent, child]) => 
-  vertices.includes(child) ? acc.concat(parent) : acc , [] )
-children = (vertices) => E.reduce((acc, [parent, child]) => 
-  vertices.includes(parent) ? acc.concat(child)  : acc , [] )
+parents  = (vertices) => E.reduce( (acc, [parent, child])
+         => vertices.includes(child)  ? acc.concat(parent) : acc , [] )
+children = (vertices) => E.reduce( (acc, [parent, child])
+         => vertices.includes(parent) ? acc.concat(child)  : acc , [] )
 \end{verbatim}
 
-Given a list of vertices we then reduce over the edges, adding an edge's
+Given a list of vertices we reduce over the edges, adding an edge's
 parent to the accumulator if the edge's child is in our input list. The
-children function is identical, but examines the edge's parent to
-determine whether to add the edge's child.
+\texttt{children} function is identical, but examines the edge's parent
+to determine whether to add the edge's child.
 
-Those functions are valid JS, but use a few features browsers haven't
-implemented as of this writing. This translated version will work today:
+Those functions are valid JavaScript, but use a few features which
+browsers haven't implemented as of this writing. This translated version
+will work today:
 
 \begin{verbatim}
-parents  = function(x) { return E.reduce( 
+parents  = function(x) { return E.reduce(
   function(acc, e) { return ~x.indexOf(e[1]) ? acc.concat(e[0]) : acc }, [] )}
-children = function(x) { return E.reduce( 
+children = function(x) { return E.reduce(
   function(acc, e) { return ~x.indexOf(e[0]) ? acc.concat(e[1]) : acc }, [] )}
 \end{verbatim}
 
-Now we can say something like:
-
-\begin{verbatim}
-children(children(children(parents(parents(parents([8]))))))
-\end{verbatim}
-
+Now we can say something like
+\texttt{children(children(children(parents(parents(parents({[}8{]}))))))}.
 It reads backwards and gets us lost in silly parens, but is otherwise
 pretty close to what we wanted. Take a minute to look at the code. Can
 you see any ways to improve it?
 
-Well, we're treating the edges as a global variable, which means we can
-only ever have one database at a time using these helper functions.
-That's pretty limiting.
+We're treating the edges as a global variable, which means we can only
+ever have one database at a time using these helper functions. That's
+pretty limiting.
 
 We're also not using the vertices at all. What does that tell us? It
 implies that everything we need is in the edges array, which in this
@@ -203,16 +208,16 @@ information to the vertices, which means making them compound values,
 which means the edges array should reference vertices instead of copying
 their value.
 
-The same holds true for our edges: they contain an `in' vertex and an
-`out' vertex\footnote{Notice that we're modeling edges as a pair of
+The same holds true for our edges: they contain an ``in'' vertex and an
+``out'' vertex \footnote{Notice that we're modeling edges as a pair of
   vertices. Also notice that those pairs are ordered, because we're
   using arrays. That means we're modeling a \emph{directed graph}, where
   every edge has a starting vertex and an ending vertex. Our ``dots and
-  lines'' visual model becomes a ``dots and arrows'' model instead. This
-  adds complexity to our model, because we have to keep track of the
+  lines'' visual model becomes a ``dots and arrows'' model. This adds
+  complexity to our model, because we have to keep track of the
   direction of edges, but it also allows us to ask more interesting
   questions, like ``which vertices point to vertex 3?'' or ``which
-  vertex has the most outgoing edges?''. If we need to model an
+  vertex has the most outgoing edges?'' If we need to model an
   undirected graph we could add a reversed edge for each existing edge
   in our directed graph. It can be cumbersome to go the other direction:
   simulating a directed graph from an undirected one. Can you think of a
@@ -223,11 +228,11 @@ Thor was born?''
 
 You don't have to squint very hard to tell that the code for our two
 selectors looks very similar, which suggests there may be a deeper
-abstraction from which those spring.
+abstraction from which they spring.
 
 Do you see any other issues?
 
-\aosasecti{Build a better graph}\label{build-a-better-graph}
+\aosasecti{Build a Better Graph}\label{build-a-better-graph}
 
 Let's solve a few of the problems we've discovered. Having our vertices
 and edges be global constructs limits us to one graph at a time, but
@@ -240,16 +245,16 @@ Dagoba = {}                                     // the namespace
 
 We'll use an object as our namespace. An object in JavaScript is mostly
 just an unordered set of key/value pairs. We only have four basic data
-structures to choose from in JS, so we'll be using this one a lot. (A
-fun question to ask people at parties is ``What are the four basic data
-structures in JavaScript?'')
+structures to choose from in JavaScript, so we'll be using this one a
+lot. (A fun question to ask people at parties is ``What are the four
+basic data structures in JavaScript?'')
 
 Now we need some graphs. We can build these using a classic OOP pattern,
 but JavaScript offers us prototypal inheritance, which means we can
-build up a prototype object -- we'll call it Dagoba.G -- and then
-instantiate copies of that using a factory function. An advantage of
-this approach is that we can return different types of objects from the
-factory, instead of binding the creation process to a single class
+build up a prototype object --- we'll call it \texttt{Dagoba.G} --- and
+then instantiate copies of that using a factory function. An advantage
+of this approach is that we can return different types of objects from
+the factory, instead of binding the creation process to a single class
 constructor. So we get some extra flexibility for free.
 
 \begin{verbatim}
@@ -261,75 +266,69 @@ Dagoba.graph = function(V, E) {                 // the factory
   graph.edges       = []                        // fresh copies so they're not shared
   graph.vertices    = []
   graph.vertexIndex = {}                        // a lookup optimization
-  
-  graph.autoid = 1                              // an auto-incrementing id counter
-  
+
+  graph.autoid = 1                              // an auto-incrementing ID counter
+
   if(Array.isArray(V)) graph.addVertices(V)     // arrays only, because you wouldn't
-  if(Array.isArray(E)) graph.addEdges(E)        // call this with singular V and E
-  
+  if(Array.isArray(E)) graph.addEdges(E)        //   call this with singular V and E
+
   return graph
 }
 \end{verbatim}
 
 We'll accept two optional arguments: a list of vertices and a list of
 edges. JavaScript is rather lax about parameters, so all named
-parameters are optional and default to `undefined' if not
-supplied\footnote{It's also lax the other direction: all functions are
+parameters are optional and default to `undefined' if not supplied
+\footnote{It's also lax in the other direction: all functions are
   variadic, and all arguments are available by position via the
   \texttt{arguments} object, which is almost like an array but not
-  quite. (`Variadic' is just a fancy way of saying a function has
-  indefinite arity. Which is a fancy way of saying it takes a variable
-  number of variables.)}. We will often have the vertices and edges
-before building the graph and use the V and E parameters, but it's also
-common to not have those at creation time and to build the graph up
-programmatically \footnote{The \texttt{Array.isArray} checks here are to
-  distinguish our two different use cases, but in general we won't be
-  doing many of the validations one would expect of production code in
-  order to focus on the architecture instead of the trash bins.}.
+  quite. (``Variadic'' is a fancy way of saying a function has
+  indefinite arity. ``A function has indefinite arity'' is a fancy way
+  of saying it takes a variable number of variables.)}. We will often
+have the vertices and edges before building the graph and use the V and
+E parameters, but it's also common to not have those at creation time
+and to build the graph up programmatically \footnote{The
+  \texttt{Array.isArray} checks here are to distinguish our two
+  different use cases, but in general we won't be doing many of the
+  validations one would expect of production code, in order to focus on
+  the architecture instead of the trash bins.}.
 
 Then we create a new object that has all of our prototype's strengths
 and none of its weaknesses. We build a brand new array (one of the other
 basic JS data structures) for our edges, another for the vertices, a new
-object called vertexIndex and an id counter -- more on those latter two
-later. (Think: why can't we just put these in the prototype?)
+object called \texttt{vertexIndex} and an ID counter --- more on those
+latter two later. (Think: Why can't we just put these in the prototype?)
 
-Then we call addVertices and addEdges from inside our factory, so let's
-define those now.
+Then we call \texttt{addVertices} and \texttt{addEdges} from inside our
+factory, so let's define those now.
 
 \begin{verbatim}
-Dagoba.G.addVertices = function(vertices) { 
-  vertices.forEach(this.addVertex.bind(this)) 
-}
-Dagoba.G.addEdges = function(edges) { 
-  edges.forEach(this.addEdge.bind(this)) 
-}
+Dagoba.G.addVertices = function(vs) { vs.forEach(this.addVertex.bind(this)) }
+Dagoba.G.addEdges    = function(es) { es.forEach(this.addEdge  .bind(this)) }
 \end{verbatim}
 
-Okay, that was too easy -- we're just passing off the work to addVertex
-and addEdge. We should define those now too.
+Okay, that was too easy --- we're just passing off the work to
+\texttt{addVertex} and \texttt{addEdge}. We should define those now too.
 
 \begin{verbatim}
-// accepts a vertex-like object, with properties
-Dagoba.G.addVertex = function(vertex) {                 
+Dagoba.G.addVertex = function(vertex) {         // accepts a vertex-like object
   if(!vertex._id)
     vertex._id = this.autoid++
   else if(this.findVertexById(vertex._id))
-    return Dagoba.error('A vertex with that id already exists')
-    
+    return Dagoba.error('A vertex with that ID already exists')
+
   this.vertices.push(vertex)
-  this.vertexIndex[vertex._id] = vertex             // a fancy index thing
-  vertex._out = []; vertex._in = []                 // placeholders for edge pointers
+  this.vertexIndex[vertex._id] = vertex         // a fancy index thing
+  vertex._out = []; vertex._in = []             // placeholders for edge pointers
   return vertex._id
 }
 \end{verbatim}
 
 If the vertex doesn't already have an \texttt{\_id} property we assign
-it one using our autoid \footnote{We could make this decision based on a
-  Dagoba-level configuration parameter, a graph-specific configuration,
-  or possibly some type of heuristic.} (Why can't we just use
-\texttt{this.vertices.length} here?) If the \texttt{\_id} already exists
-on a vertex in our graph then we reject the new vertex. Wait, when would
-that happen? And what exactly is a vertex?
+it one using our autoid. \footnote{Why can't we just use
+  \texttt{this.vertices.length} here?} If the \texttt{\_id} already
+exists on a vertex in our graph then we reject the new vertex. Wait,
+when would that happen? And what exactly is a vertex?
 
 In a traditional object-oriented system we would expect to find a vertex
 class, which all vertices would be an instance of. We're going to take a
@@ -346,15 +345,15 @@ could retain a pointer to that vertex object and manipulate it at
 runtime, breaking our invariants.
 
 So if we create a vertex instance object, we're forced to decide up
-front whether we will always copy the provided data into a new object --
-potentially doubling our space usage -- or allow the host application
-unfettered access to the database objects. There's a tension here
-between performance and protection, and the right balance depends on
-your specific use case.
+front whether we will always copy the provided data into a new object
+--- potentially doubling our space usage --- or allow the host
+application unfettered access to the database objects. There's a tension
+here between performance and protection, and the right balance depends
+on your specific use case.
 
 Duck typing on the vertex's properties allows us to make that decision
 at run time, by either deep copying\footnote{Often when faced with space
-  leaks due to deep copying the solution is to use a path copying
+  leaks due to deep copying the solution is to use a path-copying
   persistent data structure, which allows mutation-free changes for only
   $\log{}N$ extra space. But the problem remains: if the host
   application retains a pointer to the vertex data then it can mutate
@@ -364,56 +363,57 @@ at run time, by either deep copying\footnote{Often when faced with space
   that are treated as immutable by the host application, which allows us
   to avoid this issue, but requires a certain amount of discipline on
   the part of the user.} the incoming data or using it directly as a
-vertex. We don't always want to put the responsibility for balancing
-safety and performance in the hands of the user, but because these two
-sets of use cases diverge so widely the extra flexibility is important.
+vertex\footnote{We could make this decision based on a Dagoba-level
+  configuration parameter, a graph-specific configuration, or possibly
+  some type of heuristic.}. We don't always want to put the
+responsibility for balancing safety and performance in the hands of the
+user, but because these two sets of use cases diverge so widely the
+extra flexibility is important.
 
-Okay, now that we've got our new vertex we'll add it in to our graph's
-list of vertices, add it to the \texttt{vertexIndex} for efficient
-lookup by \texttt{\_id}, and add two additional properties to it:
-\texttt{\_out} and \texttt{\_in}, which will both become lists of
-edges\footnote{We use the term `list' to refer to the abstract data
-  structure requiring push and iterate operations. We use JavaScript's
-  `array' concrete data structure to fulfill the API required by the
-  list abstraction. Technically both ``list of edges'' and ``array of
-  edges'' are correct, so which we use at a given moment depends on
-  context: if we are relying on the specific details of JavaScript
-  arrays, like the \texttt{.length} property, we will say ``array of
-  edges''. Otherwise we say ``list of edges'', as an indication that any
-  list implementation would suffice.}.
+Now that we've got our new vertex we'll add it to our graph's list of
+vertices, add it to the \texttt{vertexIndex} for efficient lookup by
+\texttt{\_id}, and add two additional properties to it: \texttt{\_out}
+and \texttt{\_in}, which will both become lists of edges\footnote{We use
+  the term \emph{list} to refer to the abstract data structure requiring
+  push and iterate operations. We use JavaScript's ``array'' concrete
+  data structure to fulfill the API required by the list abstraction.
+  Technically both ``list of edges'' and ``array of edges'' are correct,
+  so which we use at a given moment depends on context: if we are
+  relying on the specific details of JavaScript arrays, like the
+  \texttt{.length} property, we will say ``array of edges''. Otherwise
+  we say ``list of edges'', as an indication that any list
+  implementation would suffice.}.
 
 \begin{verbatim}
-// accepts an edge-like object, with properties
-Dagoba.G.addEdge = function(edge) {                     
+Dagoba.G.addEdge = function(edge) {             // accepts an edge-like object
   edge._in  = this.findVertexById(edge._in)
   edge._out = this.findVertexById(edge._out)
-  
-  if(!(edge._in && edge._out)) 
-    return Dagoba.error("That edge's " + (edge._in ? 'out' : 'in') + 
-                        " vertex wasn't found")
 
-  // add edge to the edge's out vertex's out edges
-  edge._out._out.push(edge)                             
-  // vice versa
-  edge._in._in.push(edge)                               
-  
+  if(!(edge._in && edge._out))
+    return Dagoba.error("That edge's " + (edge._in ? 'out' : 'in')
+                                       + " vertex wasn't found")
+
+  edge._out._out.push(edge)                     // edge's out vertex's out edges
+  edge._in._in.push(edge)                       // vice versa
+
   this.edges.push(edge)
 }
 \end{verbatim}
 
-First we find both vertices the edge connects, then reject the edge if
-it's missing either vertex. We'll use a helper function to log an error
-on rejection. All errors flow through this helper function, so we can
-override its behavior on a per-application basis. We could later extend
-this to allow onError handlers to be registered, so the host application
-could link in its own callbacks without overwriting the helper. We might
-allow such handlers to be registered per-graph, per-application, or
-both, depending on the level of flexibility required.
+First we find both vertices which the edge connects, then reject the
+edge if it's missing either vertex. We'll use a helper function to log
+an error on rejection. All errors flow through this helper function, so
+we can override its behavior on a per-application basis. We could later
+extend this to allow \texttt{onError} handlers to be registered, so the
+host application could link in its own callbacks without overwriting the
+helper. We might allow such handlers to be registered per-graph,
+per-application, or both, depending on the level of flexibility
+required.
 
 \begin{verbatim}
 Dagoba.error = function(msg) {
   console.log(msg)
-  return false 
+  return false
 }
 \end{verbatim}
 
@@ -423,41 +423,40 @@ edges.
 
 And that's all the graph structure we need for now!
 
-\aosasecti{Enter the query}\label{enter-the-query}
+\aosasecti{Enter the Query}\label{enter-the-query}
 
 There are really only two parts to this system: the part that holds the
 graph and the part that answers questions about the graph. The part that
 holds the graph is pretty simple, as we've seen. The query part is a
 little trickier.
 
-We'll start just like before, with a prototype and a query factory:
+We'll start just like before, with a prototype and a query factory.
 
 \begin{verbatim}
 Dagoba.Q = {}
 
-// factory (only called by a graph's query initializers)
-Dagoba.query = function(graph) {
+Dagoba.query = function(graph) {                // factory
   var query = Object.create( Dagoba.Q )
-  
-  query.   graph = graph                                // the graph itself
-  query.   state = []                                   // state for each step
-  query. program = []                                   // list of steps to take  
-  query.gremlins = []                                   // gremlins for each step
+
+  query.   graph = graph                        // the graph itself
+  query.   state = []                           // state for each step
+  query. program = []                           // list of steps to take
+  query.gremlins = []                           // gremlins for each step
 
   return query
 }
 \end{verbatim}
 
-Now's a good time to introduce some new friends:
+Now's a good time to introduce some friends.
 
 A \emph{program} is a series of \emph{steps}. Each step is like a pipe
-in a pipeline -- a piece of data comes in one end, is transformed in
+in a pipeline --- a piece of data comes in one end, is transformed in
 some fashion, and goes out the other end. Our pipeline doesn't quite
 work like that, but it's a good first approximation.
 
 Each step in our program can have \emph{state}, and \texttt{query.state}
-is a list of per-step state that index correlates with the list of steps
-in query.program.
+is a list of per-step states that index correlates with the list of
+steps in \texttt{query.program}.
 
 A \emph{gremlin} is a creature that travels through the graph doing our
 bidding. A gremlin might be a surprising thing to find in a database,
@@ -468,8 +467,8 @@ and the
 and Pacer query languages}. They remember where they've been and allow
 us to find answers to interesting questions.
 
-Remember that question we wanted to answer? The one about Thor's second
-cousins once removed? We decided
+Remember that question we wanted to answer about Thor's second cousins
+once removed? We decided
 \texttt{Thor.parents.parents.parents.children.children.children} was a
 pretty good way of expressing that. Each \texttt{parents} or
 \texttt{children} instance is a step in our program. Each of those steps
@@ -479,20 +478,17 @@ performs that step's operation.
 That query in our actual system might look like
 \texttt{g.v('Thor').out().out().out().in().in().in()}. Each of the steps
 is a function call, and so they can take \emph{arguments}. The
-interpreter passes the step's arguments in to the step's pipetype
-function, so in the query \texttt{g.v('Thor').out(2, 3)} the
-\texttt{out} pipetype function would receive \texttt{{[}2, 3{]}} as its
-first parameter.
+interpreter passes the step's arguments to the step's pipetype function,
+so in the query \texttt{g.v('Thor').out(2, 3)} the \texttt{out} pipetype
+function would receive \texttt{{[}2, 3{]}} as its first parameter.
 
 We'll need a way to add steps to our query. Here's a helper function for
 that:
 
 \begin{verbatim}
-// add a new step to the query
-Dagoba.Q.add = function(pipetype, args) {    
-  // step is an array: first the pipe type, then its args
+Dagoba.Q.add = function(pipetype, args) { // add a new step to the query
   var step = [pipetype, args]
-  this.program.push(step)                    
+  this.program.push(step)                 // step is a pair of pipetype and its args
   return this
 }
 \end{verbatim}
@@ -500,26 +496,24 @@ Dagoba.Q.add = function(pipetype, args) {
 Each step is a composite entity, combining the pipetype function with
 the arguments to apply to that function. We could combine the two into a
 partially applied function at this stage, instead of using a tuple
-\footnote{A tuple is another abstract data structure -- one that is more
-  constrained than a list. In particular a tuple has a fixed size: in
-  this case we're using a 2-tuple (also known as a ``pair'' in the
+\footnote{A tuple is another abstract data structure --- one that is
+  more constrained than a list. In particular a tuple has a fixed size:
+  in this case we're using a 2-tuple (also known as a ``pair'' in the
   technical jargon of data structure researchers). Using the term for
   the most constrained abstract data structure required is a nicety for
-  future implementors.} , but then we'd lose some introspective power
+  future implementors.}, but then we'd lose some introspective power
 that will prove helpful later.
 
-We'll use a small set of query initializers that create generate a new
-query from a graph. Here's one that starts most of our examples: the
+We'll use a small set of query initializers that generate a new query
+from a graph. Here's one that starts most of our examples: the
 \texttt{v} method. It builds a new query, then uses our \texttt{add}
 helper to populate the initial query program. This makes use of the
 \texttt{vertex} pipetype, which we'll look at soon.
 
 \begin{verbatim}
-// a query initializer: g.v() -> query
-Dagoba.G.v = function() {                                         
+Dagoba.G.v = function() {                       // query initializer: g.v() -> query
   var query = Dagoba.query(this)
-  // add a vertex pipetype step to our program
-  query.add('vertex', [].slice.call(arguments))                   
+  query.add('vertex', [].slice.call(arguments)) // add a step to our program
   return query
 }
 \end{verbatim}
@@ -530,17 +524,17 @@ forgiven for supposing that \texttt{arguments} is already an array,
 since it behaves like one in many situations, but it is lacking much of
 the functionality we utilize in modern JavaScript arrays.
 
-\aosasecti{The problem with being
-eager}\label{the-problem-with-being-eager}
+\aosasecti{The Problem with Being
+Eager}\label{the-problem-with-being-eager}
 
-Before we look at the pipetypes themselves we're going to take a slight
+Before we look at the pipetypes themselves we're going to take a
 diversion into the exciting world of execution strategy. There are two
 main schools of thought: the Call By Value clan, also known as eager
-beavers, strictly insist that all arguments be evaluated before the
-function is applied. Their opposing faction, the Call By Needians, are
-content to procrastinate until the last possible moment before doing
-anything, and even then do as little as possible -- they are, in a word,
-lazy.
+beavers, are strict in their insistence that all arguments be evaluated
+before the function is applied. Their opposing faction, the Call By
+Needians, are content to procrastinate until the last possible moment
+before doing anything, and even then do as little as possible --- they
+are, in a word, lazy.
 
 JavaScript, being a strict language, will process each of our steps as
 they are called. We would then expect the evaluation of
@@ -549,11 +543,11 @@ all vertices connected to it by outgoing edges, and from each of those
 vertices finally return all vertices they are connected to by inbound
 edges.
 
-In a non-strict language we would get the same result -- the execution
+In a non-strict language we would get the same result --- the execution
 strategy doesn't make much difference here. But what if we added a few
 additional calls? Given how well-connected Thor is, our
 \texttt{g.v('Thor').out().out().out().in().in().in()} query may produce
-many results -- in fact, because we're not limiting our vertex list to
+many results --- in fact, because we're not limiting our vertex list to
 unique results, it may produce many more results than we have vertices
 in our total graph.
 
@@ -566,22 +560,30 @@ of results before returning only the first 10.
 
 All graph databases have to support a mechanism for doing as little work
 as possible, and most choose some form of non-strict evaluation to do
-so. Since we're building our own interpreter the lazy evaluation of our
+so. Since we're building our own interpreter, the lazy evaluation of our
 program is certainly achievable, but we may have to contend with some
 unintended consequences.
 
-\aosasecti{Ramifications of evaluation strategy on our mental
-model}\label{ramifications-of-evaluation-strategy-on-our-mental-model}
+\aosasecti{Ramifications of Evaluation Strategy on our Mental
+Model}\label{ramifications-of-evaluation-strategy-on-our-mental-model}
 
-Up until now our model for evaluation has been very simple: - request a
-set of vertices - pass the returned set as input to a pipe - repeat as
-necessary
+Up until now our mental model for evaluation has been very simple:
+
+\begin{aosaitemize}
+
+\item
+  request a set of vertices
+\item
+  pass the returned set as input to a pipe
+\item
+  repeat as necessary
+\end{aosaitemize}
 
 We would like to retain that model for our users, because it's easier to
 reason about, but as we've seen we can no longer use that model for the
 implementation. Having users think in a model that differs from the
-actual implementation is the source of much pain. A leaky abstraction is
-a small-scale version of this; in the large it can lead to frustration,
+actual implementation is a source of much pain. A leaky abstraction is a
+small-scale version of this; in the large it can lead to frustration,
 cognitive dissonance and ragequits.
 
 Our case is nearly optimal for this deception, though: the answer to any
@@ -591,36 +593,54 @@ learn a more complicated model prior to using the system, or forcing a
 subset of users to transfer from the simple model to the complicated
 model in order to better reason about query performance.
 
-Some factors to consider when wrestling with this decision are: the
-relative cognitive difficulty of learning the simple model vs the more
-complex model; the additional cognitive load imposed by first using the
-simple model and then advancing to the complex one vs skipping the
-simple and learning only the complex; the subset of users required to
-make the transition, in terms of their proportional size, cognitive
-availability, temporal availablility, and so on.
+Some factors to consider when wrestling with this decision are:
+
+\begin{aosaitemize}
+
+\item
+  the relative cognitive difficulty of learning the simple model versus
+  the more complex model;
+\item
+  the additional cognitive load imposed by first using the simple model
+  and then advancing to the complex one versus skipping the simple and
+  learning only the complex;
+\item
+  the subset of users required to make the transition, in terms of their
+  proportional size, cognitive availability, available time, and so on.
+\end{aosaitemize}
 
 In our case this tradeoff makes sense. For most uses queries will return
 results fast enough that users needn't be concerned with optimizing
 their query structure or learning the deeper model. Those who will are
 the users writing advanced queries over large datasets, and they are
-also likely the users most well equipped to transition to a new model.
+also likely the users most well-equipped to transition to a new model.
 Additionally, our hope is that there is only a small increase in
 difficulty imposed by using the simple model before learning the more
 complex one.
 
 We'll go into more detail on this new model soon, but in the meantime
-here are some highlights to keep in mind during the next section: - A
-pipe returns one result at a time, not a set of results. Each pipe may
-be activated many times while evaluating a query. - A read/write head
-controls the order of pipe activation. The head starts at the end of the
-pipeline, and its movement is directed by the result of the currently
-active pipe. - That result might be one of the aforementioned gremlins.
-Each gremlin represents a potential query result, and they carry state
-with them through the pipes. Gremlins cause the head to move to the
-right. - A pipe can return a result of `pull', which signals the head
-that it needs input and moves it to the right. - A result of `done'
-tells the head that nothing prior needs to be activated again, and moves
-the head left.
+here are some highlights to keep in mind during the next section:
+
+\begin{aosaitemize}
+
+\item
+  Each pipe returns one result at a time, not a set of results. Each
+  pipe may be activated many times while evaluating a query.
+\item
+  A read/write head controls which pipe is activated next. The head
+  starts at the end of the pipeline, and its movement is directed by the
+  result of the currently active pipe.
+\item
+  That result might be one of the aforementioned gremlins. Each gremlin
+  represents a potential query result, and they carry state with them
+  through the pipes. Gremlins cause the head to move to the right.
+\item
+  A pipe can return a result of `pull', which signals the head that it
+  needs input and moves it to the right.
+\item
+  A result of `done' tells the head that nothing prior needs to be
+  activated again, and moves the head left.
+\end{aosaitemize}
 
 \aosasecti{Pipetypes}\label{pipetypes}
 
@@ -629,18 +649,16 @@ understand how each one works, we'll have a better basis for
 understanding how they're invoked and sequenced together in the
 interpreter.
 
-We'll start by making a place to put our pipe types, and a way to add
-new ones.
+We'll start by making a place to put our pipetypes, and a way to add new
+ones.
 
 \begin{verbatim}
-Dagoba.Pipetypes = {}                                   
+Dagoba.Pipetypes = {}
 
-// adds a new method to our query object
-Dagoba.addPipetype = function(name, fun) {              
+Dagoba.addPipetype = function(name, fun) {              // adds a chainable method
   Dagoba.Pipetypes[name] = fun
   Dagoba.Q[name] = function() {
-    // capture the pipetype and args
-    return this.add(name, [].slice.apply(arguments)) }  
+    return this.add(name, [].slice.apply(arguments)) }  // capture pipetype and args
 }
 \end{verbatim}
 
@@ -652,7 +670,7 @@ program, along with its arguments.
 When we evaluate \texttt{g.v('Thor').out('parent').in('parent')} the
 \texttt{v} call returns a query object, the \texttt{out} call adds a new
 step and returns the query object, and the \texttt{in} call does the
-same. This is what enables our method chaining API.
+same. This is what enables our method-chaining API.
 
 Note that adding a new pipetype with the same name replaces the existing
 one, which allows runtime modification of existing pipetypes. What's the
@@ -660,24 +678,22 @@ cost of this decision? What are the alternatives?
 
 \begin{verbatim}
 Dagoba.getPipetype = function(name) {
-  // a pipe type is just a function 
-  var pipetype = Dagoba.Pipetypes[name]                 
+  var pipetype = Dagoba.Pipetypes[name]                 // a pipetype is a function
 
   if(!pipetype)
-    Dagoba.error('Unrecognized pipe type: ' + name)
+    Dagoba.error('Unrecognized pipetype: ' + name)
 
   return pipetype || Dagoba.fauxPipetype
 }
 \end{verbatim}
 
-If we can't find a pipetype we generate an error and return the default
+If we can't find a pipetype, we generate an error and return the default
 pipetype, which acts like an empty conduit: if a message comes in one
 side, it gets passed out the other.
 
 \begin{verbatim}
-Dagoba.fauxPipetype = function(_, _, maybe_gremlin) {   
-  // if you can't find a pipe type then keep things flowing along
-  return maybe_gremlin || 'pull'                        
+Dagoba.fauxPipetype = function(_, _, maybe_gremlin) {   // pass the result upstream
+  return maybe_gremlin || 'pull'                        // or send a pull downstream
 }
 \end{verbatim}
 
@@ -686,60 +702,63 @@ in our function. Most other pipetypes will use all three parameters, and
 have all three parameter names. This allows us to distinguish at a
 glance which parameters a particular pipetype relies on.
 
+This underscore technique is also important because it makes the
+comments line up nicely. No, seriously. If programs
+\href{https://mitpress.mit.edu/sicp/front/node3.html}{``must be written
+for people to read, and only incidentally for machines to execute''},
+then it immediately follows that our predominant concern should be
+making code pretty.
+
 \aosasectiii{Vertex}\label{vertex}
 
 Most pipetypes we meet will take a gremlin and produce more gremlins,
 but this particular pipetype generates gremlins from just a string.
-Given an vertex id it returns a single new gremlin. Given a query it
+Given an vertex ID it returns a single new gremlin. Given a query it
 will find all matching vertices, and yield one new gremlin at a time
-until it's worked through them.
+until it has worked through them.
 
 \begin{verbatim}
 Dagoba.addPipetype('vertex', function(graph, args, gremlin, state) {
-  if(!state.vertices) 
-    state.vertices = graph.findVertices(args)           // state initialization
+  if(!state.vertices)
+    state.vertices = graph.findVertices(args)       // state initialization
 
-  if(!state.vertices.length)                            // all done
+  if(!state.vertices.length)                        // all done
     return 'done'
-  
-  // OPT: this relies on cloning the vertices
-  var vertex = state.vertices.pop()                     
-  // we can have incoming gremlins from as/back queries
-  return Dagoba.makeGremlin(vertex, gremlin.state)      
+
+  var vertex = state.vertices.pop()                 // OPT: requires vertex cloning
+  return Dagoba.makeGremlin(vertex, gremlin.state)  // gremlins from as/back queries
 })
 \end{verbatim}
 
 We first check to see if we've already gathered matching vertices,
-otherwise we try to find some. If there are any vertices then we'll pop
-one off and return a new gremlin sitting on that vertex. Each gremlin
-can carry around its own state, like a journal of where it's been and
-what interesting thing it has seen on its journey through the graph. If
-we receive a gremlin as input to this step we'll copy its journal for
-the exiting gremlin.
+otherwise we try to find some. If there are any vertices, we'll pop one
+off and return a new gremlin sitting on that vertex. Each gremlin can
+carry around its own state, like a journal of where it's been and what
+interesting things it has seen on its journey through the graph. If we
+receive a gremlin as input to this step we'll copy its journal for the
+exiting gremlin.
 
 Note that we're directly mutating the state argument here, and not
 passing it back. An alternative would be to return an object instead of
 a gremlin or signal, and pass state back that way. That complicates our
-return value, and creates some additional garbage\footnote{Very short
-  lived garbage though, which is the second best kind.}.
-
-If JS allowed multiple return values it would make this option more
-elegant.
+return value, and creates some additional garbage \footnote{Very short
+  lived garbage though, which is the second best kind.}. If JS allowed
+multiple return values it would make this option more elegant.
 
 We would still need to find a way to deal with the mutations, though, as
 the call site maintains a reference to the original variable. What if we
-had some way to determine whether a particular reference is `unique' --
-that it is the only reference to that object?
+had some way to determine whether a particular reference is ``unique''
+--- that it is the only reference to that object?
 
 If we know a reference is unique then we can get the benefits of
 immutability while avoiding expensive copy-on-write schemes or
 complicated persistent data structures. With only one reference we can't
 tell whether the object has been mutated or a new object has been
 returned with the changes we requested: ``observed immutability'' is
-maintained\footnote{Two references to the same mutable data structure
+maintained \footnote{Two references to the same mutable data structure
   act like a pair of walkie-talkies, allowing whoever holds them to
   communicate directly. Those walkie-talkies can be passed around from
-  function to function, and cloned to create whole passel of
+  function to function, and cloned to create a whole lot of
   walkie-talkies. This completely subverts the natural communication
   channels your code already possesses. In a system with no concurrency
   you can sometimes get away with it, but introduce multithreading or
@@ -747,17 +766,17 @@ maintained\footnote{Two references to the same mutable data structure
   a real drag.}.
 
 There are a couple of common ways of determining this: in a statically
-typed system we might make use of uniqueness types\footnote{Uniqueness
+typed system we might make use of uniqueness types \footnote{Uniqueness
   types were dusted off in the Clean language, and have a non-linear
   relationship with linear types, which are themselves a subtype of
   substructural types.} to guarantee at compile time that each object
-has only one reference. If we had a reference counter\footnote{Most
+has only one reference. If we had a reference counter \footnote{Most
   modern JS runtimes employ generational garbage collectors, and the
   language is intentionally kept at arm's length from the engine's
   memory management to curtail a source of programmatic non-determinism.}
--- even just a cheap two-bit sticky counter -- we could know at runtime
-that an object only has one reference and use that knowledge to our
-advantage.
+--- even just a cheap two-bit sticky counter --- we could know at
+runtime that an object only has one reference and use that knowledge to
+our advantage.
 
 JavaScript doesn't have either of these facilities, but we can get
 almost the same effect if we're really, really disciplined. Which we
@@ -766,7 +785,7 @@ will be. For now.
 \aosasectiii{In-N-Out}\label{in-n-out}
 
 Walking the graph is as easy as ordering a burger. These two lines set
-up the `in' and `out' pipetypes for us.
+up the \texttt{in} and \texttt{out} pipetypes for us.
 
 \begin{verbatim}
 Dagoba.addPipetype('out', Dagoba.simpleTraversal('out'))
@@ -774,46 +793,41 @@ Dagoba.addPipetype('in',  Dagoba.simpleTraversal('in'))
 \end{verbatim}
 
 The \texttt{simpleTraversal} function returns a pipetype handler that
-accepts a gremlin as its input, and then spawns a new gremlin each time
-it's queried. Once those gremlins are gone, it sends back a `pull'
-request to get a new gremlin from its predecessor.
+accepts a gremlin as its input, and spawns a new gremlin each time it's
+queried. Once those gremlins are gone, it sends back a `pull' request to
+get a new gremlin from its predecessor.
 
 \begin{verbatim}
 Dagoba.simpleTraversal = function(dir) {
   var find_method = dir == 'out' ? 'findOutEdges' : 'findInEdges'
   var edge_list   = dir == 'out' ? '_in' : '_out'
-  
+
   return function(graph, args, gremlin, state) {
-    // query initialization
-    if(!gremlin && (!state.edges || !state.edges.length))         
+    if(!gremlin && (!state.edges || !state.edges.length))     // query initialization
       return 'pull'
-      
-    // state initialization
-    if(!state.edges || !state.edges.length) {                     
+
+    if(!state.edges || !state.edges.length) {                 // state initialization
       state.gremlin = gremlin
-      // get edges that match our query
-      state.edges = graph[find_method](gremlin.vertex)            
+      state.edges = graph[find_method](gremlin.vertex)        // get matching edges
                          .filter(Dagoba.filterEdges(args[0]))
     }
 
-    // all done
-    if(!state.edges.length)                                       
+    if(!state.edges.length)                                   // nothing more to do
       return 'pull'
-    
-    // use up an edge
-    var vertex = state.edges.pop()[edge_list]                     
+
+    var vertex = state.edges.pop()[edge_list]                 // use up an edge
     return Dagoba.gotoVertex(state.gremlin, vertex)
   }
 }
 \end{verbatim}
 
-The first couple lines handle the differences between the in version and
-the out version. Then we're ready to return our pipetype function, which
-looks quite a bit like the vertex pipetype we just saw. That's a little
-surprising, since this one takes in a gremlin whereas the vertex
-pipetype creates gremlins ex nihilo.
+The first couple of lines handle the differences between the in version
+and the out version. Then we're ready to return our pipetype function,
+which looks quite a bit like the vertex pipetype we just saw. That's a
+little surprising, since this one takes in a gremlin whereas the vertex
+pipetype creates gremlins \emph{ex nihilo}.
 
-But we can see the same beats being hit here, with the addition of a
+Yet we can see the same beats being hit here, with the addition of a
 query initialization step. If there's no gremlin and we're out of
 available edges then we pull. If we have a gremlin but haven't yet set
 state then we find any edges going the appropriate direction and add
@@ -824,20 +838,21 @@ return a freshly cloned gremlin on the vertex to which it points.
 Glancing at this code we see \texttt{!state.edges.length} repeated in
 each of the three clauses. It's tempting to refactor this to reduce the
 complexity of those conditionals. There are two issues keeping us from
-doing so. One is relatively minor: the third
-\texttt{!state.edges.length} means something different from the first
-two, since \texttt{state.edges} has been changed between the second and
-third conditional. This actually encourages us to refactor, because
-having the same label mean two different things inside a single function
-usually isn't ideal.
+doing so.
 
-But this isn't the only pipetype function we're writing, and we'll see
-these ideas of query initialization and/or state initialization repeated
-over and over. There's always a balancing act when writing code between
-structured qualities and unstructured qualities. Too much structure and
-you pay a high cost in boilerplate and abstraction complexity. Too
-little structure and you'll have to keep all the plumbing minutia in
-your head.
+One is relatively minor: the third \texttt{!state.edges.length} means
+something different from the first two, since \texttt{state.edges} has
+been changed between the second and third conditional. This actually
+encourages us to refactor, because having the same label mean two
+different things inside a single function usually isn't ideal.
+
+The second is more serious. This isn't the only pipetype function we're
+writing, and we'll see these ideas of query initialization and/or state
+initialization repeated over and over. When writing code, there's always
+a balancing act between structured qualities and unstructured qualities.
+Too much structure and you pay a high cost in boilerplate and
+abstraction complexity. Too little structure and you'll have to keep all
+the plumbing minutia in your head.
 
 In this case, with a dozen or so pipetypes, the right choice seems to be
 to style each of the pipetype functions as similarly as possible, and
@@ -846,7 +861,7 @@ refactor this particular pipetype, because doing so would reduce
 uniformity, but we also resist the urge to engineer a formal structural
 abstraction for query initialization, state initialization, and the
 like. If there were hundreds of pipetypes that latter choice would
-probably be the right one -- the complexity cost of the abstraction is
+probably be the right one: the complexity cost of the abstraction is
 constant, while the benefit accrues linearly with the number of units.
 When handling that many moving pieces, anything you can do to enforce
 regularity among them is helpful.
@@ -855,15 +870,15 @@ regularity among them is helpful.
 
 Let's pause for a moment to consider an example query based on the three
 pipetypes we've seen. We can ask for Thor's grandparents like this:
-\texttt{g.v('Thor').out('parent').out('parent').run()}\footnote{The
+\texttt{g.v('Thor').out('parent').out('parent').run()} \footnote{The
   \texttt{run()} at the end of the query invokes the interpreter and
   returns results.}. But what if we wanted their names?
 
 We could put a map on the end of that:
 
 \begin{verbatim}
-g.v('Thor').out('parent').out('parent').run().map(function(vertex) {
-  return vertex.name})
+g.v('Thor').out('parent').out('parent').run()
+ .map(function(vertex) {return vertex.name})
 \end{verbatim}
 
 But this is a common enough operation that we'd prefer to write
@@ -879,11 +894,9 @@ as we'll soon see.
 
 \begin{verbatim}
 Dagoba.addPipetype('property', function(graph, args, gremlin, state) {
-  // query initialization
-  if(!gremlin) return 'pull'                            
+  if(!gremlin) return 'pull'                                  // query initialization
   gremlin.result = gremlin.vertex[args[0]]
-  // undefined or null properties kill the gremlin
-  return gremlin.result == null ? false : gremlin       
+  return gremlin.result == null ? false : gremlin             // false for bad props
 })
 \end{verbatim}
 
@@ -900,8 +913,8 @@ think of a use for this? What are the tradeoffs in this design decision?
 
 \aosasectiii{Unique}\label{unique}
 
-If we want to collect all Thor's grandparents' grandchildren -- his
-cousins, his siblings, and himself -- we could do a query like this:
+If we want to collect all Thor's grandparents' grandchildren --- his
+cousins, his siblings, and himself --- we could do a query like this:
 \texttt{g.v('Thor').in().in().out().out().run()}. That would give us
 many duplicates, however. In fact there would be at least four copies of
 Thor himself. (Can you think of a time when there might be more?)
@@ -913,10 +926,8 @@ produces output in one-to-one correspondence with the grandchildren.
 
 \begin{verbatim}
 Dagoba.addPipetype('unique', function(graph, args, gremlin, state) {
-  // query initialization
-  if(!gremlin) return 'pull'                            
-  // we've seen this gremlin, so get another instead
-  if(state[gremlin.vertex._id]) return 'pull'
+  if(!gremlin) return 'pull'                                  // query initialization
+  if(state[gremlin.vertex._id]) return 'pull'                 // reject repeats
   state[gremlin.vertex._id] = true
   return gremlin
 })
@@ -933,9 +944,12 @@ pass it along. Easy peasy.
 \aosasectiii{Filter}\label{filter}
 
 We've seen two simplistic ways of filtering, but sometimes we need more
-elaborate constraints. What if we wanted Thor's siblings whose weight in
-skippund is greater than their height in fathoms? This query would give
-us our answer:
+elaborate constraints. What if we want to find all of Thor's siblings
+whose weight is greater than their height \footnote{With weight in
+  skippund and height in fathoms, naturally. Depending on the density of
+  Asgardian flesh this may return many results, or none at all. (Or just
+  Volstagg, if we're allowing Shakespeare by way of Jack Kirby into our
+  pantheon.)}? This query would give us our answer:
 
 \begin{verbatim}
 g.v('Thor').out().in().unique()
@@ -943,8 +957,8 @@ g.v('Thor').out().in().unique()
  .run()
 \end{verbatim}
 
-If we wanted to know which of Thor's siblings survive Ragnarök we can
-pass filter an object:
+If we want to know which of Thor's siblings survive Ragnarök we can pass
+filter an object:
 
 \begin{verbatim}
 g.v('Thor').out().in().unique().filter({survives: true}).run()
@@ -954,18 +968,18 @@ Here's how it works:
 
 \begin{verbatim}
 Dagoba.addPipetype('filter', function(graph, args, gremlin, state) {
-  if(!gremlin) return 'pull'                            // query initialization
+  if(!gremlin) return 'pull'                                  // query initialization
 
-  if(typeof args[0] == 'object')                        // filter by object
-    return Dagoba.objectFilter(gremlin.vertex, args[0]) 
+  if(typeof args[0] == 'object')                              // filter by object
+    return Dagoba.objectFilter(gremlin.vertex, args[0])
          ? gremlin : 'pull'
 
   if(typeof args[0] != 'function') {
-    Dagoba.error('Filter is not a function: ' + args[0]) 
-    return gremlin                                      // keep things moving
+    Dagoba.error('Filter is not a function: ' + args[0])
+    return gremlin                                            // keep things moving
   }
 
-  if(!args[0](gremlin.vertex, gremlin)) return 'pull'   // gremlin fails filter 
+  if(!args[0](gremlin.vertex, gremlin)) return 'pull'         // gremlin fails filter
   return gremlin
 })
 \end{verbatim}
@@ -975,9 +989,9 @@ trigger an error, and pass the gremlin along. Pause for a minute, and
 consider the alternatives. Why would we decide to continue the query
 once an error is encountered?
 
-There are two possibilities for this error to arise. The first involves
-a programmer typing in a query, either in a REPL or directly in code.
-When run that query will produce results, and also generate a
+There are two reasons this error might arise. The first involves a
+programmer typing in a query, either in a REPL or directly in code. When
+run, that query will produce results, and also generate a
 programmer-observable error. The programmer then corrects the error to
 further filter the set of results produced. Alternatively, the system
 could display only the error and produce no results, and fixing all
@@ -989,26 +1003,26 @@ at run time. This is a much more important case, because the person
 invoking the query is not necessarily the author of the query code.
 Because this is on the web, our default rule is to always show results,
 and to never break things. It is usually preferable to soldier on in the
-face of grave tribulations rather than succumb to our wounds and present
-the user with a grisly error message.
+face of trouble rather than succumb to our wounds and present the user
+with a grisly error message.
 
 For those occasions when showing too few results is better than showing
-too many, Dagoba.error can be overridden to throw an error, thereby
-circumventing the natural control flow.
+too many, \texttt{Dagoba.error} can be overridden to throw an error,
+thereby circumventing the natural control flow.
 
 \aosasectiii{Take}\label{take}
 
 We don't always want all the results at once. Sometimes we only need a
-handful of results: we want a dozen of Thor's contemporaries, so we walk
-all the way back to the primeval cow Auðumbla:
+handful of results; say we want a dozen of Thor's contemporaries, so we
+walk all the way back to the primeval cow Auðumbla:
 
 \begin{verbatim}
 g.v('Thor').out().out().out().out().in().in().in().in().unique().take(12).run()
 \end{verbatim}
 
-Without the take pipe that query could take quite a while to run, but
-thanks to our lazy evaluation strategy the query with the take pipe is
-very efficient.
+Without the \texttt{take} pipe that query could take quite a while to
+run, but thanks to our lazy evaluation strategy the query with the
+\texttt{take} pipe is very efficient.
 
 Sometimes we just want one at a time: we'll process the result, work
 with it, and then come back for another one. This pipetype allows us to
@@ -1029,14 +1043,14 @@ returned.
 
 \begin{verbatim}
 Dagoba.addPipetype('take', function(graph, args, gremlin, state) {
-  state.taken = state.taken || 0                        // state initialization
-  
+  state.taken = state.taken || 0                              // state initialization
+
   if(state.taken == args[0]) {
     state.taken = 0
-    return 'done'                                       // all done
+    return 'done'                                             // all done
   }
-  
-  if(!gremlin) return 'pull'                            // query initialization
+
+  if(!gremlin) return 'pull'                                  // query initialization
   state.taken++
   return gremlin
 })
@@ -1044,7 +1058,7 @@ Dagoba.addPipetype('take', function(graph, args, gremlin, state) {
 
 We initialize \texttt{state.taken} to zero if it doesn't already exist.
 JavaScript has implicit coercion, but coerces \texttt{undefined} into
-\texttt{NaN}, so we have to be explicit here\footnote{Some would argue
+\texttt{NaN}, so we have to be explicit here \footnote{Some would argue
   it's best to be explicit all the time. Others would argue that a good
   system for implicits makes for more concise, readable code, with less
   boilerplate and a smaller surface area for bugs. One thing we can all
@@ -1069,22 +1083,22 @@ that label with the next two pipetypes.
 
 \begin{verbatim}
 Dagoba.addPipetype('as', function(graph, args, gremlin, state) {
-  if(!gremlin) return 'pull'                        // query initialization
-  gremlin.state.as = gremlin.state.as || {}         // init gremlin's 'as' state
-  gremlin.state.as[args[0]] = gremlin.vertex        // set label to current vertex
+  if(!gremlin) return 'pull'                                  // query initialization
+  gremlin.state.as = gremlin.state.as || {}                   // init the 'as' state
+  gremlin.state.as[args[0]] = gremlin.vertex                  // set label to vertex
   return gremlin
 })
 \end{verbatim}
 
-After initializing the query, we then ensure the gremlin's local state
-has an `as' parameter. Then we set a property of that parameter to the
+After initializing the query, we ensure the gremlin's local state has an
+\texttt{as} parameter. Then we set a property of that parameter to the
 gremlin's current vertex.
 
 \aosasectiii{Merge}\label{merge}
 
-Once we've labeled vertices we can then extract them using merge. If we
-want Thor's parents, grandparents and great-grandparents we can do
-something like this:
+Once we've labeled vertices we can extract them using merge. If we want
+Thor's parents, grandparents and great-grandparents we can do something
+like this:
 
 \begin{verbatim}
 g.v('Thor').out().as('parent').out().as('grandparent').out().as('great-grandparent')
@@ -1095,14 +1109,14 @@ Here's the merge pipetype:
 
 \begin{verbatim}
 Dagoba.addPipetype('merge', function(graph, args, gremlin, state) {
-  if(!state.vertices && !gremlin) return 'pull'              // query initialization
+  if(!state.vertices && !gremlin) return 'pull'               // query initialization
 
-  if(!state.vertices || !state.vertices.length) {            // state initialization
+  if(!state.vertices || !state.vertices.length) {             // state initialization
     var obj = (gremlin.state||{}).as || {}
     state.vertices = args.map(function(id) {return obj[id]}).filter(Boolean)
   }
 
-  if(!state.vertices.length) return 'pull'                   // done with this batch
+  if(!state.vertices.length) return 'pull'                    // done with this batch
 
   var vertex = state.vertices.pop()
   return Dagoba.makeGremlin(vertex, gremlin.state)
@@ -1112,8 +1126,8 @@ Dagoba.addPipetype('merge', function(graph, args, gremlin, state) {
 We map over each argument, looking for it in the gremlin's list of
 labeled vertices. If we find it, we clone the gremlin to that vertex.
 Note that only gremlins that make it to this pipe are included in the
-merge -- if Thor's mother's parents aren't in the graph, she won't be in
-the result set.
+merge --- if Thor's mother's parents aren't in the graph, she won't be
+in the result set.
 
 \aosasectiii{Except}\label{except}
 
@@ -1125,7 +1139,7 @@ g.v('Thor').out().in().unique()
            .filter(function(asgardian) {return asgardian._id != 'Thor'}).run()
 \end{verbatim}
 
-It's more straightforward with `as' and `except':
+It's more straightforward with \texttt{as} and \texttt{except}:
 
 \begin{verbatim}
 g.v('Thor').as('me').out().in().except('me').unique().run()
@@ -1133,10 +1147,10 @@ g.v('Thor').as('me').out().in().except('me').unique().run()
 
 But there are also queries that would be difficult to try to filter.
 What if we wanted Thor's uncles and aunts? How would we filter out his
-parents? It's easy with `as' and `except'\footnote{There are certain
-  conditions under which this particular query might yield unexpected
-  results. Can you think of any? How could you modify it to handle those
-  cases?}:
+parents? It's easy with \texttt{as} and \texttt{except} \footnote{There
+  are certain conditions under which this particular query might yield
+  unexpected results. Can you think of any? How could you modify it to
+  handle those cases?}:
 
 \begin{verbatim}
 g.v('Thor').out().as('parent').out().in().except('parent').unique().run()
@@ -1144,7 +1158,7 @@ g.v('Thor').out().as('parent').out().in().except('parent').unique().run()
 
 \begin{verbatim}
 Dagoba.addPipetype('except', function(graph, args, gremlin, state) {
-  if(!gremlin) return 'pull'                            // query initialization
+  if(!gremlin) return 'pull'                                  // query initialization
   if(gremlin.vertex == gremlin.state.as[args[0]]) return 'pull'
   return gremlin
 })
@@ -1172,7 +1186,7 @@ Here's the definition for \texttt{back}:
 
 \begin{verbatim}
 Dagoba.addPipetype('back', function(graph, args, gremlin, state) {
-  if(!gremlin) return 'pull'                            // query initialization
+  if(!gremlin) return 'pull'                                  // query initialization
   return Dagoba.gotoVertex(gremlin, gremlin.state.as[args[0]])
 })
 \end{verbatim}
@@ -1183,9 +1197,7 @@ real work here. Let's take a look at that and some other helpers now.
 \aosasecti{Helpers}\label{helpers}
 
 The pipetypes above rely on a few helpers to do their jobs. Let's take a
-quick look at those before diving in to the interpreter. This is
-ostensibly because understanding these helpers will aid in understanding
-the interpreter, but it's mostly just to build up the anticipation.
+quick look at those before diving in to the interpreter.
 
 \aosasectiii{Gremlins}\label{gremlins}
 
@@ -1205,46 +1217,48 @@ wrapping it in a function allows us to add new properties to all
 gremlins in a single place.
 
 We can also take an existing gremlin and send it to a new vertex, as we
-saw in the `back' pipetype and the simpleTraversal function.
+saw in the \texttt{back} pipetype and the \texttt{simpleTraversal}
+function.
 
 \begin{verbatim}
-Dagoba.gotoVertex = function(gremlin, vertex) {         // clone the gremlin 
+Dagoba.gotoVertex = function(gremlin, vertex) {               // clone the gremlin
   return Dagoba.makeGremlin(vertex, gremlin.state)
 }
 \end{verbatim}
 
-Note that this function actually returns a brand new gremlin -- a clone
-of the old one, sent to our desired destination. That means a gremlin
-can sit on a vertex while its clones are sent out to explore many other
+Note that this function actually returns a brand new gremlin: a clone of
+the old one, sent to our desired destination. That means a gremlin can
+sit on a vertex while its clones are sent out to explore many other
 vertices. This is exactly what happens in \texttt{simpleTraversal}.
 
 As an example of possible enhancements, we could add a bit of state to
-keep track of every vertex the gremlin visits, and then add new
-pipetypes to take advantage of those paths.
+keep track of every vertex the gremlin visits, and add new pipetypes to
+take advantage of those paths.
 
 \aosasectiii{Finding}\label{finding}
 
-The \texttt{vertex} pipetype uses the findVertices function to collect a
-set of initial vertices from which to begin our query.
+The \texttt{vertex} pipetype uses the \texttt{findVertices} function to
+collect a set of initial vertices from which to begin our query.
 
 \begin{verbatim}
-Dagoba.G.findVertices = function(args) {         // our general vertex finder
+Dagoba.G.findVertices = function(args) {                      // vertex finder helper
   if(typeof args[0] == 'object')
     return this.searchVertices(args[0])
   else if(args.length == 0)
-    return this.vertices.slice()                 // OPT: costly with many vertices
+    return this.vertices.slice()                              // OPT: slice is costly
   else
     return this.findVerticesByIds(args)
 }
 \end{verbatim}
 
 This function receives its arguments as a list. If the first one is an
-object it passes it to searchVertices, allowing queries like
+object it passes it to \texttt{searchVertices}, allowing queries like
 \texttt{g.v(\{\_id:'Thor'\}).run()} or
 \texttt{g.v(\{species: 'Aesir'\}).run()}.
 
-Otherwise, if there are arguments it gets passed to findVerticesByIds,
-which handles queries like \texttt{g.v('Thor', 'Odin').run()}.
+Otherwise, if there are arguments it gets passed to
+\texttt{findVerticesByIds}, which handles queries like
+\texttt{g.v('Thor', 'Odin').run()}.
 
 If there are no arguments at all, then our query looks like
 \texttt{g.v().run()}. This isn't something you'll want to do frequently
@@ -1252,33 +1266,31 @@ with large graphs, especially since we're slicing the vertex list before
 returning it. We slice because some call sites manipulate the returned
 list directly by popping items off as they work through them. We could
 optimize this use case by cloning at the call site, or by avoiding those
-manipulations (we could keep a counter in state instead of popping).
+manipulations. (We could keep a counter in state instead of popping.)
 
 \begin{verbatim}
 Dagoba.G.findVerticesByIds = function(ids) {
   if(ids.length == 1) {
-    // maybe_vertex is either a vertex or undefined
-    var maybe_vertex = this.findVertexById(ids[0])                
-    return maybe_vertex ? [maybe_vertex] : []
+    var maybe_vertex = this.findVertexById(ids[0])            // maybe it's a vertex
+    return maybe_vertex ? [maybe_vertex] : []                 // or maybe it isn't
   }
-  
-  return ids.map( this.findVertexById.bind(this) ).filter(Boolean) 
+
+  return ids.map( this.findVertexById.bind(this) ).filter(Boolean)
 }
 
 Dagoba.G.findVertexById = function(vertex_id) {
-  return this.vertexIndex[vertex_id] 
+  return this.vertexIndex[vertex_id]
 }
 \end{verbatim}
 
 Note the use of \texttt{vertexIndex} here. Without that index we'd have
 to go through each vertex in our list one at a time to decide if it
-matched the id -- turning a constant time operation into a linear time
+matched the ID --- turning a constant time operation into a linear time
 one, and any $O(n)$ operations that directly rely on it into $O(n^2)$
 operations.
 
 \begin{verbatim}
-// find vertices that match obj's key-value pairs
-Dagoba.G.searchVertices = function(filter) {            
+Dagoba.G.searchVertices = function(filter) {        // match on filter's properties
   return this.vertices.filter(function(vertex) {
     return Dagoba.objectFilter(vertex, filter)
   })
@@ -1287,7 +1299,7 @@ Dagoba.G.searchVertices = function(filter) {
 
 The \texttt{searchVertices} function uses the \texttt{objectFilter}
 helper on every vertex in the graph. We'll look at \texttt{objectFilter}
-in the next section, but in the meantime can you think of with a way to
+in the next section, but in the meantime, can you think of a way to
 search through the vertices lazily?
 
 \aosasectiii{Filtering}\label{filtering}
@@ -1299,20 +1311,16 @@ purposes.
 \begin{verbatim}
 Dagoba.filterEdges = function(filter) {
   return function(edge) {
-    // if there's no filter, everything is valid
-    if(!filter)                                
+    if(!filter)                                 // no filter: everything is valid
       return true
-    
-    // if the filter is a string, the label must match
-    if(typeof filter == 'string')              
+
+    if(typeof filter == 'string')               // string filter: label must match
       return edge._label == filter
-    
-    // if the filter is an array, the label must be in it
-    if(Array.isArray(filter))                  
+
+    if(Array.isArray(filter))                   // array filter: must contain label
       return !!~filter.indexOf(edge._label)
 
-    // try the filter as an object
-    return Dagoba.objectFilter(edge, filter)   
+    return Dagoba.objectFilter(edge, filter)    // object filter: check edge keys
   }
 }
 \end{verbatim}
@@ -1320,43 +1328,44 @@ Dagoba.filterEdges = function(filter) {
 The first case is no filter at all: \texttt{g.v('Odin').in().run()}
 traverses all edges pointing in to Odin.
 
-The second filters on the edge's label:
+The second case filters on the edge's label:
 \texttt{g.v('Odin').in('parent').run()} traverses those edges with a
-label of \texttt{'parent'}.
+label of `parent'.
 
 The third case accepts an array of labels:
 \texttt{g.v('Odin').in({[}'parent', 'spouse'{]}).run()} traverses both
 parent and spouse edges.
 
-And the fourth case uses the \texttt{objectFilter} function we saw
-before:
+And the fourth case uses the objectFilter function we saw before:
 
 \begin{verbatim}
 Dagoba.objectFilter = function(thing, filter) {
   for(var key in filter)
     if(thing[key] !== filter[key])
       return false
-  
-  return true 
+
+  return true
 }
 \end{verbatim}
 
 This allows us to query the edge using a filter object:
-\texttt{g.v('Odin').in(\{\_label: 'spouse', order: 2\}).run()} finds
-Odin's second wife.
 
-\aosasecti{The interpreter's nature}\label{the-interpreters-nature}
+\begin{verbatim}
+`g.v('Odin').in({_label: 'spouse', order: 2}).run()`    // finds Odin's second wife
+\end{verbatim}
+
+\aosasecti{The Interpreter's Nature}\label{the-interpreters-nature}
 
 We've arrived at the top of the narrative mountain, ready to receive our
-prize: the much ballyhooed interpreter. The code is actually fairly
-compact, but the model has a bit of subtlety.
+prize: the interpreter. The code is actually fairly compact, but the
+model has a bit of subtlety.
 
 We compared programs to pipelines earlier, and that's a good mental
 model for writing queries. As we saw, though, we need a different model
-for the actual implementation. That model is more akin to a Turing
-machine than a pipeline. There's a read/write head that sits over a
-particular step. It ``reads'' the step, changes its ``state'', and then
-moves either right or left.
+for the actual implementation. That model is more like a Turing machine
+than a pipeline: there's a read/write head that sits over a particular
+step. It ``reads'' the step, changes its ``state'', and then moves
+either right or left.
 
 Reading the step means evaluating the pipetype function. As we saw
 above, each of those functions accepts as input the entire graph, its
@@ -1366,8 +1375,8 @@ is what our quasi-Turing machine reads in order to change the machine's
 state.
 
 That state comprises just two variables: one to record steps that are
-\texttt{done}, and another to record the \texttt{results} of the query.
-Those are updated, and then either the machine head moves or the query
+`done', and another to record the \texttt{results} of the query. Those
+are updated, and then either the machine head moves or the query
 finishes and the result is returned.
 
 We've now described all the state in our machine. We'll have a list of
@@ -1377,15 +1386,14 @@ results that starts empty:
   var results = []
 \end{verbatim}
 
-An index of the last \texttt{done} step that starts behind the first
-step:
+An index of the last `done' step that starts behind the first step:
 
 \begin{verbatim}
   var done = -1
 \end{verbatim}
 
 We need a place to store the most recent step's output, which might be a
-gremlin -- or it might be nothing -- so we'll call it
+gremlin --- or it might be nothing --- so we'll call it
 \texttt{maybe\_gremlin}:
 
 \begin{verbatim}
@@ -1399,7 +1407,7 @@ read/write head.
   var pc = this.program.length - 1
 \end{verbatim}
 
-Except\ldots{} wait a second. How are we going to get lazy\footnote{Technically
+Except\ldots{} wait a second. How are we going to get lazy \footnote{Technically
   we need to implement an interpreter with non-strict semantics, which
   means it will only evaluate when forced to do so. Lazy evaluation is a
   technique used for implementing non-strictness. It's a bit lazy of us
@@ -1454,9 +1462,9 @@ This second point isn't usually an issue, because of the phase
 separation between when our compiler runs its optimizations and when all
 the thunking occurs during runtime. In our case we don't have that
 advantage: because we're using method chaining to implement a fluent
-interface\footnote{Method chaining lets us write
+interface \footnote{Method chaining lets us write
   \texttt{g.v('Thor').in().out().run()} instead of
-  \texttt{var query = g.query(); query.add('vertex', 'Thor'); query.add('in'); query.add('out'); query.run()}.}
+  \texttt{var query = g.query(); query.add('vertex', 'Thor'); query.add('in'); query.add('out'); query.run()}}
 if we also use thunks to achieve laziness we would thunk each new method
 as it is called, which means by the time we get to \texttt{run()} we
 have only a single thunk as our input, and no way to optimize our query.
@@ -1475,38 +1483,36 @@ So if we start evaluating our query at the end of the statement, with
 \texttt{run}, and work our way back to \texttt{v('Thor')}, calculating
 results only as needed, then we've effectively achieved non-strictness.
 The secret is in the linearity of our queries. Branches complicate the
-process graph, and also introduce opportunities for duplicate calls,
+process graph and also introduce opportunities for duplicate calls,
 which require memoization to avoid wasted work. The simplicity of our
 query language means we can implement an equally simple interpreter
 based on our linear read/write head model.
 
-In addition to allowing runtime optimizations this style has many other
+In addition to allowing runtime optimizations, this style has many other
 benefits related to the ease of instrumentation: history, reversibility,
-stepwise debugging, query statistics -- all these are easy to add
+stepwise debugging, query statistics. All these are easy to add
 dynamically because we control the interpreter and have left it as a
 virtual machine evaluator instead of reducing the program to a single
 thunk.
 
-\aosasecti{Interpreter, unveiled}\label{interpreter-unveiled}
+\aosasecti{Interpreter, Unveiled}\label{interpreter-unveiled}
 
 \begin{verbatim}
-Dagoba.Q.run = function() {               // a machine for query processing
+Dagoba.Q.run = function() {                 // a machine for query processing
 
-  var max = this.program.length - 1       // index of the last step in the program
-  var maybe_gremlin = false               // a gremlin, a signal string, or false
-  var results = []                        // results for this particular run
-  var done = -1                           // behindwhich things have finished
-  var pc = max                            // our program counter
+  var max = this.program.length - 1         // index of the last step in the program
+  var maybe_gremlin = false                 // a gremlin, a signal string, or false
+  var results = []                          // results for this particular run
+  var done = -1                             // behindwhich things have finished
+  var pc = max                              // our program counter
 
   var step, state, pipetype
 
   while(done < max) {
-    // step is an array: first the pipe type, then its args
-    step = this.program[pc]                             
-    // the state for this step: ensure it's always an object
-    state = (this.state[pc] = this.state[pc] || {})     
-    // a pipetype is just a function
-    pipetype = Dagoba.getPipetype(step[0])              
+    var ts = this.state
+    step = this.program[pc]                 // step is a pair of pipetype and args
+    state = (ts[pc] = ts[pc] || {})         // this step's state must be an object
+    pipetype = Dagoba.getPipetype(step[0])  // a pipetype is just a function
 \end{verbatim}
 
 Here \texttt{max} is just a constant, and \texttt{step}, \texttt{state},
@@ -1520,35 +1526,35 @@ entered the driver loop, and we won't stop until the last step is done.
 Calling the step's pipetype function with its arguments.
 
 \begin{verbatim}
-    if(maybe_gremlin == 'pull') {    // 'pull' tells us the pipe wants further input
+    if(maybe_gremlin == 'pull') {           // 'pull' means the pipe wants more input
       maybe_gremlin = false
       if(pc-1 > done) {
-        pc--                         // try the previous pipe
+        pc--                                // try the previous pipe
         continue
       } else {
-        done = pc                    // previous pipe is finished, so we are too
+        done = pc                           // previous pipe is done, so we are too
       }
     }
 \end{verbatim}
 
-To handle the `pull' case we first set \texttt{maybe\_gremlin} to false.
-We're overloading our `maybe' here by using it as a channel to pass the
-`pull' and `done' signals, but once one of those signals is sucked out
-we go back to thinking of this as a proper `maybe'\footnote{We call it
-  \texttt{maybe\_gremlin} to remind ourselves that it could be a
-  gremlin, or it could be something else. Also because originally it was
-  either a gremlin or \texttt{Nothing}.}.
+To handle the `pull' case we first set \texttt{maybe\_gremlin}
+\footnote{We call it \texttt{maybe\_gremlin} to remind ourselves that it
+  could be a gremlin, or it could be something else. Also because
+  originally it was either a gremlin or Nothing.} to false. We're
+overloading our `maybe' here by using it as a channel to pass the `pull'
+and `done' signals, but once one of those signals is sucked out we go
+back to thinking of this as a proper `maybe'.
 
-If the step before us isn't `done'\footnote{Recall that done starts at
-  \texttt{-1}, so the first step's predecessor is always done.} we'll
-move the head backward and try again. Otherwise, we mark ourselves as
-`done' and let the head naturally fall forward.
+If the step before us isn't `done' \footnote{Recall that done starts at
+  -1, so the first step's predecessor is always done.} we'll move the
+head backward and try again. Otherwise, we mark ourselves as `done' and
+let the head naturally fall forward.
 
 \begin{verbatim}
     if(maybe_gremlin == 'done') {           // 'done' tells us the pipe is finished
       maybe_gremlin = false
       done = pc
-    }    
+    }
 \end{verbatim}
 
 Handling the `done' case is even easier: set \texttt{maybe\_gremlin} to
@@ -1556,19 +1562,19 @@ false and mark this step as `done'.
 
 \begin{verbatim}
     pc++                                    // move on to the next pipe
-    
+
     if(pc > max) {
       if(maybe_gremlin)
-        results.push(maybe_gremlin)        // a gremlin popped out of the pipeline
+        results.push(maybe_gremlin)         // a gremlin popped out of the pipeline
       maybe_gremlin = false
-      pc--                                 // take a step back
+      pc--                                  // take a step back
     }
   }
 \end{verbatim}
 
 We're done with the current step, and we've moved the head to the next
 one. If we're at the end of the program and \texttt{maybe\_gremlin}
-contains a gremlin then we'll add it to the results, set
+contains a gremlin, we'll add it to the results, set
 \texttt{maybe\_gremlin} to false and move the head back to the last step
 in the program.
 
@@ -1577,8 +1583,8 @@ This is also the initialization state, since \texttt{pc} starts as
 again at least once for each final result the query returns.
 
 \begin{verbatim}
-  results = results.map(function(gremlin) {             // return results or vertices
-    return gremlin.result != null 
+  results = results.map(function(gremlin) { // return projected results, or vertices
+    return gremlin.result != null
          ? gremlin.result : gremlin.vertex } )
 
   return results
@@ -1591,16 +1597,16 @@ result set we'll return that, otherwise we'll return the gremlin's final
 vertex. Are there other things we might want to return? What are the
 tradeoffs here?
 
-\aosasecti{Query transformers}\label{query-transformers}
+\aosasecti{Query Transformers}\label{query-transformers}
 
-So we have this nice compact little interpreter for our query programs
-now, but we're still missing something. Every modern DBMS comes with a
-query optimizer as an essential part of the system. For non-relational
-databases optimizing our query plan rarely yields the exponential
-speedups seen in their relational cousins\footnote{Or, more pointedly, a
-  poorly phrased query is less likely to yield exponential slowdowns. As
-  an end-user of an RDBMS the aesthetics of query quality can often be
-  quite opaque.}, but it's still an important aspect of database design.
+Now we have a nice compact interpreter for our query programs, but we're
+still missing something. Every modern DBMS comes with a query optimizer
+as an essential part of the system. For non-relational databases,
+optimizing our query plan rarely yields the exponential speedups seen in
+their relational cousins \footnote{Or, more pointedly, a poorly phrased
+  query is less likely to yield exponential slowdowns. As an end-user of
+  an RDBMS the aesthetics of query quality can often be quite opaque.},
+but it's still an important aspect of database design.
 
 What's the simplest thing we could do that could reasonably be called a
 query optimizer? Well, we could write little functions for transforming
@@ -1608,45 +1614,43 @@ our query programs before we run them. We'll pass a program in as input
 and get a different program back out as output.
 
 \begin{verbatim}
-// transformers (more than meets the eye)
-Dagoba.T = []                                           
+Dagoba.T = []                               // transformers (more than meets the eye)
 
 Dagoba.addTransformer = function(fun, priority) {
   if(typeof fun != 'function')
-    return Dagoba.error('Invalid transformer function') 
-  
-  for(var i = 0; i < Dagoba.T.length; i++)              // OPT: binary search
+    return Dagoba.error('Invalid transformer function')
+
+  for(var i = 0; i < Dagoba.T.length; i++)  // OPT: binary search
     if(priority > Dagoba.T[i].priority) break
-  
+
   Dagoba.T.splice(i, 0, {priority: priority, fun: fun})
 }
 \end{verbatim}
 
 Now we can add query transformers to our system. A query transformer is
-a function that accepts program and returns a program, plus a priority
+a function that accepts a program and returns a program, plus a priority
 level. Higher priority transformers are placed closer to the front of
-the list. We're ensuring fun is a function, because we're going to
-evaluate it later \footnote{Note that we're keeping the domain of the
+the list. We're ensuring \texttt{fun} is a function, because we're going
+to evaluate it later \footnote{Note that we're keeping the domain of the
   priority parameter open, so it can be an integer, a rational, a
-  negative number, or even things like Infinity or NaN.}.
+  negative number, or even things like Infinity or NaN.{]}}.
 
 We'll assume there won't be an enormous number of transformer additions,
 and walk the list linearly to add a new one. We'll leave a note in case
-this assumption turns out to be false -- a binary search is much more
-time optimal for long lists, but adds a little complexity and doesn't
+this assumption turns out to be false --- a binary search is much more
+time-optimal for long lists, but adds a little complexity and doesn't
 really speed up short lists.
 
 To run these transformers we're going to inject a single line of code in
 to the top of our interpreter:
 
 \begin{verbatim}
-// our virtual machine for query processing
-Dagoba.Q.run = function() {                             
-  this.program = Dagoba.transform(this.program)         // activate the transformers
+Dagoba.Q.run = function() {                     // our virtual machine for querying
+  this.program = Dagoba.transform(this.program) // activate the transformers
 \end{verbatim}
 
-And use that to call this function, which just passes our program
-through each transformer in turn.
+We'll use that to call this function, which just passes our program
+through each transformer in turn:
 
 \begin{verbatim}
 Dagoba.transform = function(program) {
@@ -1656,16 +1660,16 @@ Dagoba.transform = function(program) {
 }
 \end{verbatim}
 
-Our engine up until this point has traded simplicity for performance,
+Up until this point, our engine has traded simplicity for performance,
 but one of the nice things about this strategy is that it leaves doors
 open for global optimizations that may have been unavailable if we had
-opted to locally optimize as we designed the system.
+opted to optimize locally as we designed the system.
 
 Optimizing a program can often increase complexity and reduce the
-elegance of the system, making it harder to reason about and maintain
-the system. Breaking abstraction barriers for performance gains is one
-of the more egregious forms, but even something seemingly innocuous like
-embedding performance-oriented code into business logic makes
+elegance of the system, making it harder to reason about and maintain.
+Breaking abstraction barriers for performance gains is one of the more
+egregious forms of optimization, but even something seemingly innocuous
+like embedding performance-oriented code into business logic makes
 maintenance more difficult.
 
 In light of that, this type of ``orthogonal optimization'' is
@@ -1686,28 +1690,33 @@ fully satisfying. It'd be nicer to say what mean: either
 \texttt{g.v('Thor').parents().children()} or
 \texttt{g.v('Thor').children().parents()}.
 
-We can use query transformers to make aliases with just a couple extra
-helper functions:
+We can use query transformers to make aliases with just a couple of
+extra helper functions:
 
 \begin{verbatim}
 Dagoba.addAlias = function(newname, oldname, defaults) {
-  // default arguments for the alias
-  defaults = defaults || []                             
+  defaults = defaults || []                     // default arguments for the alias
   Dagoba.addTransformer(function(program) {
     return program.map(function(step) {
       if(step[0] != newname) return step
       return [oldname, Dagoba.extend(step[1], defaults)]
     })
-  }, 100)    // these need to run early, so they get a high priority
-  // because there's no method catchall in js
-  Dagoba.addPipetype(newname, function() {})            
+    }, 100)                                     // 100 because aliases run early
+
+  Dagoba.addPipetype(newname, function() {})
 }
 \end{verbatim}
 
 We're adding a new name for an existing step, so we'll need to create a
 query transformer that converts the new name to the old name whenever
 it's encountered. We'll also need to add the new name as a method on the
-main query object, so it can be pulled in to the query program.
+main query object, so it can be pulled into the query program.
+
+If we could capture missing method calls in JavaScript and route them to
+a handler function then we might be able to run this transformer with a
+lower priority, but there's currently no way to do that. Instead we will
+run it with a high priority of 100 so the aliased methods are added
+before they are invoked.
 
 We call another helper function to merge the incoming step's arguments
 with the alias's default arguments. If the incoming step is missing an
@@ -1740,30 +1749,30 @@ Dagoba.addAlias('children', 'in', ['parent'])
 \end{verbatim}
 
 Now we can add edges for spouses, step-parents, or even jilted
-ex-lovers. If we enhance our addAlias function we can introduce new
-aliases for grandparents, siblings, or even cousins:
+ex-lovers. If we enhance our \texttt{addAlias} function we can introduce
+new aliases for grandparents, siblings, or even cousins:
 
 \begin{verbatim}
-Dagoba.addAlias('grandparents', [['out', 'parent'], ['out', 'parent']])
-Dagoba.addAlias('siblings', 
-  [['as', 'me'], ['out', 'parent'], ['in', 'parent'], ['except', 'me']])
-Dagoba.addAlias('cousins', 
-  [['out', 'parent'], ['as', 'folks'], ['out', 'parent'], ['in', 'parent'],
-   ['except', 'folks'], ['in', 'parent'], ['unique']])
+Dagoba.addAlias('grandparents', [ ['out', 'parent'], ['out', 'parent']])
+Dagoba.addAlias('siblings',     [ ['as', 'me'], ['out', 'parent']
+                                , ['in', 'parent'], ['except', 'me']])
+Dagoba.addAlias('cousins',      [ ['out', 'parent'], ['as', 'folks']
+                                , ['out', 'parent'], ['in', 'parent']
+                                , ['except', 'folks'], ['in', 'parent']
+                                , ['unique']])
 \end{verbatim}
 
 That \texttt{cousins} alias is kind of cumbersome. Maybe we could expand
-our addAlias function to allow ourselves to use other aliases in our
-aliases, and then call it like this:
+our \texttt{addAlias} function to allow ourselves to use other aliases
+in our aliases, and call it like this:
 
 \begin{verbatim}
-Dagoba.addAlias(
-  'cousins', ['parents', ['as', 'folks'], 
-  'parents', 'children', ['except', 'folks'], 
-  'children', 'unique'])
+Dagoba.addAlias('cousins',      [ 'parents', ['as', 'folks']
+                                , 'parents', 'children'
+                                , ['except', 'folks'], 'children', 'unique'])
 \end{verbatim}
 
-Now instead of:
+Now instead of
 
 \begin{verbatim}
 g.v('Forseti').parents().as('parents').parents().children()
@@ -1772,24 +1781,25 @@ g.v('Forseti').parents().as('parents').parents().children()
 
 we can just say \texttt{g.v('Forseti').cousins()}.
 
-We've introduced a bit of a pickle, though: while our addAlias function
-is resolving an alias it also has to resolve other aliases. What if
-\texttt{parents} called some other alias, and while we were resolving
-\texttt{cousins} we then had to stop to resolve \texttt{parents} and
-then resolve its aliases and so on? What if one of \texttt{parents}
+We've introduced a bit of a pickle, though: while our \texttt{addAlias}
+function is resolving an alias it also has to resolve other aliases.
+What if \texttt{parents} called some other alias, and while we were
+resolving \texttt{cousins} we had to stop to resolve \texttt{parents}
+and then resolve its aliases and so on? What if one of \texttt{parents}
 aliases ultimately called \texttt{cousins}?
 
-This brings us in to the realm of dependency resolution, a core
-component of modern package managers. There are a lot of fancy tricks
-for choosing ideal versions, tree shaking, general optimizations and the
-like, but the basic idea is fairly simple. We're going to make a graph
-of all the dependencies and their relationships, and then try to find a
-way to line up the vertices while making all the arrows go from left to
-right. If we can, then this particular sorting of the vertices is called
-a `topological ordering', and we've proven that our dependency graph has
-no cycles: it is a Directed Acyclic Graph (DAG). If we fail to do so
-then our graph has at least one cycle \footnote{You can learn more about
-  dependency resolution in \aosachapref{s:contingent}.}.
+This brings us in to the realm of dependency resolution \footnote{You
+  can learn more about dependency resolution in
+  \aosachapref{s:contingent}.}, a core component of modern package
+managers. There are a lot of fancy tricks for choosing ideal versions,
+tree shaking, general optimizations and the like, but the basic idea is
+fairly simple. We're going to make a graph of all the dependencies and
+their relationships, and then try to find a way to line up the vertices
+while making all the arrows go from left to right. If we can, then this
+particular sorting of the vertices is called a `topological ordering',
+and we've proven that our dependency graph has no cycles: it is a
+Directed Acyclic Graph (DAG). If we fail to do so then our graph has at
+least one cycle.
 
 On the other hand, we expect that our queries will generally be rather
 short (100 steps would be a very long query) and that we'll have a
@@ -1802,37 +1812,37 @@ of these two pathways?
 
 \aosasecti{Performance}\label{performance}
 
-All production graph databases share a very particular performance
+All production graph databases share a particular performance
 characteristic: graph traversal queries are constant time with respect
-to total graph size\footnote{The fancy term for this is ``index-free
+to total graph size \footnote{The fancy term for this is ``index-free
   adjacency''.}. In a non-graph database, asking for the list of
 someone's friends can require time proportional to the number of
 entries, because in the naive worst-case you have to look at every
-entry. The means if a query over ten entries takes a millisecond then a
-query over ten million entries will take almost two weeks. Your friend
-list would arrive faster if sent by Pony Express\footnote{Though only in
-  operation for 18 months due to the arrival of the transcontinental
+entry. This means if a query over ten entries takes a millisecond, then
+a query over ten million entries will take almost two weeks. Your friend
+list would arrive faster if sent by Pony Express \footnote{Though only
+  in operation for 18 months due to the arrival of the transcontinental
   telegraph and the outbreak of the American Civil War, the Pony Express
   is still remembered today for delivering mail coast to coast in just
   ten days.}!
 
 To alleviate this dismal performance most databases index over
-oft-queried fields, which turns an $O(n)$ search into an $O(\log{}n)$
+oft-queried fields, which turns an $O(n)$ search into an $O(log n)$
 search. This gives considerably better search performance, but at the
-cost of some write performance and a lot of space -- indices can easily
+cost of some write performance and a lot of space --- indices can easily
 double the size of a database. Careful balancing of the space/time
 tradeoffs of indices is part of the perpetual tuning process for most
 databases.
 
 Graph databases sidestep this issue by making direct connections between
-vertices and edges, so graph traversals are just pointer jumps: no need
+vertices and edges, so graph traversals are just pointer jumps; no need
 to scan through every item, no need for indices, no extra work at all.
 Now finding your friends has the same price regardless of the total
 number of people in the graph, with no additional space cost or write
 time cost. One downside to this approach is that the pointers work best
 when the whole graph is in memory on the same machine. Effectively
 sharding a graph database across multiple machines is still an active
-area of research\footnote{Sharding a graph database requires
+area of research \footnote{Sharding a graph database requires
   partitioning the graph.
   \href{http://dl.acm.org/citation.cfm?doid=1007912.1007931}{Optimal
   graph partitioning is NP-hard}, even for simple graphs like trees and
@@ -1841,15 +1851,15 @@ area of research\footnote{Sharding a graph database requires
 
 We can see this at work in the microcosm of Dagoba if we replace the
 functions for finding edges. Here's a naive version that searches
-through all the edges in linear time. It harkens back to our very first
+through all the edges in linear time. It's similar to our very first
 implementation, but uses all the structures we've since built.
 
 \begin{verbatim}
-Dagoba.G.findInEdges  = function(vertex) { 
-  return this.edges.filter(function(edge) {return edge._in._id  == vertex._id} ) 
+Dagoba.G.findInEdges  = function(vertex) {
+  return this.edges.filter(function(edge) {return edge._in._id  == vertex._id} )
 }
-Dagoba.G.findOutEdges = function(vertex) { 
-  return this.edges.filter(function(edge) {return edge._out._id == vertex._id} ) 
+Dagoba.G.findOutEdges = function(vertex) {
+  return this.edges.filter(function(edge) {return edge._out._id == vertex._id} )
 }
 \end{verbatim}
 
@@ -1869,12 +1879,12 @@ Dagoba.G.findInEdges  = function(vertex) { return vertex._in  }
 Dagoba.G.findOutEdges = function(vertex) { return vertex._out }
 \end{verbatim}
 
-Run these yourself to experience the graph database difference\footnote{In
-  modern JavaScript engines filtering a list is quite fast -- for small
-  graphs the naive version can actually be faster than the index-free
-  version due to the underlying data structures and the way the code is
-  JIT compiled. Try it with different sizes of graphs to see how the two
-  approaches scale.}.
+Run these yourself to experience the graph database difference
+\footnote{In modern JavaScript engines filtering a list is quite fast
+  --- for small graphs the naive version can actually be faster than the
+  index-free version due to the underlying data structures and the way
+  the code is JIT compiled. Try it with different sizes of graphs to see
+  how the two approaches scale.}.
 
 \aosasecti{Serialization}\label{serialization}
 
@@ -1885,17 +1895,17 @@ been built how do we get the vertices and edges back out?
 
 Our natural inclination is to do something like
 \texttt{JSON.stringify(graph)}, which produces the terribly helpful
-error \texttt{TypeError: Converting circular structure to JSON}. During
-the graph construction process the vertices were linked to their edges,
-and the edges are all linked to their vertices, so now everything refers
-to everything else. So how can we extract our nice neat lists again?
-JSON replacer functions to the rescue.
+error ``TypeError: Converting circular structure to JSON''. During the
+graph construction process the vertices were linked to their edges, and
+the edges are all linked to their vertices, so now everything refers to
+everything else. So how can we extract our nice neat lists again? JSON
+replacer functions to the rescue.
 
 The \texttt{JSON.stringify} function takes a value to stringify, but it
 also takes two additional parameters: a replacer function and a
-whitespace number\footnote{Pro tip: given a deep tree
+whitespace number \footnote{Pro tip: Given a deep tree
   \texttt{deep\_tree}, running \texttt{JSON.stringify(deep\_tree, 0, 2)}
-  in the JS console is a quick way to make it human readable.} . The
+  in the JS console is a quick way to make it human readable.}. The
 replacer allows you to customize how the stringification proceeds.
 
 We need to treat the vertices and edges a bit differently, so we're
@@ -1905,7 +1915,7 @@ going to manually merge the two sides into a single JSON string.
 Dagoba.jsonify = function(graph) {
   return '{"V":' + JSON.stringify(graph.vertices, Dagoba.cleanVertex)
        + ',"E":' + JSON.stringify(graph.edges,    Dagoba.cleanEdge)
-       + '}' 
+       + '}'
 }
 \end{verbatim}
 
@@ -1913,26 +1923,26 @@ And these are the replacers for vertices and edges.
 
 \begin{verbatim}
 Dagoba.cleanVertex = function(key, value) {
-  return (key == '_in' || key == '_out') ? undefined : value 
+  return (key == '_in' || key == '_out') ? undefined : value
 }
 
 Dagoba.cleanEdge = function(key, value) {
-  return (key == '_in' || key == '_out') ? value._id : value 
+  return (key == '_in' || key == '_out') ? value._id : value
 }
 \end{verbatim}
 
 The only difference between them is what they do when a cycle is about
 to be formed: for vertices, we skip the edge list entirely. For edges,
-we replace each vertex with its id. That gets rid of all the cycles we
+we replace each vertex with its ID. That gets rid of all the cycles we
 created while building the graph.
 
 We're manually manipulating JSON in \texttt{Dagoba.jsonify}, which
-generally isn't recommended as the JSON format is insufferably
-persnickety. Even in a dose this small it's easy to miss something and
-hard to visually confirm correctness.
+generally isn't recommended as the JSON format is rather persnickety.
+Even in a dose this small it's easy to miss something and hard to
+visually confirm correctness.
 
 We could merge the two replacer functions into a single function, and
-then use that new replacer function over the whole graph by doing
+use that new replacer function over the whole graph by doing
 \texttt{JSON.stringify(graph, my\_cool\_replacer)}. This frees us from
 having to manually massage the JSON output, but the resulting code may
 be quite a bit messier. Try it yourself and see if you can come up with
@@ -1943,7 +1953,8 @@ it fits in a tweet.)
 
 Persistence is usually one of the trickier parts of a database: disks
 are relatively safe, but dreadfully slow. Batching writes, making them
-atomic, journaling -- these are difficult to make both fast and correct.
+atomic, journaling --- these are difficult to make both fast and
+correct.
 
 Fortunately, we're building an \emph{in-memory} database, so we don't
 have to worry about any of that! We may, though, occasionally want to
@@ -1963,14 +1974,14 @@ The \texttt{fromString} function isn't part of the language
 specification, but it's handy to have around.
 
 \begin{verbatim}
-Dagoba.fromString = function(str) {                     // another graph constructor
-  var obj = JSON.parse(str)                             // this can throw
-  return Dagoba.graph(obj.V, obj.E) 
+Dagoba.fromString = function(str) {             // another graph constructor
+  var obj = JSON.parse(str)                     // this can throw
+  return Dagoba.graph(obj.V, obj.E)
 }
 \end{verbatim}
 
 Now we'll use those in our persistence functions. The \texttt{toString}
-function is hiding -- can you spot it?
+function is hiding --- can you spot it?
 
 \begin{verbatim}
 Dagoba.persist = function(graph, name) {
@@ -1986,42 +1997,42 @@ Dagoba.depersist = function (name) {
 \end{verbatim}
 
 We preface the name with a faux namespace to avoid polluting the
-localStorage properties of the domain, as it can get quite crowded in
-there. There's also usually a low storage limit, so for larger graphs
-we'd probably want to use a Blob of some sort.
+\texttt{localStorage} properties of the domain, as it can get quite
+crowded in there. There's also usually a low storage limit, so for
+larger graphs we'd probably want to use a Blob of some sort.
 
 There are also potential issues if multiple browser windows from the
 same domain are persisting and depersisting simultaneously. The
-localStorage space is shared between those windows, and they're
-potentially on different event loops, so there's the possibility for one
-to carelessly overwrite the work of another. The spec says there should
-be a mutex required for read/write access to localStorage, but it's
-inconsistently implemented between different browsers, and even with it
-a simple implementation like ours could still encounter issues.
+\texttt{localStorage} space is shared between those windows, and they're
+potentially on different event loops, so there's the possibility of one
+carelessly overwriting the work of another. The spec says there should
+be a mutex required for read/write access to \texttt{localStorage}, but
+it's inconsistently implemented between different browsers, and even
+with it a simple implementation like ours could still encounter issues.
 
-If we wanted our persistence implementation to be multi-window
-concurrency aware then we could make use of the storage events that are
-fired when localStorage is changed to update our local graph
-accordingly.
+If we wanted our persistence implementation to be
+multi-window--concurrency aware, then we could make use of the storage
+events that are fired when \texttt{localStorage} is changed to update
+our local graph accordingly.
 
 \aosasecti{Updates}\label{updates}
 
-Our `out' pipetype copies the vertex's out-going edges and pops one off
-each time it needs one. Building that new data structure takes time and
-space, and pushes more work on to the memory manager. We could have
-instead used the vertex's out-going edge list directly, keeping track of
-our place with a counter variable. Can you think of a problem with that
-approach?
+Our \texttt{out} pipetype copies the vertex's out-going edges and pops
+one off each time it needs one. Building that new data structure takes
+time and space, and pushes more work on to the memory manager. We could
+have instead used the vertex's out-going edge list directly, keeping
+track of our place with a counter variable. Can you think of a problem
+with that approach?
 
-Well, if someone deletes an edge we've visited while we're in the middle
-of a query, that would change the size of our edge list, and we'd then
-skip an edge because our counter is off. To solve this we could lock the
-vertices involved our query, but then we'd either lose our capacity to
-regularly update the graph, or the ability to have long-lived query
-objects responding to requests for more results on-demand. Even though
-we're in a single-threaded event loop, our queries can span multiple
-asynchronous re-entries, which means concurrency concerns like this are
-a very real problem.
+If someone deletes an edge we've visited while we're in the middle of a
+query, that would change the size of our edge list, and we'd then skip
+an edge because our counter would be off. To solve this we could lock
+the vertices involved in our query, but then we'd either lose our
+capacity to regularly update the graph, or the ability to have
+long-lived query objects responding to requests for more results
+on-demand. Even though we're in a single-threaded event loop, our
+queries can span multiple asynchronous re-entries, which means
+concurrency concerns like this are a very real problem.
 
 So we'll pay the performance price to copy the edge list. There's still
 a problem, though, in that long-lived queries may not see a completely
@@ -2043,19 +2054,19 @@ initialized. Adding versioning to our database also opens the door to
 true transactions, and automated rollback/retries in an STM-like
 fashion.
 
-\aosasecti{Future directions}\label{future-directions}
+\aosasecti{Future Directions}\label{future-directions}
 
 We saw one way of gathering ancestors earlier:
 
 \begin{verbatim}
-g.v('Thor').out().as('parent').out()
-                 .as('grandparent').out()
-                 .as('great-grandparent')
-                 .merge(['parent', 'grandparent', 'great-grandparent'])
-                 .run()
+g.v('Thor').out().as('parent')
+           .out().as('grandparent')
+           .out().as('great-grandparent')
+           .merge(['parent', 'grandparent', 'great-grandparent'])
+           .run()
 \end{verbatim}
 
-This is pretty clumsy, and doesn't scale well -- what if we wanted six
+This is pretty clumsy, and doesn't scale well --- what if we wanted six
 layers of ancestors? Or to look through an arbitrary number of ancestors
 until we found what we wanted?
 
@@ -2065,15 +2076,18 @@ It'd be nice if we could say something like this instead:
 g.v('Thor').out().all().times(3).run()
 \end{verbatim}
 
-What we'd like to get out of this is something like the query above
-after the query transformers have all run:
+What we'd like to get out of this is something like the query above ---
+maybe:
 
 \begin{verbatim}
-g.v('Thor').out().as('a').out()
-                 .as('b').out()
-                 .as('c').merge(['a', 'b', 'c'])
-                 .run()`
+g.v('Thor').out().as('a')
+           .out().as('b')
+           .out().as('c')
+           .merge(['a', 'b', 'c'])
+           .run()`
 \end{verbatim}
+
+after the query transformers have all run.
 
 We could run the \texttt{times} transformer first, to produce
 \linebreak \texttt{g.v('Thor').out().all().out().all().out().all().run()}.
@@ -2081,51 +2095,52 @@ Then run the \texttt{all} transformer and have it transform each
 \texttt{all} into a uniquely labeled \texttt{as}, and put a
 \texttt{merge} after the last \texttt{as}.
 
-There's a few problems with this, though. For one, this as/merge
-technique only works if every pathway is present in the graph -- if
-we're missing an entry for one of Thor's great-grandparents that will
-limit our results. For another, what happens if we want to do this to
-just part of a query and not the whole thing? What if there are multiple
-\texttt{all}s?
+There are a few problems with this, though. For one, this
+\texttt{as}/\texttt{merge} technique only works if every pathway is
+present in the graph: if we're missing an entry for one of Thor's
+great-grandparents then we will skip valid entries. For another, what
+happens if we want to do this to just part of a query and not the whole
+thing? What if there are multiple \texttt{all}s?
 
 To solve that first problem we're going to have to treat \texttt{all}s
 as something more than just as/merge. We need each parent gremlin to
 actually skip the intervening steps. We can think of this as a kind of
-teleportation -- jumping from one part of the pipeline directly to
-another -- or we can think of it as a certain kind of branching
+teleportation --- jumping from one part of the pipeline directly to
+another --- or we can think of it as a certain kind of branching
 pipeline, but either way it complicates our model somewhat. Another
 approach would be to think of the gremlin as passing through the
 intervening pipes in a sort of suspended animation, until awoken by a
-special pipe. Scoping the freezing/thawing pipes may be tricky, however.
+special pipe. Scoping the suspending/unsuspending pipes may be tricky,
+however.
 
-The next two problems are easier: to modify just part of a query we'll
+The next two problems are easier. To modify just part of a query we'll
 wrap that portion in special start/end steps, like
 \texttt{g.v('Thor').out().start().in().out().end().times(4).run()}.
 Actually, if the interpreter knows about these special pipetypes we
 don't need the end step, because the end of a sequence is always a
-special pipetype. We'll call these special pipetypes `adverbs', because
-they modify regular pipetypes like adverbs modify verbs.
+special pipetype. We'll call these special pipetypes ``adverbs'',
+because they modify regular pipetypes like adverbs modify verbs.
 
 To handle multiple \texttt{all}s we need to run all \texttt{all}
-transformers twice: one time before the times transformer, to mark all
-\texttt{all}s uniquely, and again after times' time to remark all marked
-\texttt{all}s uniquely all over.
+transformers twice: once before the \texttt{times} transformer, to mark
+all \texttt{all}s uniquely, and again after \texttt{times}' time to
+re-mark all marked \texttt{all}s uniquely.
 
 There's still the issue of searching through an unbounded number of
-ancestors -- for example, how do we find out which of Ymir's descendants
-are scheduled to survive Ragnarök? We could make individual queries like
-\texttt{g.v('Ymir').in().filter(\{survives: true\})} and
-\newline \texttt{g.v('Ymir').in().in().in().in().filter(\{survives: true\})}
+ancestors --- for example, how do we find out which of Ymir's
+descendants are scheduled to survive Ragnarök? We could make individual
+queries like \texttt{g.v('Ymir').in().filter(\{survives: true\})} and
+\newline \texttt{g.v('Ymir').in().in().in().in().filter(\{survives: true\})},
 and manually collect the results ourselves, but that's pretty awful.
 
-We'd like to use adverbs like this:
+We'd like to use an adverb like this:
 
 \begin{verbatim}
 g.v('Ymir').in().filter({survives: true}).every()
 \end{verbatim}
 
-This would work like \texttt{all}+\texttt{times} but without enforcing a
-limit. We may want to impose a particular strategy on the traversal,
+which would work like \texttt{all}+\texttt{times} but without enforcing
+a limit. We may want to impose a particular strategy on the traversal,
 though, like a stolid BFS or YOLO DFS, so
 \newline \texttt{g.v('Ymir').in().filter(\{survives: true\}).bfs()}
 would be more flexible. Phrasing it this way allows us to state
@@ -2133,26 +2148,26 @@ complicated queries like ``check for Ragnarök survivors, skipping every
 other generation'' in a straightforward fashion:
 \texttt{g.v('Ymir').in().filter(\{survives: true\}).in().bfs()}.
 
-\aosasecti{Wrapping up}\label{wrapping-up}
+\aosasecti{Wrapping Up}\label{wrapping-up}
 
 So what have we learned? Graph databases are great for storing
-interconnected\footnote{Not \emph{too} interconnected, though -- you'd
+interconnected \footnote{Not \emph{too} interconnected, though --- you'd
   like the number of edges to grow in direct proportion to the number of
-  vertices. In other words the average number of edges connected to a
+  vertices. In other words, the average number of edges connected to a
   vertex shouldn't vary with the size of the graph. Most systems we'd
-  consider putting in a graph database already have this property: if we
-  add 100,000 Nigerian films to our movie database that doesn't increase
-  the degree of the Kevin Bacon vertex.} data that you plan to query via
-graph traversals. Adding non-strict semantics allows for a fluent
-interface over queries you could never express in an eager system for
-performance reasons, and allows you to cross async boundaries. Time
-makes things complicated, and time from multiple perspectives
-(i.e.~concurrency) makes things very complicated, so whenever we can
-avoid introducing a temporal dependency (e.g.~state, observable effects,
-etc) we make reasoning about our system easier. Building in a simple,
-decoupled and painfully unoptimized style leaves the door open for
-global optimizations later on, and using a driver loop allows for
-orthogonal optimizations -- each without introducing the brittleness and
+  consider putting in a graph database already have this property: if
+  Loki had 100,000 additional grandchildren the degree of the Thor
+  vertex wouldn't increase.} data that you plan to query via graph
+traversals. Adding non-strict semantics allows for a fluent interface
+over queries you could never express in an eager system for performance
+reasons, and allows you to cross async boundaries. Time makes things
+complicated, and time from multiple perspectives (i.e., concurrency)
+makes things very complicated, so whenever we can avoid introducing a
+temporal dependency (e.g., state, observable effects, etc.) we make
+reasoning about our system easier. Building in a simple, decoupled and
+painfully unoptimized style leaves the door open for global
+optimizations later on, and using a driver loop allows for orthogonal
+optimizations --- each without introducing the brittleness and
 complexity that is the hallmark of most optimization techniques.
 
 That last point can't be overstated: keep it simple. Eschew optimization
@@ -2167,8 +2182,8 @@ can give you leverage over otherwise intractable problems.
 
 \aosasectii{Acknowledgements}\label{acknowledgements}
 
-Many thanks are due to Michael DiBernardo, Colin Lupton, Scott Rostrup,
-Michael Russo, Erin Toliver, and Leo Zovik for their invaluable
-contributions to this chapter.
+Many thanks are due to Amy Brown, Michael DiBernardo, Colin Lupton,
+Scott Rostrup, Michael Russo, Erin Toliver, and Leo Zovic for their
+invaluable contributions to this chapter.
 
 \end{aosachapter}

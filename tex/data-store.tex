@@ -1,5 +1,17 @@
 \begin{aosachapter}{DBDB: Dog Bed Database}{s:data-store}{Taavi Burns}
 
+\emph{As the newest bass (and sometimes tenor) in
+\href{http://www.countermeasuremusic.com}{Countermeasure}, Taavi strives
+to break the mould\ldots{} sometimes just by ignoring its existence.
+This is certainly true through the diversity of workplaces in his
+career: IBM (doing C and Perl), FreshBooks (all the things), Points.com
+(doing Python), and now at PagerDuty (doing Scala). Aside from
+that---when not gliding along on his Brompton folding bike---you might
+find him playing Minecraft with his son or engaging in parkour (or rock
+climbing, or other adventures) with his wife. He knits continental.}
+
+\aosasecti{Introduction}\label{introduction}
+
 DBDB (Dog Bed Database) is a Python library that implements a simple
 key/value database. It lets you associate a key with a value, and store
 that association on disk for later retrieval.
@@ -98,7 +110,7 @@ not implemented.
 Application code can, of course, impose its own consistency guarantees,
 but proper isolation requires a transaction manager. We won't attempt
 that here; however, you can learn more about transaction management in
-the CircleDB chapter (\aosachapref{s:functionaldb}).
+the CircleDB chapter (\aosachapref{s:functionalDB}).
 
 We also have other system-maintenance problems to think about. Stale
 data is not reclaimed in this implementation, so repeated updates (even
@@ -715,12 +727,11 @@ SSDs help with the latency, but the savings in I/O still stand.
 By default, values are stored by \texttt{ValueRef} which expects bytes
 as values (to be passed directly to \texttt{Storage}). The binary tree
 nodes themselves are just a sublcass of \texttt{ValueRef}. Storing
-richer data (via \href{http://json.org}{\texttt{json}} or
-\href{http://msgpack.org}{\texttt{msgpack}}) is a matter of writing your
-own and setting it as the \texttt{value\_ref\_class}.
-\texttt{BinaryNodeRef} is an example of using
-\href{https://docs.python.org/3.4/library/pickle.html}{\texttt{pickle}}
-to serialise data.
+richer data via json or msgpack is a matter of writing your own and
+setting it as the \texttt{value\_ref\_class}. \texttt{BinaryNodeRef} is
+an example of using
+\href{https://docs.python.org/3.4/library/pickle.html}{pickle} to
+serialise data.
 
 Database compaction is another interesting exercise. Compacting can be
 done via an infix-of-median traversal of the tree writing things out as

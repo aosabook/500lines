@@ -7,7 +7,7 @@ textual data. Programming languages are designed to be good for this
 sort of programming. But some programming tasks involve only a little
 bit of logic, and a great deal of textual data. For these tasks, we'd
 like to have a tool better suited to these text-heavy problems. A
-template engines is such a tool. In this chapter, we build a simple
+template engine is such a tool. In this chapter, we build a simple
 template engine.
 
 The most common example of one of these text-heavy tasks is in web
@@ -160,11 +160,6 @@ they are also used to produce plain-text email messages. But usually
 they are used for HTML, and occasionally have HTML-specific features,
 such as escaping, which makes it possible to insert values into the HTML
 without worrying about which characters are special in HTML.
-
-Templates are also not always the best choice for producing large chunks
-of text, even if they do follow a common pattern. Very data-heavy
-outputs might be easier to do the logic-centric way rather than the
-document-centric template way.
 
 \aosasecti{Supported Syntax}\label{supported-syntax}
 
@@ -502,8 +497,8 @@ define first: CodeBuilder.
 The bulk of the work in our engine is parsing the template and producing
 the necessary Python code. To help with producing the Python, we have
 the CodeBuilder class, which handles the bookkeeping for us as we
-construct the the Python code. It adds lines of code, manages
-indentation, and finally gives us values from the compiled Python.
+construct the Python code. It adds lines of code, manages indentation,
+and finally gives us values from the compiled Python.
 
 One CodeBuilder object is responsible for a complete chunk of Python
 code. As used by our template engine, the chunk of Python is always a

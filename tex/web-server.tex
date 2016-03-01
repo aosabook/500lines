@@ -1,12 +1,12 @@
 \begin{aosachapter}{A Simple Web Server}{s:web-server}{Greg Wilson}
 
-\emph{Greg Wilson is the founder of Software Carpentry, a crash course
-in computing skills for scientists and engineers. He has worked for 30
-years in in both industry and academia, and is the author or editor of
-several books on computing, including the 2008 Jolt Award winner
-``Beautiful Code'' and the first two volumes of ``The Architecture of
-Open Source Applications''. Greg received a Ph.D.~in Computer Science
-from the University of Edinburgh in 1993.}
+\emph{\href{https://twitter.com/gvwilson}{Greg Wilson} is the founder of
+Software Carpentry, a crash course in computing skills for scientists
+and engineers. He has worked for 30 years in both industry and academia,
+and is the author or editor of several books on computing, including the
+2008 Jolt Award winner \emph{Beautiful Code} and the first two volumes
+of \emph{The Architecture of Open Source Applications}. Greg received a
+PhD in Computer Science from the University of Edinburgh in 1993.}
 
 \aosasecti{Introduction}\label{introduction}
 
@@ -35,11 +35,11 @@ consists of four 8-bit numbers, such as \texttt{174.136.14.108}; the
 Domain Name System (DNS) matches these numbers to symbolic names like
 \texttt{aosabook.org} that are easier for human beings to remember.
 
-A port number is just a number in the range 0-65535 that uniquely
-identifies the socket on the host machine. (If an IP address is like a
-company's phone number, then a port number is like an extension.) Ports
-0-1023 are reserved for the operating system's use; anyone else can use
-the remaining ports.
+A port number is a number in the range 0-65535 that uniquely identifies
+the socket on the host machine. (If an IP address is like a company's
+phone number, then a port number is like an extension.) Ports 0-1023 are
+reserved for the operating system's use; anyone else can use the
+remaining ports.
 
 The Hypertext Transfer Protocol (HTTP) describes one way that programs
 can exchange data over IP. HTTP is deliberately simple: the client sends
@@ -98,27 +98,30 @@ other codes have other meanings. The status phrase repeats that
 information in a human-readable phrase like ``OK'' or ``not found''.
 
 For the purposes of this chapter there are only two other things we need
-to know about HTTP The first is that it is \emph{stateless}: each
-request is handled on its own, and the server doesn't remember anything
-between one request and the next. If an application wants to keep track
-of something like a user's identity, it must do so itself. The usual way
-to do this is with a cookie, which is just a short character string that
-the server sends to the client, and the client later returns to the
-server.
+to know about HTTP.
 
-When a user signs in, the server creates a new cookie, stores it in a
-database, and sends it to her browser. Each time her browser sends the
-cookie back, the server uses it to look up information about what the
-user is doing.
+The first is that it is \emph{stateless}: each request is handled on its
+own, and the server doesn't remember anything between one request and
+the next. If an application wants to keep track of something like a
+user's identity, it must do so itself.
 
-The second is that a URL can be supplemented with parameters to provide
-even more information. For example, if we're using a search engine, we
-have to specify what our search terms are. We could add these to the
-path in the URL, but what we should do is add parameters to the URL. We
-do this by adding `?' to the URL followed by `key=value' pairs separated
-by `\&'. For example, the URL \texttt{http://www.google.ca?q=Python} ask
-Google to search for pages related to Python: the key is the letter `q',
-and the value is `Python'. The longer query
+The usual way to do this is with a cookie, which is a short character
+string that the server sends to the client, and the client later returns
+to the server. When a user performs some function that requires state to
+be saved across several requests, the server creates a new cookie,
+stores it in a database, and sends it to her browser. Each time her
+browser sends the cookie back, the server uses it to look up information
+about what the user is doing.
+
+The second thing we need to know about HTTP is that a URL can be
+supplemented with parameters to provide even more information. For
+example, if we're using a search engine, we have to specify what our
+search terms are. We could add these to the path in the URL, but what we
+should do is add parameters to the URL. We do this by adding `?' to the
+URL followed by `key=value' pairs separated by `\&'. For example, the
+URL \texttt{http://www.google.ca?q=Python} asks Google to search for
+pages related to Python: the key is the letter `q', and the value is
+`Python'. The longer query
 \texttt{http://www.google.ca/search?q=Python\&amp;client=Firefox} tells
 Google that we're using Firefox, and so on. We can pass whatever
 parameters we want, but again, it's up to the application running on the
@@ -137,14 +140,14 @@ Opening sockets, constructing HTTP requests, and parsing responses is
 tedious, so most people use libraries to do most of the work. Python
 comes with such a library called \texttt{urllib2} (because it's a
 replacement for an earlier library called \texttt{urllib}), but it
-exposes a lot of plumbing that most people never want to care about.
-Instead, we recommend using the
-\href{https://pypi.python.org/pypi/requests}{Requests} library. Here's
-an example that uses it to download a page from our web site:
+exposes a lot of plumbing that most people never want to care about. The
+\href{https://pypi.python.org/pypi/requests}{Requests} library is an
+easier-to-use alternative to \texttt{urllib2}. Here's an example that
+uses it to download a page from the AOSA book site:
 
 \begin{verbatim}
 import requests
-response = requests.get('http://aosabook.org/en/500lines/web-server/testpage.html')
+response = requests.get('http://aosabook.org/en/500L/web-server/testpage.html')
 print 'status code:', response.status_code
 print 'content length:', response.headers['content-length']
 print response.text
@@ -175,7 +178,7 @@ simple:
 \def\labelenumi{\arabic{enumi}.}
 
 \item
-  wait for someone to connect to our server and send an HTTP request;
+  Wait for someone to connect to our server and send an HTTP request;
 \item
   parse that request;
 \item
@@ -305,10 +308,8 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.wfile.write(page)
 \end{verbatim}
 
-The template\footnote{You can find a full treatment of templates in
-  \aosachapref{s:template-engine}.} for the page we want to display is
-just a string containing an HTML table with some formatting
-placeholders:
+The template for the page we want to display is just a string containing
+an HTML table with some formatting placeholders:
 
 \begin{verbatim}
     Page = '''\
@@ -420,7 +421,7 @@ that Python won't try to ``help'' us by altering byte sequences that
 look like a Windows line ending. Note also that reading the whole file
 into memory when serving it is a bad idea in real life, where the file
 might be several gigabytes of video data. Handling that situation is
-outside the scope of this chapter\ldots{}
+outside the scope of this chapter.
 
 To finish off this class, we need to write the error handling method and
 the template for the error reporting page:
@@ -673,9 +674,9 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
 Of course, most people won't want to edit the source of their web server
 in order to add new functionality. To save them from having to do so,
-servers have from the start supported a mechanism called the Common
-Gateway Interface (CGI), which provides a standard way for a web server
-to run an external program in order to satisfy a request.
+servers have always supported a mechanism called the Common Gateway
+Interface (CGI), which provides a standard way for a web server to run
+an external program in order to satisfy a request.
 
 For example, suppose we want the server to be able to display the local
 time in an HTML page. We can do this in a standalone program with just a

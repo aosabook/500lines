@@ -1,4 +1,10 @@
-\begin{aosachapter}{Blockcode: A visual programming toolkit}{s:blockcode}{Dethe Elze}
+\begin{aosachapter}{Blockcode: A visual programming toolkit}{s:blockcode}{Dethe Elza}
+
+\emph{\href{https://twitter.com/dethe}{Dethe} is a geek dad, aesthetic
+programmer, mentor, and creator of the
+\href{http://waterbearlang.com/}{Waterbear} visual programming tool. He
+co-hosts the Vancouver Maker Education Salons and wants to fill the
+world with robotic origami rabbits.}
 
 In block-based programming languages, you write programs by dragging and
 connecting blocks that represent parts of the program. Block-based
@@ -50,6 +56,11 @@ language, which was created specifically to teach programming to
 children. Several of the block-based languages above include turtle
 graphics, and it is a small enough domain to be able to capture in a
 tightly constrained project such as this.
+
+If you would like to get a feel for what a block-based-language is like,
+you can experiment with the program that is built in this chapter from
+author's \href{https://dethe.github.io/500lines/blockcode/}{GitHub
+repository}.
 
 \aosasecti{Goals and Structure}\label{goals-and-structure}
 
@@ -233,8 +244,8 @@ of arguments, or more than one argument, the code would have to change.
 
 \begin{verbatim}
     function createBlock(name, value, contents){
-        var item = elem('div', 
-            {'class': 'block', draggable: true, 'data-name': name}, 
+        var item = elem('div',
+            {'class': 'block', draggable: true, 'data-name': name},
             [name]
         );
         if (value !== undefined && value !== null){
@@ -245,7 +256,7 @@ of arguments, or more than one argument, the code would have to change.
                 elem('div', {'class': 'container'}, contents.map(function(block){
                 return createBlock.apply(null, block);
             })));
-        }else if (typeof contents === 'string'){ 
+        }else if (typeof contents === 'string'){
             // Add units (degrees, etc.) specifier
             item.appendChild(document.createTextNode(' ' + contents));
         }
@@ -286,8 +297,8 @@ We have some utilities for handling blocks as DOM elements:
     }
 
     function blockUnits(block){
-        if (block.children.length > 1 && 
-            block.lastChild.nodeType === Node.TEXT_NODE && 
+        if (block.children.length > 1 &&
+            block.lastChild.nodeType === Node.TEXT_NODE &&
             block.lastChild.textContent){
             return block.lastChild.textContent.slice(1);
         }
@@ -398,7 +409,7 @@ highlighting valid drop targets, etc. Of these, we only make use of
             return;
         }
         // Necessary. Allows us to drop.
-        if (evt.preventDefault) { evt.preventDefault(); } 
+        if (evt.preventDefault) { evt.preventDefault(); }
         if (dragType === 'menu'){
             // See the section on the DataTransfer object.
             evt.dataTransfer.dropEffect = 'copy';  
@@ -425,7 +436,7 @@ the script when it changes.
         var dropType = 'script';
         if (matches(dropTarget, '.menu')){ dropType = 'menu'; }
         // stops the browser from redirecting.
-        if (evt.stopPropagation) { evt.stopPropagation(); } 
+        if (evt.stopPropagation) { evt.stopPropagation(); }
         if (dragType === 'script' && dropType === 'menu'){
             trigger('blockRemoved', dragTarget.parentElement, dragTarget);
             dragTarget.parentElement.removeChild(dragTarget);
