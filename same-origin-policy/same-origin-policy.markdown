@@ -38,12 +38,10 @@ will attempt to answer the following questions:
 
 Covering the SOP in its entirety is a daunting task, given the
 complexity of the parts that are involved --- web servers, browsers,
-the HTTP protocol, HTML documents, client-side scripts, and so on. We
+HTTP, HTML documents, client-side scripts, and so on. We
 would likely get bogged down by the gritty details of all these parts
 (and consume our 500 lines before even reaching SOP!) But how can we
 hope to be precise without representing crucial details?
-
-STOPPED HERE
 
 ## Modeling with Alloy
 
@@ -51,7 +49,7 @@ This chapter is somewhat different from others in this book. Instead
 of building a working implementation, we will construct an executable
 _model_ that serves as a simple yet precise description of the
 SOP. Like an implementation, the model can be executed to explore
-dynamic behaviors of the system; but unlike an implementation, the
+dynamic behaviors of the system, but unlike an implementation, the
 model omits low-level details that may get in the way of understanding
 the essential concepts.
 
@@ -86,8 +84,8 @@ but as "bounded verification").
 
 ### Simplifications
 
-Because the SOP operates in the context of browsers, servers, the HTTP
-protocol, and so on, a complete description would be overwhelming. So
+Because the SOP operates in the context of browsers, servers, HTTP, 
+and so on, a complete description would be overwhelming. So
 our model (like all models) abstracts away irrelevant aspects, such as
 how network packets are structured and routed. But it also simplifies
 some relevant aspects, which means that the model cannot fully account
@@ -106,7 +104,7 @@ codebase) can be guaranteed complete.
 
 Here is the order in which we will proceed with our model of the
 SOP. We will begin by building models of three key components that we
-need in order for us to talk about the SOP: the HTTP protocol, the
+need in order for us to talk about the SOP: HTTP, the
 browser, and client-side scripting. We will build on top of these
 basic models to define what it means for a web application to be
 _secure_, and then introduce the SOP as a mechanism that attempts to
@@ -327,9 +325,9 @@ suffixes to their names; if there is only one object of a given type,
 no suffix is added. Every name that appears in a snapshot diagram is
 the name of an object. So --- perhaps confusingly at first sight --- the
 names `Domain`, `Path`, `Resource`, `Url` all refer to individual
-objects, not to types!)
+objects, not to types.)
 
-Note that while the DNS server maps `Domain` to both `Server0` and
+Note that while the DNS maps `Domain` to both `Server0` and
 `Server1` (in reality, this is a common practice for load balancing),
 only `Server1` maps `Path` to a resource object, causing
 `HttpRequest1` to result in empty response: another error in our
@@ -367,17 +365,17 @@ This is our first example of a signature with *dynamic fields*. Alloy
 has no built-in notions of time or behavior, which means that a
 variety of idioms can be used. In this model, we're using a common
 idiom in which you introduce a notion of `Time`, and attach it as a
-final column for every time-varying field. For example, expression
-`b.cookes.t` represents the set of cookies that are stored in browser
-`b` at particular time `t`. Likewise, the `documents` field associates
-a set of documents with each browser at a given time (for more details
-about how we model the dynamic behavior, see the Appendix).
+final column for every time-varying field. For example, the expression
+`b.cookies.t` represents the set of cookies that are stored in browser
+`b` at a particular time `t`. Likewise, the `documents` field associates
+a set of documents with each browser at a given time. (For more details
+about how we model the dynamic behavior, see the Appendix.)
 
 Documents are created from a response to an HTTP request. They can
 also be destroyed if, for example, the user closes a tab or the
 browser, but we leave this out of the model. A document has a URL
 (the one from which the document was originated), some content (the
-DOM) and a domain:
+DOM), and a domain:
 
 ```alloy
 sig Document {
@@ -420,6 +418,8 @@ sig BrowserHttpRequest extends HttpRequest {
   cookies.end = cookies.start + from -> sentCookies
 }
 ```
+
+STOPPED HERE
 
 This kind of request has one new field, `doc`, representing the
 document created in the browser from the resource returned by the
