@@ -1,19 +1,19 @@
 title: The Same Origin Policy
 author: Eunsuk Kang, Santiago Perez De Rosso, and Daniel Jackson
 
-_Eunsuk Kang is a PhD candidate and a member of the Software Design Group at MIT. He received his SM in Computer Science from MIT (2010), and a Bachelor of Software Engineering from the University of Waterloo (2007). His research projects have focused on developing tools and techniques for software modeling and verification, with applications to security and safety-critical systems._
+_Eunsuk Kang is a PhD candidate and a member of the Software Design Group at MIT. He received his SM (Master of Science) in Computer Science from MIT (2010), and a Bachelor of Software Engineering from the University of Waterloo (2007). His research projects have focused on developing tools and techniques for software modeling and verification, with applications to security and safety-critical systems._
 
-_Santiago Perez De Rosso is a PhD student in the Software Design Group at MIT. He received his SM in Computer Science from MIT (2015), and an undergraduate degree from ITBA (2011). He used to work at Google developing frameworks and tools to make engineers more productive (2012). He currently spends most of his time thinking about design and version control._
+_Santiago Perez De Rosso is a PhD student in the Software Design Group at MIT. He received his SM in Computer Science from MIT (2015), and an undergraduate degree from ITBA (2011). He used to work at Google, developing frameworks and tools to make engineers more productive (2012). He currently spends most of his time thinking about design and version control._
 
-_Daniel Jackson is a professor in the Department of Electrical Engineering and Computer Science, and leads the Software Design Group in the Computer Science and Artificial Intelligence Laboratory. He received an MA from Oxford University (1984) in Physics, and his SM (1988) and PhD (1992) from MIT in Computer Science. He was a software engineer for Logica UK Ltd. (1984-1986), Assistant Professor of Computer Science at Carnegie Mellon University (1992-1997), and has been at MIT since 1997. He has broad interests in software engineering, especially in development methods, design and specification, formal methods, and safety critical systems._
+_Daniel Jackson is a professor in the Department of Electrical Engineering and Computer Science at MIT, and leads the Software Design Group in the Computer Science and Artificial Intelligence Laboratory. He received an MA from Oxford University (1984) in Physics, and his SM (1988) and PhD (1992) from MIT in Computer Science. He was a software engineer for Logica UK Ltd. (1984-1986), Assistant Professor of Computer Science at Carnegie Mellon University (1992-1997), and has been at MIT since 1997. He has broad interests in software engineering, especially in development methods, design and specification, formal methods, and safety critical systems._
 
 
 ## Introduction
 
 The same-origin policy (SOP) is an important part of the security
 mechanism of every modern browser. It controls when scripts running in
-a browser can communicate with one another (roughly, when they
-originate from the same website). First introduced in Netscape
+a browser can communicate with one another. (Roughly, when they
+originate from the same website.) First introduced in Netscape
 Navigator, the SOP now plays a critical role in the security of web
 applications; without it, it would be far easier for a malicious
 hacker to peruse your private photos on Facebook, read your email, or
@@ -28,7 +28,7 @@ Furthermore, the design of the SOP has evolved organically over the
 years and puzzles many developers.
 
 The goal of this chapter is to capture the essence of
-this important -- yet often misunderstood -- feature. In particular, we
+this important --- yet often misunderstood --- feature. In particular, we
 will attempt to answer the following questions:
 
 * Why is the SOP necessary? What are the types of security violations that it prevents?
@@ -37,11 +37,13 @@ will attempt to answer the following questions:
 * How secure are these mechanisms? What are potential security issues that they introduce?
 
 Covering the SOP in its entirety is a daunting task, given the
-complexity of the parts that are involved -- web servers, browsers,
+complexity of the parts that are involved --- web servers, browsers,
 the HTTP protocol, HTML documents, client-side scripts, and so on. We
 would likely get bogged down by the gritty details of all these parts
-(and consume our 500 lines before even reaching SOP!). But how can we
+(and consume our 500 lines before even reaching SOP!) But how can we
 hope to be precise without representing crucial details?
+
+STOPPED HERE
 
 ## Modeling with Alloy
 
@@ -165,10 +167,10 @@ database table. Thus `protocol` is a table with the first column
 containing URLs and the second column containing protocols. And the
 innocuous looking dot operator is in fact a rather general kind of
 relational join, so that you could also write `protocol.p` for all the
-URLs with a protocol `p` -- but more on that later.
+URLs with a protocol `p` --- but more on that later.
 
 Note that domains and paths, unlike URLs, are treated as if they have
-no structure -- a simplification. The keyword `lone` (which can be
+no structure --- a simplification. The keyword `lone` (which can be
 read "less than or equal to one") says that each URL has at most one
 port. The path is the string that follows the host name in the URL,
 and which (for a simple static server) corresponds to the file path of
@@ -273,7 +275,7 @@ system instances. Let's use the `run` command to ask the Alloy
 Analyzer to execute the HTTP model that we have so far:
 
 ```alloy
-run {} for 3	-- generate an instance with up to 3 objects of every signature type
+run {} for 3	--- generate an instance with up to 3 objects of every signature type
 ```
 
 As soon as the analyzer finds a possible instance of the system, it
@@ -323,7 +325,7 @@ client, but with two different servers. (In the Alloy visualizer,
 objects of the same type are distinguished by appending numeric
 suffixes to their names; if there is only one object of a given type,
 no suffix is added. Every name that appears in a snapshot diagram is
-the name of an object. So -- perhaps confusingly at first sight -- the
+the name of an object. So --- perhaps confusingly at first sight --- the
 names `Domain`, `Path`, `Resource`, `Url` all refer to individual
 objects, not to types!)
 
@@ -464,7 +466,7 @@ properties of a document. The flexibility of client-side scripts is
 one of the main catalysts behind the rapid development of Web 2.0, but
 is also the reason why the SOP was created in the first place. Without
 the SOP, scripts would be able to send arbitrary requests to servers,
-or freely modify documents inside the browser -- which would be bad
+or freely modify documents inside the browser --- which would be bad
 news if one or more of the scripts turned out to be malicious!
 
 A script can communicate to a server by sending an `XmlHttpRequest`:
@@ -518,7 +520,7 @@ A script can read from and write to various parts of a document
 number of API functions for accessing the DOM (e.g.,
 `document.getElementById`), but enumerating all of them is not
 important for our purpose. Instead, we will simply group them into two
-kinds -- `ReadDom` and `WriteDom` -- and model modifications as
+kinds --- `ReadDom` and `WriteDom` --- and model modifications as
 wholesale replacements of the entire document:
 
 ```alloy
@@ -643,7 +645,7 @@ is _secure_?
 
 Not surprisingly, this is a tricky question to answer. For our
 purposes, we will turn to two well-studied concepts in information
-security -- _confidentiality_ and _integrity_. Both of these concepts
+security --- _confidentiality_ and _integrity_. Both of these concepts
 talk about how information should be allowed to pass through the
 various parts of the system. Roughly, _confidentiality_ means that a
 critical piece of data should only be accessible to parts that are
@@ -668,7 +670,7 @@ fields:
 sig Data in Resource + Cookie {}
 
 sig DataflowCall in Call {
-  args, returns: set Data,  -- arguments and return data of this call
+  args, returns: set Data,  --- arguments and return data of this call
 }{
  this in HttpRequest implies
     args = this.sentCookies + this.body and
@@ -815,7 +817,7 @@ identity (e.g., a session cookie), `EvilScript` can effectively
 pretend to be the user and trick the server into responding with the
 user's private data (`MyInboxInfo`)! Here, the problem is again
 related to the liberal ways in which a script may be used to access
-information across different domains -- namely, that a script executing
+information across different domains --- namely, that a script executing
 under one domain is able to make an HTTP request to a server with a
 different domain.
 
@@ -852,7 +854,7 @@ pred domSop {
 ```
 An instance such as the first script scenario is not possible under `domSop`, since `Script` is not allowed to invoke `ReadDom` on a document from a different origin.
 
-The second part of the policy says that a script cannot send an HTTP request to a server unless its context has the same origin as the target URL -- effectively preventing instances such as the second script scenario.
+The second part of the policy says that a script cannot send an HTTP request to a server unless its context has the same origin as the target URL --- effectively preventing instances such as the second script scenario.
 ```alloy
 pred xmlHttpReqSop { 
   all x: XmlHttpRequest | origin[x.url] = origin[x.from.context.src] 
@@ -1329,7 +1331,7 @@ modeling would potentially be even more beneficial if it is done
 during the early stage of system design.
 
 Besides the SOP, Alloy has been used to model and reason about a
-variety of systems across different domains -- ranging from network
+variety of systems across different domains --- ranging from network
 protocols, semantic web, bytecode security to electronic voting and
 medical systems. For many of these systems, Alloy's analysis led to
 discovery of design flaws and bugs that had eluded the developers, in
@@ -1385,7 +1387,7 @@ execution (for example, `cookies` in the `Browser` signature). In this
 sense, `Time` objects are nothing but helper objects used as a kind of
 indices.
 
-Each call occurs between two points in time -- its `start` and `end`
+Each call occurs between two points in time --- its `start` and `end`
 times, and is associated with a sender (represented by `from`) and a
 receiver (`to`):
 
