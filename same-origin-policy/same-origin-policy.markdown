@@ -419,8 +419,6 @@ sig BrowserHttpRequest extends HttpRequest {
 }
 ```
 
-STOPPED HERE
-
 This kind of request has one new field, `doc`, representing the
 document created in the browser from the resource returned by the
 request. As with `HttpRequest`, the behavior is described as a
@@ -534,7 +532,7 @@ sig WriteDom extends BrowserOp { newDom: Resource }{
 }
 ```
 
-`ReadDom` returns the content the target document, but does not modify it; `WriteDom`, on the other hand, sets the new content of the target document to `newDom`.
+`ReadDom` returns the content of the target document, but does not modify it; `WriteDom`, on the other hand, sets the new content of the target document to `newDom`.
 
 In addition, a script can modify various properties of a document,
 such as its width, height, domain, and title. For our discussion of
@@ -591,10 +589,10 @@ For example, the last constraint in the fact specifies how the DNS is
 configured to map domain names for the two servers in our
 system. Without this constraint, the Alloy Analyzer may generate
 scenarios where `EmailDomain` is mapped to `EvilServer`, which are not
-of interest to us (in practice, such a mapping may be possible due to
+of interest to us. (In practice, such a mapping may be possible due to
 an attack called _DNS spoofing_, but we will rule it out from our
 model since it lies outside the class of attacks that the SOP is
-designed to prevent).
+designed to prevent.)
 
 Let us introduce two additional applications: an online calendar and a
 blog site:
@@ -611,7 +609,7 @@ incorporate the domain names for these two servers:
 fact Configuration {
   ...
   Dns.map = EmailDomain -> EmailServer + EvilDomain -> EvilServer + 
-            CalendarDomain -> CalenderServer + BlogDomain -> BlogServer  
+            CalendarDomain -> CalendarServer + BlogDomain -> BlogServer  
 }
 ```
 
@@ -633,7 +631,7 @@ Note that `this` is included as a member of `subsumes`, since every
 domain name subsumes itself.
 
 There are other details about these applications that we omit here
-(see example.als for the full model). But we will revisit these
+(see `example.als` for the full model). But we will revisit these
 applications as our running example throughout the remainder of this
 chapter.
 
@@ -711,7 +709,7 @@ sig DataflowModule in Endpoint {
 }
 ```
 
-We also need to restrict data elements that a module can provide as arguments or return values of a call. Otherwise, we may get weird scenarios where a module can make a call with an argument that it has no access to!
+We also need to restrict data elements that a module can provide as arguments or return values of a call. Otherwise, we may get weird scenarios where a module can make a call with an argument that it has no access to.
 
 ```alloy
 sig DataflowCall in Call { ... } {
@@ -747,7 +745,7 @@ assert Confidentiality {
 }
 ```
 
-The integrity property is the dual of confidentiality: 
+The integrity property is the double of confidentiality: 
 
 ```alloy
 // No malicious data should ever flow into a trusted module
@@ -777,7 +775,7 @@ impersonate a normal user and send malicious requests to a server in
 an attempt to access the user's data. We do not consider attackers
 that eavesdrop on the connection between different network endpoints;
 although it is a considerable threat in practice, the SOP is not
-designed to prevent it, and thus, lies outside the scope of our model.
+designed to prevent it, and thus it lies outside the scope of our model.
 
 ### Checking Properties
 
@@ -815,7 +813,7 @@ to the same domain as the destination server. This is potentially
 dangerous, because if the cookie is used to represent the user's
 identity (e.g., a session cookie), `EvilScript` can effectively
 pretend to be the user and trick the server into responding with the
-user's private data (`MyInboxInfo`)! Here, the problem is again
+user's private data (`MyInboxInfo`). Here, the problem is again
 related to the liberal ways in which a script may be used to access
 information across different domains --- namely, that a script executing
 under one domain is able to make an HTTP request to a server with a
@@ -838,7 +836,7 @@ sig Origin {
 }
 ```
 
-We define a function that given a URL returns the corresponding origin:
+We define a function that, given a URL, returns the corresponding origin:
 
 ```alloy
 fun origin[u: Url] : Origin {
@@ -884,7 +882,7 @@ security; we want to make sure our sites are robust and functional,
 but the mechanism for securing it can sometimes get in the
 way. Indeed, when the SOP was initially introduced, developers ran
 into trouble building sites that made legitimate uses of cross-domain
-communication, e.g. for mashups.
+communication --- for example, for mashups.
 
 In this section, we will discuss four techniques that have been
 devised and frequently used by web developers to bypass the
@@ -896,7 +894,7 @@ to thwart in the first place.
 
 Each of these four techniques is surprisingly complex, and if
 described in full detail, would merit its own chapter. So here we just
-give a brief flavor of how they work, potential security problems that
+give a brief impression of how they work, potential security problems that
 they introduce, and how to prevent these problems. In particular, we
 will ask the Alloy Analyzer to check, for each technique, whether it
 could be abused by an attacker to undermine the two security
@@ -939,8 +937,8 @@ sig SetDomain extends BrowserOp { newDomain: Domain }{
 The `newDomain` field represents the value to which the property should be set.
 There's a caveat, though: scripts can only set the domain property to 
 a right-hand, fully qualified fragment of its hostname.
-(i.e., `email.example.com` can set it to `example.com` but not to
- `google.com`). We use a fact to capture this rule about subdomains:
+(I.e., `email.example.com` can set it to `example.com` but not to
+ `google.com`.) We use a fact to capture this rule about subdomains:
 
 ```alloy
 // Scripts can only set the domain property to only one that is a right-hand,
@@ -954,7 +952,7 @@ If it weren't for this rule, any site could set the `document.domain`
 property to any value, which means that, for example, a malicious site
 could set the domain property to your bank domain, load your bank
 account in an iframe, and (assuming the bank page has set its domain
-property) read the DOM of your bank page!
+property) read the DOM of your bank page.
 
 Let us go back to our original definition of the SOP, and relax its
 restriction on DOM access in order to take into account the effect of
@@ -1030,13 +1028,13 @@ Note that when you set the domain property of both "email.example.com"
 and "calendar.example.com" to "example.com", you are allowing not only
 these two pages to communicate between each other, but also _any_
 other page that has "example.com" as a superdomain
-(e.g. "blog.example.com"). An attacker also realizes this, and
+(e.g., "blog.example.com"). An attacker also realizes this, and
 constructs a special script (`EvilScript`) that runs inside the
-attacker's blog page (`BlogPage`). In the next step (\aosafigref{500l.same-origin-policy.fig-setdomain-2a}), the script executes `SetDomain` operation to modify the domain property of `BlogPage` to `ExampleDomain`.
+attacker's blog page (`BlogPage`). In the next step (\aosafigref{500l.same-origin-policy.fig-setdomain-2a}), the script executes the `SetDomain` operation to modify the domain property of `BlogPage` to `ExampleDomain`.
 
 \aosafigure[240pt]{same-origin-policy-images/fig-setdomain-2a.png}{Cross-origin counterexample at time 4}{500l.same-origin-policy.fig-setdomain-2a}
 
-Now that `BlogPage` has the same domain property as the other two documents, it can successfully execute `ReadDOM` operation to access their content (\aosafigref{500l.same-origin-policy.fig-setdomain-2b}.)
+Now that `BlogPage` has the same domain property as the other two documents, it can successfully execute the `ReadDOM` operation to access their content (\aosafigref{500l.same-origin-policy.fig-setdomain-2b}.)
 
 \aosafigure[240pt]{same-origin-policy-images/fig-setdomain-2b.png}{Cross-origin counterexample at time 5}{500l.same-origin-policy.fig-setdomain-2b}
 
@@ -1068,9 +1066,9 @@ A script tag can be used to obtain code, but how do we use it to
 receive arbitrary _data_ (e.g., a JSON object) from a different
 domain? The problem is that the browser expects the content of `src`
 to be a piece of JavaScript code, and so simply having it point at a
-data source (e.g., JSON or HTML file) results in a syntax error.
+data source (e.g., a JSON or HTML file) results in a syntax error.
 
-One workaround is to wrap the desired data inside a piece of string that the browser recognizes as valid JavaScript code; this string is sometimes called _padding_ (hence the name "JSON with padding"). This padding could be any arbitrary JavaScript code, but conventionally, it is the name of a callback function (already defined in the current document) that is to be executed on the response data:
+One workaround is to wrap the desired data inside a string that the browser recognizes as valid JavaScript code; this string is sometimes called _padding_ (hence the name "JSON with padding"). This padding could be any arbitrary JavaScript code, but conventionally, it is the name of a callback function (already defined in the current document) that is to be executed on the response data:
 
 ```html
 <script src="http://www.example.com/mydata?jsonp=processData"></script>
@@ -1136,7 +1134,7 @@ any piece of JavaScript code in the client document.
 **Analysis:** Checking the `Confidentiality` property with
  the Alloy Analyzer returns a counterexample that shows one potential
  security risk of JSONP.  In this scenario, the calendar application
- (`CalenderServer`) makes its resources available to third-party sites
+ (`CalendarServer`) makes its resources available to third-party sites
  using a JSONP endpoint (`GetSchedule`). To restrict access to the
  resources, `CalendarServer` only sends back a response with the
  schedule for a user if the request contains a cookie that correctly
@@ -1160,7 +1158,7 @@ In the next step (\aosafigref{500l.same-origin-policy.fig-jsonp-2}), the browser
 
 \aosafigure[240pt]{same-origin-policy-images/fig-jsonp-2.png}{JSONP counterexample at time 1}{500l.same-origin-policy.fig-jsonp-2}
 
-This attack, an example of _cross-site request forgery_ (CSRF), shows an inherent weakness of JSOPN; _any_ site on the web can make a JSONP request simply by including a `<script>` tag and access the payload inside the padding. The risk can be mitigated in two ways: (1) ensure that a JSONP request never returns sensitive data, or (2) use another mechanism in place of cookies (e.g. secret tokens) to authorize the request.
+This attack, an example of _cross-site request forgery_ (CSRF), shows an inherent weakness of JSOPN; _any_ site on the web can make a JSONP request simply by including a `<script>` tag and access the payload inside the padding. The risk can be mitigated in two ways: (1) ensure that a JSONP request never returns sensitive data, or (2) use another mechanism in place of cookies (e.g., secret tokens) to authorize the request.
 
 ### PostMessage
 
@@ -1194,7 +1192,7 @@ sig ReceiveMessage extends EventHandler {
 
 The browser passes two parameters to `ReceiveMessage`: a resource (`data`) that corresponds to the message being sent, and the origin of the sender document (`srcOrigin`). The signature fact contains four constraints to ensure that each `ReceiveMessage` is well-formed with respect to its corresponding `PostMessage`.
 
-**Analysis:** Again, let us ask the Alloy Analyzer whether `PostMessage` is a secure way of performing cross-origin communication. This time, the ananlyzer returns a counterexample for the `Integrity` property, meaning the attacker is able to exploit a weakness in `PostMessage` to introduce malicious data into a trusted application.
+**Analysis:** Again, let us ask the Alloy Analyzer whether `PostMessage` is a secure way of performing cross-origin communication. This time, the analyzer returns a counterexample for the `Integrity` property, meaning the attacker is able to exploit a weakness in `PostMessage` to introduce malicious data into a trusted application.
 
 Note that by default, the PostMessage mechanism does not restrict
  who is allowed to send PostMessage; in other words, any document can
@@ -1210,8 +1208,8 @@ The browser then forwards this message to the document(s)
 with the corresponding origin (in this case, `InboxPage`).  Unless
 `InboxScript` specifically checks the value of `srcOrigin` to filter out
 messages from unwanted origins, `InboxPage` will accept the malicious
-data, possibly leading to further security attacks (for example, it
-may embed a piece of JavaScript to carry out an XSS attack). This is shown in \aosafigref{500l.same-origin-policy.fig-postmessage-1}.
+data, possibly leading to further security attacks. (For example, it
+may embed a piece of JavaScript to carry out an XSS attack.) This is shown in \aosafigref{500l.same-origin-policy.fig-postmessage-1}.
 
 \aosafigure[240pt]{same-origin-policy-images/fig-postmessage-2.png}{PostMessage counterexample at time 1}{500l.same-origin-policy.fig-postmessage-2}
 
@@ -1224,11 +1222,11 @@ inject bad content as part of a `PostMessage` [cite PostMessage
 study].
 
 However, the omission of the origin check may not simply be the result
-of programmer ignorance. Implementing an appropriate check on incoming
+of programmer ignorance. Implementing an appropriate check on an incoming
 PostMessage can be tricky; in some applications, it is hard to
 determine in advance the list of trusted origins from which messages
-are expected to be received (in some apps, this list may even change
-dynamically). This, again, highlights the tension between security and
+are expected to be received. (In some apps, this list may even change
+dynamically.) This, again, highlights the tension between security and
 functionality: PostMessage can be used for secure cross-origin
 communication, but only in the context where a whitelist of trusted
 origins is known.
@@ -1284,7 +1282,7 @@ fact corsRule {
 
 **Analysis:** Can CORS be misused in a way that would allow the
 attacker to compromise the security of a trusted site? When prompted,
-the Alloy Analyzer returns asimple counterexample for the
+the Alloy Analyzer returns a simple counterexample for the
 `Confidentiality` property. 
 
 Here, the developer of the calendar application decides to share some
@@ -1293,7 +1291,7 @@ mechanism. Unfortunately, `CalendarServer` is configured to return
 `Origin` (which represents the set of all origin values) for the
 `access-control-allow-origin` header in CORS responses. As a result, a
 script from any origin, including `EvilDomain`, is allowed to make
-a cross-site request to `CalendarServer` and read its response (\aosafigref{500l.same-origin-policy.fig-cors}.)
+a cross-site request to `CalendarServer` and read its response (\aosafigref{500l.same-origin-policy.fig-cors}).
 
 \aosafigure[240pt]{same-origin-policy-images/fig-cors.png}{CORS counterexample}{500l.same-origin-policy.fig-cors}
 
@@ -1351,8 +1349,8 @@ idioms can be captured as a generic module and reused across multiple
 systems.
 
 In our model of the SOP, we model the system as a set of endpoints
-that communicate to each other by making one or more _calls_. Since
-call is a fairly generic notion, we encapsulate its description in a
+that communicate with each other by making one or more _calls_. Since
+_call_ is a fairly generic notion, we encapsulate its description in a
 separate Alloy module, to be imported from other modules that rely on
 it -- similar to standard libraries in programming languages:
 
@@ -1378,14 +1376,14 @@ order on the type parameter, and so by importing `ordering[Time]`, we
 obtain a set of `Time` objects that behave like other totally ordered
 sets (e.g., natural numbers).
 
-Note that there is absolutely nothing special about `Time`; we've
-could named it any other way (for example, `Step` or `State`), and it
+Note that there is absolutely nothing special about `Time`; we
+could have named it any other way (for example, `Step` or `State`), and it
 wouldn't have changed the behavior of the model at all. All we are
 doing here is using an additional column in a relation as a way of
 representing the content of a field at different points in a system
-execution (for example, `cookies` in the `Browser` signature). In this
+execution; for example, `cookies` in the `Browser` signature. In this
 sense, `Time` objects are nothing but helper objects used as a kind of
-indices.
+index.
 
 Each call occurs between two points in time --- its `start` and `end`
 times, and is associated with a sender (represented by `from`) and a
@@ -1402,5 +1400,5 @@ of `Call` objects that are associated to a pair of sender and receiver
 endpoints. A module can be imported multiple times; for example, we
 could declare a signature called `UnixProcess`, and instantiate the
 module `call` to obtain a distinct set of `Call` objects that are sent
-from one UNIX process to another.
+from one Unix process to another.
 
