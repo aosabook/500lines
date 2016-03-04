@@ -12,8 +12,8 @@ _Daniel Jackson is a professor in the Department of Electrical Engineering and C
 
 The same-origin policy (SOP) is an important part of the security
 mechanism of every modern browser. It controls when scripts running in
-a browser can communicate with one another. (Roughly, when they
-originate from the same website.) First introduced in Netscape
+a browser can communicate with one another (roughly, when they
+originate from the same website). First introduced in Netscape
 Navigator, the SOP now plays a critical role in the security of web
 applications; without it, it would be far easier for a malicious
 hacker to peruse your private photos on Facebook, read your email, or
