@@ -1,11 +1,11 @@
-title: The Same Origin Policy
+title: The Same-Origin Policy
 author: Eunsuk Kang, Santiago Perez De Rosso, and Daniel Jackson
 
 _Eunsuk Kang is a PhD candidate and a member of the Software Design Group at MIT. He received his SM (Master of Science) in Computer Science from MIT (2010), and a Bachelor of Software Engineering from the University of Waterloo (2007). His research projects have focused on developing tools and techniques for software modeling and verification, with applications to security and safety-critical systems._
 
 _Santiago Perez De Rosso is a PhD student in the Software Design Group at MIT. He received his SM in Computer Science from MIT (2015), and an undergraduate degree from ITBA (2011). He used to work at Google, developing frameworks and tools to make engineers more productive (2012). He currently spends most of his time thinking about design and version control._
 
-_Daniel Jackson is a professor in the Department of Electrical Engineering and Computer Science at MIT, and leads the Software Design Group in the Computer Science and Artificial Intelligence Laboratory. He received an MA from Oxford University (1984) in Physics, and his SM (1988) and PhD (1992) from MIT in Computer Science. He was a software engineer for Logica UK Ltd. (1984-1986), Assistant Professor of Computer Science at Carnegie Mellon University (1992-1997), and has been at MIT since 1997. He has broad interests in software engineering, especially in development methods, design and specification, formal methods, and safety critical systems._
+_Daniel Jackson is a professor in the Department of Electrical Engineering and Computer Science at MIT, and leads the Software Design Group in the Computer Science and Artificial Intelligence Laboratory. He received an MA from Oxford University (1984) in Physics, and his SM (1988) and PhD (1992) in Computer Science from MIT. He was a software engineer for Logica UK Ltd. (1984-1986), Assistant Professor of Computer Science at Carnegie Mellon University (1992-1997), and has been at MIT since 1997. He has broad interests in software engineering, especially in development methods, design and specification, formal methods, and safety critical systems._
 
 
 ## Introduction
@@ -40,14 +40,14 @@ Covering the SOP in its entirety is a daunting task, given the
 complexity of the parts that are involved --- web servers, browsers,
 HTTP, HTML documents, client-side scripts, and so on. We
 would likely get bogged down by the gritty details of all these parts
-(and consume our 500 lines before even reaching SOP!) But how can we
+(and consume our 500 lines before even reaching SOP). But how can we
 hope to be precise without representing crucial details?
 
 ## Modeling with Alloy
 
 This chapter is somewhat different from others in this book. Instead
 of building a working implementation, we will construct an executable
-_model_ that serves as a simple yet precise description of the
+model that serves as a simple yet precise description of the
 SOP. Like an implementation, the model can be executed to explore
 dynamic behaviors of the system, but unlike an implementation, the
 model omits low-level details that may get in the way of understanding
@@ -67,8 +67,8 @@ _simulated_ to produce an _instance_, which represents a valid
 scenario or configuration of a system, and (2) _checked_ to see
 whether the model satisfies a desired property.
 
-Despite above similarities, agile modeling differs from agile
-programming in one key respect. Although we'll be running tests, we
+Despite the above similarities, agile modeling differs from agile
+programming in one key respect: Although we'll be running tests, we
 actually won't be writing any. Alloy's analyzer generates test cases
 automatically, and all that needs to be provided is the property to be
 checked. Needless to say, this saves a lot of trouble (and text). The
@@ -76,7 +76,7 @@ analyzer actually executes all possible test cases up to a certain
 size (called a _scope_); this typically means generating all starting
 states with at most some number of objects, and then choosing
 operations and arguments to apply up to some number of steps. Because
-so many tests are executed (typically billions), and because all
+so many tests (typically billions) are executed, and because all
 possible configurations that a state can take are covered (albeit
 within the scope), this analysis tends to expose bugs more effectively
 than conventional testing (and is sometimes described not as "testing"
@@ -110,8 +110,8 @@ basic models to define what it means for a web application to be
 _secure_, and then introduce the SOP as a mechanism that attempts to
 achieve the required security properties.
 
-We will then see that the SOP can be sometimes too restrictive,
-getting in the way of a web application's proper functioning.  So we
+We will then see that the SOP can sometimes be too restrictive,
+getting in the way of a web application's proper functioning.  So we will
 introduce four different techniques that are commonly used to bypass
 the restrictions that are imposed by the policy.
 
@@ -126,7 +126,7 @@ available for download](http://alloy.mit.edu).
 
 ## Model of the Web
 
-### HTTP Protocol
+### HTTP
 
 The first step in building an Alloy model is to declare some sets of
 objects. Let's start with resources:
@@ -273,7 +273,7 @@ system instances. Let's use the `run` command to ask the Alloy
 Analyzer to execute the HTTP model that we have so far:
 
 ```alloy
-run {} for 3	--- generate an instance with up to 3 objects of every signature type
+run {} for 3	-- generate an instance with up to 3 objects of every signature type
 ```
 
 As soon as the analyzer finds a possible instance of the system, it
@@ -287,7 +287,7 @@ object and instructs the client to store `Cookie` at `Domain`.
 
 Even though this is a tiny instance with seemingly few details, it
 signals a flaw in our model. Note that the resource returned from the
-request (`Resource1`) does not exist in the server! We neglected to
+request (`Resource1`) does not exist in the server. We neglected to
 specify an obvious fact about the server; namely, that every response
 to a request is a resource that the server stores. We can go back to
 our definition of `HttpRequest` and append the following constraint:
@@ -299,7 +299,7 @@ abstract sig HttpRequest extends Call { ... }{
 }
 ```
 
-Rerunning produces now instances without the flaw.
+Rerunning now produces instances without the flaw.
 
 Instead of generating sample instances, we can ask the analyzer to
 *check* whether the model satisfies a property. For example, one
@@ -331,7 +331,7 @@ Note that while the DNS maps `Domain` to both `Server0` and
 `Server1` (in reality, this is a common practice for load balancing),
 only `Server1` maps `Path` to a resource object, causing
 `HttpRequest1` to result in empty response: another error in our
-model! To fix this, we add an Alloy *fact* recording the assumption
+model. To fix this, we add an Alloy *fact* recording the assumption
 that any two servers to which DNS maps a single host provide the same
 set of resources:
 
@@ -461,11 +461,11 @@ A script is a dynamic entity that can perform two different kinds of
 action: (1) it can make HTTP requests (i.e., Ajax requests) and (2) it
 can perform browser operations to manipulate the content and
 properties of a document. The flexibility of client-side scripts is
-one of the main catalysts behind the rapid development of Web 2.0, but
+one of the main catalysts of the rapid development of Web 2.0, but
 is also the reason why the SOP was created in the first place. Without
 the SOP, scripts would be able to send arbitrary requests to servers,
 or freely modify documents inside the browser --- which would be bad
-news if one or more of the scripts turned out to be malicious!
+news if one or more of the scripts turned out to be malicious.
 
 A script can communicate to a server by sending an `XmlHttpRequest`:
 
@@ -478,7 +478,7 @@ sig XmlHttpRequest extends HttpRequest {}{
 
 An `XmlHttpRequest` can be used by a script to send/receive resources
 to/from a server, but unlike `BrowserHttpRequest`, it does not
-immediately result in creation of a new page or other changes to the
+immediately result in the creation of a new page or other changes to the
 browser and its documents. To say that a call does not modify these
 aspects of the system, we define predicates `noBrowserChange` and
 `noDocumentChange`:
@@ -551,8 +551,8 @@ instances (`Server0`, `Browser1`, etc.) in the scenario.
 Sometimes, we may wish to analyze the behavior of a _particular_ web
 application, instead of exploring scenarios with a random
 configuration of servers and clients. For example, imagine that we
-wish to build an email application (like Gmail) that runs inside a
-browser.  In addition to providing basic email features, our
+wish to build an email application that runs inside a
+browser (like Gmail).  In addition to providing basic email features, our
 application might display a banner from a third-party advertisement
 service, which is controlled by a potentially malicious actor.
 
@@ -823,7 +823,7 @@ These two counterexamples tell us that extra measures are needed to
 restrict the behavior of scripts, especially since some of those
 scripts could be malicious. This is exactly where the SOP comes in.
 
-## Same Origin Policy
+## Same-Origin Policy
 
 Before we can state the SOP, the first thing we should do is to introduce the
 notion of an origin, which is composed of a protocol, host, and optional port:
@@ -1014,7 +1014,7 @@ and `ExampleDomain`, respectively), so the browser will prevent them from
 accessing each other's DOM.  The scripts running inside the documents
 (`InboxScript` and `CalendarScript`) each execute the `SetDomain` operation to
 modify their domain properties to `ExampleDomain` (which is allowed because
-`ExampleDomain` is a superdomain of the original domain.)
+`ExampleDomain` is a superdomain of the original domain).
 
 \aosafigure[240pt]{same-origin-policy-images/fig-setdomain-1a.png}{Cross-origin counterexample at time 0}{500l.same-origin-policy.fig-setdomain-1a}
 \aosafigure[240pt]{same-origin-policy-images/fig-setdomain-1b.png}{Cross-origin counterexample at time 1}{500l.same-origin-policy.fig-setdomain-1b}
@@ -1228,7 +1228,7 @@ determine in advance the list of trusted origins from which messages
 are expected to be received. (In some apps, this list may even change
 dynamically.) This, again, highlights the tension between security and
 functionality: PostMessage can be used for secure cross-origin
-communication, but only in the context where a whitelist of trusted
+communication, but only when a whitelist of trusted
 origins is known.
 
 ### Cross-Origin Resource Sharing (CORS)
@@ -1308,7 +1308,7 @@ Why would a developer ever use the wildcard? It turns out that
 specifying the allowed origins can be tricky, since it may not be
 clear at design time which origins should be granted access at runtime
 (similar to the PostMessage issue discusssed above). A service may,
-for example, allow third party applications to subscribe dynamically
+for example, allow third-party applications to subscribe dynamically
 to its resources.
 
 ## Conclusion
@@ -1396,7 +1396,7 @@ abstract sig Call { start, end: Time, from, to: T }
 Recall that in our discussion of HTTP requests, we imported the module
 `call` by passing `Endpoint` as its type parameter. As a result, the
 parametric type `T` is instantiated to `Endpoint`, and we obtain a set
-of `Call` objects that are associated to a pair of sender and receiver
+of `Call` objects that are associated with a pair of sender and receiver
 endpoints. A module can be imported multiple times; for example, we
 could declare a signature called `UnixProcess`, and instantiate the
 module `call` to obtain a distinct set of `Call` objects that are sent
