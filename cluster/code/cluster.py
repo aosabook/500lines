@@ -1,4 +1,5 @@
 from collections import namedtuple
+import copy
 import functools
 import heapq
 import itertools
@@ -116,7 +117,8 @@ class Network(object):
 
     def send(self, sender, destinations, message):
         sender.logger.debug("sending %s to %s", message, destinations)
-        for dest in (d for d in destinations if d in self.nodes):
+        # avoid aliasing by making a closure containing distinct deep copy of message for each dest
+        def sendto(dest, message):
             if dest == sender.address:
                 # reliably deliver local messages with no delay
                 self.set_timer(sender.address, 0, lambda: sender.receive(sender.address, message))
@@ -124,6 +126,8 @@ class Network(object):
                 delay = self.PROP_DELAY + self.rnd.uniform(-self.PROP_JITTER, self.PROP_JITTER)
                 self.set_timer(dest, delay, functools.partial(self.nodes[dest].receive,
                                                               sender.address, message))
+        for dest in (d for d in destinations if d in self.nodes):
+            sendto(dest, copy.deepcopy(message))
 
 class SimTimeLogger(logging.LoggerAdapter):
 
@@ -182,7 +186,7 @@ class Replica(Role):
         self.execute_fn = execute_fn
         self.state = state
         self.slot = slot
-        self.decisions = decisions.copy()
+        self.decisions = decisions
         self.peers = peers
         self.proposals = {}
         # next slot num for a proposal (may lead slot)
