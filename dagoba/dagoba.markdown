@@ -1019,7 +1019,7 @@ Dagoba.addTransformer = function(fun, priority) {
 
 Now we can add query transformers to our system. A query transformer is a function that accepts a program and returns a program, plus a priority level. Higher priority transformers are placed closer to the front of the list. We're ensuring `fun` is a function, because we're going to evaluate it later [^paramdomain].
 
-[^paramdomain]: Note that we're keeping the domain of the priority parameter open, so it can be an integer, a rational, a negative number, or even things like Infinity or NaN.]
+[^paramdomain]: Note that we're keeping the domain of the priority parameter open, so it can be an integer, a rational, a negative number, or even things like Infinity or NaN.
 
 We'll assume there won't be an enormous number of transformer additions, and walk the list linearly to add a new one. We'll leave a note in case this assumption turns out to be false --- a binary search is much more time-optimal for long lists, but adds a little complexity and doesn't really speed up short lists.
 
