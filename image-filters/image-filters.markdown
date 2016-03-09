@@ -3,39 +3,41 @@ author: Cate Huston
 
 _Cate Huston is a developer and entrepreneur focused on mobile. She’s lived and worked in the UK, Australia, Canada, China and the United States, as an engineer at Google, an Extreme Blue intern at IBM, and a ski instructor. Cate speaks internationally on mobile development and her writing has been published on sites as varied as Lifehacker, The Daily Beast, The Eloquent Woman and Model View Culture. She co-curates Technically Speaking, blogs at Accidentally in Code and is [\@catehstn](https://twitter.com/catehstn) on Twitter._
 
-## A Story of a Brilliant Idea That Wasn’t All That Brilliant
+## A Brilliant Idea (That Wasn’t All That Brilliant)
 
 In Chinese art, there is often a series of four paintings showing the same
-place in different seasons. Color - the cool whites of winter, pale hues of
-spring, lush greens of summer, and red and yellows of fall is the
-differentiation. Sometime around 2011, I had what I thought was a brilliant
-idea. I wanted to be able to visualize a photo series, as a series of colors. I
+place in different seasons. Color — the cool whites of winter, pale hues of
+spring, lush greens of summer, and red and yellows of fall — is what
+differentiates the seasons. Sometime around 2011, I had what I thought was a brilliant
+idea. I wanted to be able to visualize a photo series as a series of colors. I
 thought it would show travel, and progression through the seasons.
 
-I didn’t know how to calculate the dominant color from an image, and I thought
+But I didn’t know how to calculate the dominant color from an image. I thought
 about scaling the image down to a 1x1 square and seeing what was left, but that
-seemed like cheating. I knew how I wanted to display it though, in a layout
+seemed like cheating. I knew how I wanted to display it though: in a layout
 called the [Sunflower
 layout](http://www.catehuston.com/applets/Sunflower/index.html). It’s the most
-efficient way to layout circles.
+efficient way to lay out circles.
 
 I left this project for years, distracted by work, life, travel, talks.
-Eventually I returned to it, and figured out how to calculate the dominant
-color and finally [finished my
+Eventually I returned to it, figured out how to calculate the dominant
+color, and finally [finished my
 visualization](http://www.catehuston.com/blog/2013/09/02/visualising-a-photo-series/).
 And that is when I discovered that this idea wasn’t, in fact, brilliant.
-Because the progression wasn’t as clear as I hoped, the dominant color
+The progression wasn’t as clear as I hoped, the dominant color
 extracted wasn’t generally the most appealing shade, the creation took a long
-time (a couple of seconds per image), and required hundreds of images to make
+time (a couple of seconds per image), and it took hundreds of images to make
 something cool \aosafigref{500.imagefilters.sunflower}.
 
 \aosafigure[240pt]{image-filters-images/sunflower.jpg}{Sunflower layout}{500l.imagefilters.sunflower}
 
-You might think this would be discouraging, but by the time I had got to this
-point I had learned so many things that hadn’t come my way before - about color
-spaces, pixel manipulation, and I had started making these cool partially
-colored images, of the kind you find on postcards of London - the red bus, or
-phone booth, but everything else is in gray-scale.
+You might think this would be discouraging, but by the time I got to this
+point I had learned many things that hadn’t come my way before — about color
+spaces and pixel manipulation — and I had started making those cool partially
+colored images, the kind you find on postcards of London with a red bus or
+phone booth and everything else in grayscale.
+
+STOPPED HERE
 
 I used a framework called [Processing](https://processing.org/) because I was
 familiar with it from developing programming curricula, and because I knew it
@@ -166,7 +168,7 @@ extra two characters which are the alpha value. In this case `FFFAC4` means:
 - green = FA (hex) = 250 (base 10)
 - blue = C4 (hex) = 196 (base 10)
 
-## Running The App 
+## Running the App 
 
 In \aosafigref{500l.imagefilters.app}, we have a picture of our app running.
 It’s very much developer-designed, I know, but we only have 500 lines of Java
@@ -380,7 +382,7 @@ public void fileSelected(File file) {
 }
 ```
 
-### Responding To Key Presses
+### Responding to Key Presses
 
 Normally in Java doing this requires adding listeners and implementing
 anonymous functions. However like the file chooser, Processing handles a lot of
@@ -456,7 +458,7 @@ testability. It also makes for a cleaner design and separation of concerns -
 the `App` controls the interactions and the UI, not the details of the image
 manipulation.
 
-## Do It Yourself Filters
+## Do-It-Yourself Filters
 
 ### RGB Filters
 Before we start writing more complicated pixel processing, we can start with a
@@ -597,7 +599,7 @@ color space. The HSB color space can be represented by drawing a cone. The hue
 is the position around the cone, saturation the distance from the centre, and
 brightness the height (0 brightness is black).
 
-### Extracting The Dominant Hue From an Image
+### Extracting the Dominant Hue from an Image
 Now we’re comfortable with pixel manipulation, let’s do something that we could
 only do digitally. Digitally, we can manipulate it in a way that isn’t so
 uniform.
@@ -1386,7 +1388,7 @@ Notice that:
 - We mock `PApplet`, `ColorHelper`, and `IFAImage` (created expressly for this purpose).
 - This time we use a helper method (`assertState()` to simplify asserting the state of the image.
 
-#### Measuring Test Coverage
+#### Measuring test coverage
 I use [EclEmma](http://www.eclemma.org/installation.html#marketplace) to
 measure test coverage within Eclipse. It can be installed from the Eclipse
 marketplace.
