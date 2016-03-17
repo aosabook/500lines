@@ -11,7 +11,7 @@ abstract sig Call {
   start, end: Time,
   from, to: T
 }
-fun init : Time { first }		// returns the first time step
+fun init : Time { first }  // returns the first time step
 
 // Returns the set of calls that occured prior to "c"
 fun prevs[c: Call] : set Call {
