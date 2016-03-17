@@ -183,15 +183,9 @@ pred setdomainNormal {
     ExampleDomain -> EmailDomain + ExampleDomain -> CalendarDomain  +
     ExampleDomain -> BlogDomain + (Domain <: iden)
   
-<<<<<<< HEAD
   some o: SetDomain | o.start = init and o.from = InboxScript and o.newDomain = ExampleDomain
   some o: SetDomain | o.start = init.next and o.from = CalendarScript and o.newDomain = ExampleDomain
   some o: ReadDom {
-=======
-  some o : SetDomain | o.start = init and o.from = InboxScript and o.newDomain = ExampleDomain
-  some o : SetDomain | o.start = init.next and o.from = CalendarScript and o.newDomain = ExampleDomain
-  some o : ReadDom {
->>>>>>> no tabs, just spaces
     o.from = CalendarScript 
 //    o.doc = InboxPage
 //    o.from = CalendarPage
@@ -205,26 +199,15 @@ pred setdomainAttack {
     ExampleDomain -> BlogDomain + (Domain <: iden)
   EvilScript.context = BlogPage
   
-<<<<<<< HEAD
   some o: SetDomain | o.start = init and o.from = InboxScript and o.newDomain = ExampleDomain
   some o: SetDomain | o.start = init.next and o.from = CalendarScript and o.newDomain = ExampleDomain
   some o: ReadDom {
-=======
-  some o : SetDomain | o.start = init and o.from = InboxScript and o.newDomain = ExampleDomain
-  some o : SetDomain | o.start = init.next and o.from = CalendarScript and o.newDomain = ExampleDomain
-  some o : ReadDom {
->>>>>>> no tabs, just spaces
     o.start = init.next.next
     o.from = CalendarScript 
     o.doc = InboxPage
   }
-<<<<<<< HEAD
   some o: SetDomain | o.start = init.next.next.next and o.from = EvilScript and o.newDomain = ExampleDomain
   some o: ReadDom {
-=======
-  some o : SetDomain | o.start = init.next.next.next and o.from = EvilScript and o.newDomain = ExampleDomain
-  some o : ReadDom {
->>>>>>> no tabs, just spaces
     o.start = init.next.next.next.next
     o.from = EvilScript
     o.doc = InboxPage
