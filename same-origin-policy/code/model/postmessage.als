@@ -1,5 +1,5 @@
 /**
-  *  postMessage
+  *  postmessage.als
   *    A model of the HTML5 PostMessage mechanism intended for cross-domain
   *    communication between scripts
   */
