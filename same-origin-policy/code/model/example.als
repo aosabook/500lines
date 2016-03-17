@@ -168,9 +168,9 @@ pred CRASH {
     ExampleDomain -> EmailDomain + ExampleDomain -> CalendarDomain  +
     ExampleDomain -> BlogDomain + (Domain <: iden)
   
-  some o : SetDomain | o.start = init and o.from = InboxScript and o.newDomain = ExampleDomain
-  some o : SetDomain | o.start = init.next and o.from = CalendarScript and o.newDomain = ExampleDomain
-  some o : ReadDom {
+  some o: SetDomain | o.start = init and o.from = InboxScript and o.newDomain = ExampleDomain
+  some o: SetDomain | o.start = init.next and o.from = CalendarScript and o.newDomain = ExampleDomain
+  some o: ReadDom {
 //    o.from = CalendarScript 
     o.doc = InboxPage
 //    o.from = CalendarPage
@@ -183,9 +183,9 @@ pred setdomainNormal {
     ExampleDomain -> EmailDomain + ExampleDomain -> CalendarDomain  +
     ExampleDomain -> BlogDomain + (Domain <: iden)
   
-  some o : SetDomain | o.start = init and o.from = InboxScript and o.newDomain = ExampleDomain
-  some o : SetDomain | o.start = init.next and o.from = CalendarScript and o.newDomain = ExampleDomain
-  some o : ReadDom {
+  some o: SetDomain | o.start = init and o.from = InboxScript and o.newDomain = ExampleDomain
+  some o: SetDomain | o.start = init.next and o.from = CalendarScript and o.newDomain = ExampleDomain
+  some o: ReadDom {
     o.from = CalendarScript 
 //    o.doc = InboxPage
 //    o.from = CalendarPage
@@ -199,15 +199,15 @@ pred setdomainAttack {
     ExampleDomain -> BlogDomain + (Domain <: iden)
   EvilScript.context = BlogPage
   
-  some o : SetDomain | o.start = init and o.from = InboxScript and o.newDomain = ExampleDomain
-  some o : SetDomain | o.start = init.next and o.from = CalendarScript and o.newDomain = ExampleDomain
-  some o : ReadDom {
+  some o: SetDomain | o.start = init and o.from = InboxScript and o.newDomain = ExampleDomain
+  some o: SetDomain | o.start = init.next and o.from = CalendarScript and o.newDomain = ExampleDomain
+  some o: ReadDom {
     o.start = init.next.next
     o.from = CalendarScript 
     o.doc = InboxPage
   }
-  some o : SetDomain | o.start = init.next.next.next and o.from = EvilScript and o.newDomain = ExampleDomain
-  some o : ReadDom {
+  some o: SetDomain | o.start = init.next.next.next and o.from = EvilScript and o.newDomain = ExampleDomain
+  some o: ReadDom {
     o.start = init.next.next.next.next
     o.from = EvilScript
     o.doc = InboxPage
@@ -221,6 +221,6 @@ fun currentCall: Call -> Time {
   {c: Call, t: Time | c.start = t }
 }
 
-fun relevantModules : DataflowModule -> Time {
+fun relevantModules: DataflowModule -> Time {
   {m: DataflowModule, t: Time | m in currentCall.t.(from + to) }
 }
