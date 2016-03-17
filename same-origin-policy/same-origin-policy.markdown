@@ -458,7 +458,7 @@ sig Script extends Client { context: Document }
 ```
 
 A script is a dynamic entity that can perform two different kinds of
-action: (1) it can make HTTP requests (i.e., Ajax requests) and (2) it
+actions: (1) it can make HTTP requests (i.e., Ajax requests) and (2) it
 can perform browser operations to manipulate the content and
 properties of a document. The flexibility of client-side scripts is
 one of the main catalysts of the rapid development of Web 2.0, but
@@ -986,7 +986,7 @@ interact with each other, unless document A also explictly sets its
 property to `example.com`. At first, this seems like a rather strange
 behavior. However, without this, various bad things can happen. For
 example, a site could be subject to a cross-site scripting attack from
-its subdomains: A malicious script in document B might modify
+its subdomains: a malicious script in document B might modify
 its domain property to `example.com` and manipulate the DOM of
 document A, even though the latter never intended to interact with
 document B.
