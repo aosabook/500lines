@@ -458,7 +458,7 @@ sig Script extends Client { context: Document }
 ```
 
 A script is a dynamic entity that can perform two different kinds of
-actions: (1) it can make HTTP requests (i.e., Ajax requests) and (2) it
+action: (1) it can make HTTP requests (i.e., Ajax requests) and (2) it
 can perform browser operations to manipulate the content and
 properties of a document. The flexibility of client-side scripts is
 one of the main catalysts behind the rapid development of Web 2.0, but
