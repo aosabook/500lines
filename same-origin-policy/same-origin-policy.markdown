@@ -366,7 +366,7 @@ has no built-in notions of time or behavior, which means that a
 variety of idioms can be used. In this model, we're using a common
 idiom in which you introduce a notion of `Time`, and attach it as a
 final column for every time-varying field. For example, expression
-`b.cookes.t` represents the set of cookies that are stored in browser
+`b.cookies.t` represents the set of cookies that are stored in browser
 `b` at particular time `t`. Likewise, the `documents` field associates
 a set of documents with each browser at a given time (for more details
 about how we model the dynamic behavior, see the Appendix).
@@ -986,7 +986,7 @@ interact with each other, unless document A also explictly sets its
 property to `example.com`. At first, this seems like a rather strange
 behavior. However, without this, various bad things can happen. For
 example, a site could be subject to a cross-site scripting attack from
-its subdomains: A malicious script in document B might modify
+its subdomains: a malicious script in document B might modify
 its domain property to `example.com` and manipulate the DOM of
 document A, even though the latter never intended to interact with
 document B.
@@ -1158,7 +1158,7 @@ In the next step (\aosafigref{500l.same-origin-policy.fig-jsonp-2}), the browser
 
 \aosafigure[240pt]{same-origin-policy-images/fig-jsonp-2.png}{JSONP counterexample at time 1}{500l.same-origin-policy.fig-jsonp-2}
 
-This attack, an example of _cross-site request forgery_ (CSRF), shows an inherent weakness of JSOPN; _any_ site on the web can make a JSONP request simply by including a `<script>` tag and access the payload inside the padding. The risk can be mitigated in two ways: (1) ensure that a JSONP request never returns sensitive data, or (2) use another mechanism in place of cookies (e.g. secret tokens) to authorize the request.
+This attack, an example of _cross-site request forgery_ (CSRF), shows an inherent weakness of JSONP; _any_ site on the web can make a JSONP request simply by including a `<script>` tag and access the payload inside the padding. The risk can be mitigated in two ways: (1) ensure that a JSONP request never returns sensitive data, or (2) use another mechanism in place of cookies (e.g. secret tokens) to authorize the request.
 
 ### PostMessage
 
@@ -1192,7 +1192,7 @@ sig ReceiveMessage extends EventHandler {
 
 The browser passes two parameters to `ReceiveMessage`: a resource (`data`) that corresponds to the message being sent, and the origin of the sender document (`srcOrigin`). The signature fact contains four constraints to ensure that each `ReceiveMessage` is well-formed with respect to its corresponding `PostMessage`.
 
-**Analysis:** Again, let us ask the Alloy Analyzer whether `PostMessage` is a secure way of performing cross-origin communication. This time, the ananlyzer returns a counterexample for the `Integrity` property, meaning the attacker is able to exploit a weakness in `PostMessage` to introduce malicious data into a trusted application.
+**Analysis:** Again, let us ask the Alloy Analyzer whether `PostMessage` is a secure way of performing cross-origin communication. This time, the analyzer returns a counterexample for the `Integrity` property, meaning the attacker is able to exploit a weakness in `PostMessage` to introduce malicious data into a trusted application.
 
 Note that by default, the PostMessage mechanism does not restrict
  who is allowed to send PostMessage; in other words, any document can
