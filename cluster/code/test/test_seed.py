@@ -32,4 +32,4 @@ class Tests(utils.ComponentTestCase):
         self.assertUnregistered()
         self.Bootstrap.assert_called_with(self.node, peers=['p1', 'p2', 'p3'],
                                           execute_fn=self.execute_fn)
-        self.Bootstrap().start.assert_called()
+        self.Bootstrap().start.assert_called_with()
