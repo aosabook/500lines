@@ -414,7 +414,7 @@ of the underlying tuples, lists, sets, and dicts.
 Given that each of our graph edges needs
 to know at least its origin node and its destination node,
 the simplest possible representation would be a tuple.
-The top edge in Figure 1 might look like:  
+The top edge in \aosafigref{500l.contingent.graph} might look like:
 
 ```python
     ('tutorial.rst', 'tutorial.html')
@@ -506,7 +506,7 @@ which will also absolve us
 of having to mention the node over and over again
 for every one of the edges in which it is involved.
 
-```
+```python
     incoming = {
         'tutorial.html': {'tutorial.rst'},
         'index.html': {'index.rst'},
@@ -687,7 +687,7 @@ including our future selves,
 that the attribute is best treated
 as part of the invisible internal machinery of the class.
 
-Why are we using a “defaultdict” instead of a standard dict?
+Why are we using a `defaultdict` instead of a standard dict?
 A common problem when composing dicts
 with other data structures is handling missing keys.
 With a normal dict,
@@ -714,7 +714,7 @@ to handle this specific case, for example when adding a new edge:
 ```
 
 This need is so common that Python includes a special utility,
-the defaultdict, which lets you provide a function
+the `defaultdict`, which lets you provide a function
 that returns a value for absent keys.
 When we ask about an edge that the `Graph` hasn't yet seen,
 we will get back an empty `set` instead of an exception:
@@ -783,7 +783,7 @@ that can provide a stable output order for the user.
 
 By using this traversal method we can see that,
 following our three “add” method calls earlier,
-`g` now represents the same graph that we saw in Figure 1.
+`g` now represents the same graph that we saw in \aosafigref{500l.contingent.graph}.
 
 ```python
 >>> from pprint import pprint
@@ -811,7 +811,7 @@ when `api.rst` changes,
 
 How about `index.html`?
 
-```
+```python
 >>> g.immediate_consequences_of('index.html')
 []
 ```
@@ -863,7 +863,7 @@ for the various artifacts in our project's documentation.
 
 We now have a way for Contingent
 to keep track of tasks and the relationships between them.
-If we look more closely at Figure 2, however,
+If we look more closely at \aosafigref{500l.contingent.graph2}, however,
 we see that it is actually a little hand-wavy and vague:
 *how* is `api.html` produced from `api.rst`?
 How do we know that `index.html` needs the title from the tutorial?
@@ -1381,7 +1381,7 @@ we are careful to re-run every task in the recursive consequences,
 then Contingent will be able to avoid rebuilding too little.
 Our second challenge, however,
 was to avoid rebuilding too much.
-Refer again to Figure 4.
+Refer again to \aosafigref{500l.contingent.graph4}.
 We want to avoid rebuilding all three documents
 every time that `tutorial.txt` is changed,
 since most edits will probably not affect its title but only its body.
