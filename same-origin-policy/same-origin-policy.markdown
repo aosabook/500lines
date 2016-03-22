@@ -1,11 +1,11 @@
-title: The Same Origin Policy
+title: The Same-Origin Policy
 author: Eunsuk Kang, Santiago Perez De Rosso, and Daniel Jackson
 
-_Eunsuk Kang is a PhD candidate and a member of the Software Design Group at MIT. He received his SM in Computer Science from MIT (2010), and a Bachelor of Software Engineering from the University of Waterloo (2007). His research projects have focused on developing tools and techniques for software modeling and verification, with applications to security and safety-critical systems._
+_Eunsuk Kang is a PhD candidate and a member of the Software Design Group at MIT. He received his SM (Master of Science) in Computer Science from MIT (2010), and a Bachelor of Software Engineering from the University of Waterloo (2007). His research projects have focused on developing tools and techniques for software modeling and verification, with applications to security and safety-critical systems._
 
-_Santiago Perez De Rosso is a PhD student in the Software Design Group at MIT. He received his SM in Computer Science from MIT (2015), and an undergraduate degree from ITBA (2011). He used to work at Google developing frameworks and tools to make engineers more productive (2012). He currently spends most of his time thinking about design and version control._
+_Santiago Perez De Rosso is a PhD student in the Software Design Group at MIT. He received his SM in Computer Science from MIT (2015), and an undergraduate degree from ITBA (2011). He used to work at Google, developing frameworks and tools to make engineers more productive (2012). He currently spends most of his time thinking about design and version control._
 
-_Daniel Jackson is a professor in the Department of Electrical Engineering and Computer Science, and leads the Software Design Group in the Computer Science and Artificial Intelligence Laboratory. He received an MA from Oxford University (1984) in Physics, and his SM (1988) and PhD (1992) from MIT in Computer Science. He was a software engineer for Logica UK Ltd. (1984-1986), Assistant Professor of Computer Science at Carnegie Mellon University (1992-1997), and has been at MIT since 1997. He has broad interests in software engineering, especially in development methods, design and specification, formal methods, and safety critical systems._
+_Daniel Jackson is a professor in the Department of Electrical Engineering and Computer Science at MIT, and leads the Software Design Group in the Computer Science and Artificial Intelligence Laboratory. He received an MA from Oxford University (1984) in Physics, and his SM (1988) and PhD (1992) in Computer Science from MIT. He was a software engineer for Logica UK Ltd. (1984-1986), Assistant Professor of Computer Science at Carnegie Mellon University (1992-1997), and has been at MIT since 1997. He has broad interests in software engineering, especially in development methods, design and specification, formal methods, and safety critical systems._
 
 
 ## Introduction
@@ -28,7 +28,7 @@ Furthermore, the design of the SOP has evolved organically over the
 years and puzzles many developers.
 
 The goal of this chapter is to capture the essence of
-this important -- yet often misunderstood -- feature. In particular, we
+this important --- yet often misunderstood --- feature. In particular, we
 will attempt to answer the following questions:
 
 * Why is the SOP necessary? What are the types of security violations that it prevents?
@@ -37,19 +37,19 @@ will attempt to answer the following questions:
 * How secure are these mechanisms? What are potential security issues that they introduce?
 
 Covering the SOP in its entirety is a daunting task, given the
-complexity of the parts that are involved -- web servers, browsers,
-the HTTP protocol, HTML documents, client-side scripts, and so on. We
+complexity of the parts that are involved --- web servers, browsers,
+HTTP, HTML documents, client-side scripts, and so on. We
 would likely get bogged down by the gritty details of all these parts
-(and consume our 500 lines before even reaching SOP!). But how can we
+(and consume our 500 lines before even reaching SOP). But how can we
 hope to be precise without representing crucial details?
 
 ## Modeling with Alloy
 
 This chapter is somewhat different from others in this book. Instead
 of building a working implementation, we will construct an executable
-_model_ that serves as a simple yet precise description of the
+model that serves as a simple yet precise description of the
 SOP. Like an implementation, the model can be executed to explore
-dynamic behaviors of the system; but unlike an implementation, the
+dynamic behaviors of the system, but unlike an implementation, the
 model omits low-level details that may get in the way of understanding
 the essential concepts.
 
@@ -67,8 +67,8 @@ _simulated_ to produce an _instance_, which represents a valid
 scenario or configuration of a system, and (2) _checked_ to see
 whether the model satisfies a desired property.
 
-Despite above similarities, agile modeling differs from agile
-programming in one key respect. Although we'll be running tests, we
+Despite the above similarities, agile modeling differs from agile
+programming in one key respect: Although we'll be running tests, we
 actually won't be writing any. Alloy's analyzer generates test cases
 automatically, and all that needs to be provided is the property to be
 checked. Needless to say, this saves a lot of trouble (and text). The
@@ -76,7 +76,7 @@ analyzer actually executes all possible test cases up to a certain
 size (called a _scope_); this typically means generating all starting
 states with at most some number of objects, and then choosing
 operations and arguments to apply up to some number of steps. Because
-so many tests are executed (typically billions), and because all
+so many tests (typically billions) are executed, and because all
 possible configurations that a state can take are covered (albeit
 within the scope), this analysis tends to expose bugs more effectively
 than conventional testing (and is sometimes described not as "testing"
@@ -84,8 +84,8 @@ but as "bounded verification").
 
 ### Simplifications
 
-Because the SOP operates in the context of browsers, servers, the HTTP
-protocol, and so on, a complete description would be overwhelming. So
+Because the SOP operates in the context of browsers, servers, HTTP, 
+and so on, a complete description would be overwhelming. So
 our model (like all models) abstracts away irrelevant aspects, such as
 how network packets are structured and routed. But it also simplifies
 some relevant aspects, which means that the model cannot fully account
@@ -104,14 +104,14 @@ codebase) can be guaranteed complete.
 
 Here is the order in which we will proceed with our model of the
 SOP. We will begin by building models of three key components that we
-need in order for us to talk about the SOP: the HTTP protocol, the
+need in order for us to talk about the SOP: HTTP, the
 browser, and client-side scripting. We will build on top of these
 basic models to define what it means for a web application to be
 _secure_, and then introduce the SOP as a mechanism that attempts to
 achieve the required security properties.
 
-We will then see that the SOP can be sometimes too restrictive,
-getting in the way of a web application's proper functioning.  So we
+We will then see that the SOP can sometimes be too restrictive,
+getting in the way of a web application's proper functioning.  So we will
 introduce four different techniques that are commonly used to bypass
 the restrictions that are imposed by the policy.
 
@@ -126,7 +126,7 @@ available for download](http://alloy.mit.edu).
 
 ## Model of the Web
 
-### HTTP Protocol
+### HTTP
 
 The first step in building an Alloy model is to declare some sets of
 objects. Let's start with resources:
@@ -165,10 +165,10 @@ database table. Thus `protocol` is a table with the first column
 containing URLs and the second column containing protocols. And the
 innocuous looking dot operator is in fact a rather general kind of
 relational join, so that you could also write `protocol.p` for all the
-URLs with a protocol `p` -- but more on that later.
+URLs with a protocol `p` --- but more on that later.
 
 Note that domains and paths, unlike URLs, are treated as if they have
-no structure -- a simplification. The keyword `lone` (which can be
+no structure --- a simplification. The keyword `lone` (which can be
 read "less than or equal to one") says that each URL has at most one
 port. The path is the string that follows the host name in the URL,
 and which (for a simple static server) corresponds to the file path of
@@ -287,7 +287,7 @@ object and instructs the client to store `Cookie` at `Domain`.
 
 Even though this is a tiny instance with seemingly few details, it
 signals a flaw in our model. Note that the resource returned from the
-request (`Resource1`) does not exist in the server! We neglected to
+request (`Resource1`) does not exist in the server. We neglected to
 specify an obvious fact about the server; namely, that every response
 to a request is a resource that the server stores. We can go back to
 our definition of `HttpRequest` and append the following constraint:
@@ -299,7 +299,7 @@ abstract sig HttpRequest extends Call { ... }{
 }
 ```
 
-Rerunning produces now instances without the flaw.
+Rerunning now produces instances without the flaw.
 
 Instead of generating sample instances, we can ask the analyzer to
 *check* whether the model satisfies a property. For example, one
@@ -323,15 +323,15 @@ client, but with two different servers. (In the Alloy visualizer,
 objects of the same type are distinguished by appending numeric
 suffixes to their names; if there is only one object of a given type,
 no suffix is added. Every name that appears in a snapshot diagram is
-the name of an object. So -- perhaps confusingly at first sight -- the
+the name of an object. So --- perhaps confusingly at first sight --- the
 names `Domain`, `Path`, `Resource`, `Url` all refer to individual
-objects, not to types!)
+objects, not to types.)
 
-Note that while the DNS server maps `Domain` to both `Server0` and
+Note that while the DNS maps `Domain` to both `Server0` and
 `Server1` (in reality, this is a common practice for load balancing),
 only `Server1` maps `Path` to a resource object, causing
 `HttpRequest1` to result in empty response: another error in our
-model! To fix this, we add an Alloy *fact* recording the assumption
+model. To fix this, we add an Alloy *fact* recording the assumption
 that any two servers to which DNS maps a single host provide the same
 set of resources:
 
@@ -365,17 +365,17 @@ This is our first example of a signature with *dynamic fields*. Alloy
 has no built-in notions of time or behavior, which means that a
 variety of idioms can be used. In this model, we're using a common
 idiom in which you introduce a notion of `Time`, and attach it as a
-final column for every time-varying field. For example, expression
-`b.cookes.t` represents the set of cookies that are stored in browser
-`b` at particular time `t`. Likewise, the `documents` field associates
-a set of documents with each browser at a given time (for more details
-about how we model the dynamic behavior, see the Appendix).
+final column for every time-varying field. For example, the expression
+`b.cookies.t` represents the set of cookies that are stored in browser
+`b` at a particular time `t`. Likewise, the `documents` field associates
+a set of documents with each browser at a given time. (For more details
+about how we model the dynamic behavior, see the Appendix.)
 
 Documents are created from a response to an HTTP request. They can
 also be destroyed if, for example, the user closes a tab or the
 browser, but we leave this out of the model. A document has a URL
 (the one from which the document was originated), some content (the
-DOM) and a domain:
+DOM), and a domain:
 
 ```alloy
 sig Document {
@@ -461,11 +461,11 @@ A script is a dynamic entity that can perform two different kinds of
 action: (1) it can make HTTP requests (i.e., Ajax requests) and (2) it
 can perform browser operations to manipulate the content and
 properties of a document. The flexibility of client-side scripts is
-one of the main catalysts behind the rapid development of Web 2.0, but
+one of the main catalysts of the rapid development of Web 2.0, but
 is also the reason why the SOP was created in the first place. Without
 the SOP, scripts would be able to send arbitrary requests to servers,
-or freely modify documents inside the browser -- which would be bad
-news if one or more of the scripts turned out to be malicious!
+or freely modify documents inside the browser --- which would be bad
+news if one or more of the scripts turned out to be malicious.
 
 A script can communicate to a server by sending an `XmlHttpRequest`:
 
@@ -478,7 +478,7 @@ sig XmlHttpRequest extends HttpRequest {}{
 
 An `XmlHttpRequest` can be used by a script to send/receive resources
 to/from a server, but unlike `BrowserHttpRequest`, it does not
-immediately result in creation of a new page or other changes to the
+immediately result in the creation of a new page or other changes to the
 browser and its documents. To say that a call does not modify these
 aspects of the system, we define predicates `noBrowserChange` and
 `noDocumentChange`:
@@ -518,7 +518,7 @@ A script can read from and write to various parts of a document
 number of API functions for accessing the DOM (e.g.,
 `document.getElementById`), but enumerating all of them is not
 important for our purpose. Instead, we will simply group them into two
-kinds -- `ReadDom` and `WriteDom` -- and model modifications as
+kinds --- `ReadDom` and `WriteDom` --- and model modifications as
 wholesale replacements of the entire document:
 
 ```alloy
@@ -532,7 +532,7 @@ sig WriteDom extends BrowserOp { newDom: Resource }{
 }
 ```
 
-`ReadDom` returns the content the target document, but does not modify it; `WriteDom`, on the other hand, sets the new content of the target document to `newDom`.
+`ReadDom` returns the content of the target document, but does not modify it; `WriteDom`, on the other hand, sets the new content of the target document to `newDom`.
 
 In addition, a script can modify various properties of a document,
 such as its width, height, domain, and title. For our discussion of
@@ -551,8 +551,8 @@ instances (`Server0`, `Browser1`, etc.) in the scenario.
 Sometimes, we may wish to analyze the behavior of a _particular_ web
 application, instead of exploring scenarios with a random
 configuration of servers and clients. For example, imagine that we
-wish to build an email application (like Gmail) that runs inside a
-browser.  In addition to providing basic email features, our
+wish to build an email application that runs inside a
+browser (like Gmail).  In addition to providing basic email features, our
 application might display a banner from a third-party advertisement
 service, which is controlled by a potentially malicious actor.
 
@@ -589,10 +589,10 @@ For example, the last constraint in the fact specifies how the DNS is
 configured to map domain names for the two servers in our
 system. Without this constraint, the Alloy Analyzer may generate
 scenarios where `EmailDomain` is mapped to `EvilServer`, which are not
-of interest to us (in practice, such a mapping may be possible due to
+of interest to us. (In practice, such a mapping may be possible due to
 an attack called _DNS spoofing_, but we will rule it out from our
 model since it lies outside the class of attacks that the SOP is
-designed to prevent).
+designed to prevent.)
 
 Let us introduce two additional applications: an online calendar and a
 blog site:
@@ -609,7 +609,7 @@ incorporate the domain names for these two servers:
 fact Configuration {
   ...
   Dns.map = EmailDomain -> EmailServer + EvilDomain -> EvilServer + 
-            CalendarDomain -> CalenderServer + BlogDomain -> BlogServer  
+            CalendarDomain -> CalendarServer + BlogDomain -> BlogServer  
 }
 ```
 
@@ -631,7 +631,7 @@ Note that `this` is included as a member of `subsumes`, since every
 domain name subsumes itself.
 
 There are other details about these applications that we omit here
-(see example.als for the full model). But we will revisit these
+(see `example.als` for the full model). But we will revisit these
 applications as our running example throughout the remainder of this
 chapter.
 
@@ -643,7 +643,7 @@ is _secure_?
 
 Not surprisingly, this is a tricky question to answer. For our
 purposes, we will turn to two well-studied concepts in information
-security -- _confidentiality_ and _integrity_. Both of these concepts
+security --- _confidentiality_ and _integrity_. Both of these concepts
 talk about how information should be allowed to pass through the
 various parts of the system. Roughly, _confidentiality_ means that a
 critical piece of data should only be accessible to parts that are
@@ -668,7 +668,7 @@ fields:
 sig Data in Resource + Cookie {}
 
 sig DataflowCall in Call {
-  args, returns: set Data,  -- arguments and return data of this call
+  args, returns: set Data,  --- arguments and return data of this call
 }{
  this in HttpRequest implies
     args = this.sentCookies + this.body and
@@ -709,7 +709,7 @@ sig DataflowModule in Endpoint {
 }
 ```
 
-We also need to restrict data elements that a module can provide as arguments or return values of a call. Otherwise, we may get weird scenarios where a module can make a call with an argument that it has no access to!
+We also need to restrict data elements that a module can provide as arguments or return values of a call. Otherwise, we may get weird scenarios where a module can make a call with an argument that it has no access to.
 
 ```alloy
 sig DataflowCall in Call { ... } {
@@ -745,7 +745,7 @@ assert Confidentiality {
 }
 ```
 
-The integrity property is the dual of confidentiality: 
+The integrity property is the double of confidentiality: 
 
 ```alloy
 // No malicious data should ever flow into a trusted module
@@ -775,7 +775,7 @@ impersonate a normal user and send malicious requests to a server in
 an attempt to access the user's data. We do not consider attackers
 that eavesdrop on the connection between different network endpoints;
 although it is a considerable threat in practice, the SOP is not
-designed to prevent it, and thus, lies outside the scope of our model.
+designed to prevent it, and thus it lies outside the scope of our model.
 
 ### Checking Properties
 
@@ -813,9 +813,9 @@ to the same domain as the destination server. This is potentially
 dangerous, because if the cookie is used to represent the user's
 identity (e.g., a session cookie), `EvilScript` can effectively
 pretend to be the user and trick the server into responding with the
-user's private data (`MyInboxInfo`)! Here, the problem is again
+user's private data (`MyInboxInfo`). Here, the problem is again
 related to the liberal ways in which a script may be used to access
-information across different domains -- namely, that a script executing
+information across different domains --- namely, that a script executing
 under one domain is able to make an HTTP request to a server with a
 different domain.
 
@@ -823,7 +823,7 @@ These two counterexamples tell us that extra measures are needed to
 restrict the behavior of scripts, especially since some of those
 scripts could be malicious. This is exactly where the SOP comes in.
 
-## Same Origin Policy
+## Same-Origin Policy
 
 Before we can state the SOP, the first thing we should do is to introduce the
 notion of an origin, which is composed of a protocol, host, and optional port:
@@ -836,7 +836,7 @@ sig Origin {
 }
 ```
 
-We define a function that given a URL returns the corresponding origin:
+We define a function that, given a URL, returns the corresponding origin:
 
 ```alloy
 fun origin[u: Url] : Origin {
@@ -852,7 +852,7 @@ pred domSop {
 ```
 An instance such as the first script scenario is not possible under `domSop`, since `Script` is not allowed to invoke `ReadDom` on a document from a different origin.
 
-The second part of the policy says that a script cannot send an HTTP request to a server unless its context has the same origin as the target URL -- effectively preventing instances such as the second script scenario.
+The second part of the policy says that a script cannot send an HTTP request to a server unless its context has the same origin as the target URL --- effectively preventing instances such as the second script scenario.
 ```alloy
 pred xmlHttpReqSop { 
   all x: XmlHttpRequest | origin[x.url] = origin[x.from.context.src] 
@@ -882,7 +882,7 @@ security; we want to make sure our sites are robust and functional,
 but the mechanism for securing it can sometimes get in the
 way. Indeed, when the SOP was initially introduced, developers ran
 into trouble building sites that made legitimate uses of cross-domain
-communication, e.g. for mashups.
+communication --- for example, for mashups.
 
 In this section, we will discuss four techniques that have been
 devised and frequently used by web developers to bypass the
@@ -894,7 +894,7 @@ to thwart in the first place.
 
 Each of these four techniques is surprisingly complex, and if
 described in full detail, would merit its own chapter. So here we just
-give a brief flavor of how they work, potential security problems that
+give a brief impression of how they work, potential security problems that
 they introduce, and how to prevent these problems. In particular, we
 will ask the Alloy Analyzer to check, for each technique, whether it
 could be abused by an attacker to undermine the two security
@@ -937,8 +937,8 @@ sig SetDomain extends BrowserOp { newDomain: Domain }{
 The `newDomain` field represents the value to which the property should be set.
 There's a caveat, though: scripts can only set the domain property to 
 a right-hand, fully qualified fragment of its hostname.
-(i.e., `email.example.com` can set it to `example.com` but not to
- `google.com`). We use a fact to capture this rule about subdomains:
+(I.e., `email.example.com` can set it to `example.com` but not to
+ `google.com`.) We use a fact to capture this rule about subdomains:
 
 ```alloy
 // Scripts can only set the domain property to only one that is a right-hand,
@@ -952,7 +952,7 @@ If it weren't for this rule, any site could set the `document.domain`
 property to any value, which means that, for example, a malicious site
 could set the domain property to your bank domain, load your bank
 account in an iframe, and (assuming the bank page has set its domain
-property) read the DOM of your bank page!
+property) read the DOM of your bank page.
 
 Let us go back to our original definition of the SOP, and relax its
 restriction on DOM access in order to take into account the effect of
@@ -1014,7 +1014,7 @@ and `ExampleDomain`, respectively), so the browser will prevent them from
 accessing each other's DOM.  The scripts running inside the documents
 (`InboxScript` and `CalendarScript`) each execute the `SetDomain` operation to
 modify their domain properties to `ExampleDomain` (which is allowed because
-`ExampleDomain` is a superdomain of the original domain.)
+`ExampleDomain` is a superdomain of the original domain).
 
 \aosafigure[240pt]{same-origin-policy-images/fig-setdomain-1a.png}{Cross-origin counterexample at time 0}{500l.same-origin-policy.fig-setdomain-1a}
 \aosafigure[240pt]{same-origin-policy-images/fig-setdomain-1b.png}{Cross-origin counterexample at time 1}{500l.same-origin-policy.fig-setdomain-1b}
@@ -1028,13 +1028,13 @@ Note that when you set the domain property of both "email.example.com"
 and "calendar.example.com" to "example.com", you are allowing not only
 these two pages to communicate between each other, but also _any_
 other page that has "example.com" as a superdomain
-(e.g. "blog.example.com"). An attacker also realizes this, and
+(e.g., "blog.example.com"). An attacker also realizes this, and
 constructs a special script (`EvilScript`) that runs inside the
-attacker's blog page (`BlogPage`). In the next step (\aosafigref{500l.same-origin-policy.fig-setdomain-2a}), the script executes `SetDomain` operation to modify the domain property of `BlogPage` to `ExampleDomain`.
+attacker's blog page (`BlogPage`). In the next step (\aosafigref{500l.same-origin-policy.fig-setdomain-2a}), the script executes the `SetDomain` operation to modify the domain property of `BlogPage` to `ExampleDomain`.
 
 \aosafigure[240pt]{same-origin-policy-images/fig-setdomain-2a.png}{Cross-origin counterexample at time 4}{500l.same-origin-policy.fig-setdomain-2a}
 
-Now that `BlogPage` has the same domain property as the other two documents, it can successfully execute `ReadDOM` operation to access their content (\aosafigref{500l.same-origin-policy.fig-setdomain-2b}.)
+Now that `BlogPage` has the same domain property as the other two documents, it can successfully execute the `ReadDOM` operation to access their content (\aosafigref{500l.same-origin-policy.fig-setdomain-2b}.)
 
 \aosafigure[240pt]{same-origin-policy-images/fig-setdomain-2b.png}{Cross-origin counterexample at time 5}{500l.same-origin-policy.fig-setdomain-2b}
 
@@ -1066,9 +1066,9 @@ A script tag can be used to obtain code, but how do we use it to
 receive arbitrary _data_ (e.g., a JSON object) from a different
 domain? The problem is that the browser expects the content of `src`
 to be a piece of JavaScript code, and so simply having it point at a
-data source (e.g., JSON or HTML file) results in a syntax error.
+data source (e.g., a JSON or HTML file) results in a syntax error.
 
-One workaround is to wrap the desired data inside a piece of string that the browser recognizes as valid JavaScript code; this string is sometimes called _padding_ (hence the name "JSON with padding"). This padding could be any arbitrary JavaScript code, but conventionally, it is the name of a callback function (already defined in the current document) that is to be executed on the response data:
+One workaround is to wrap the desired data inside a string that the browser recognizes as valid JavaScript code; this string is sometimes called _padding_ (hence the name "JSON with padding"). This padding could be any arbitrary JavaScript code, but conventionally, it is the name of a callback function (already defined in the current document) that is to be executed on the response data:
 
 ```html
 <script src="http://www.example.com/mydata?jsonp=processData"></script>
@@ -1134,7 +1134,7 @@ any piece of JavaScript code in the client document.
 **Analysis:** Checking the `Confidentiality` property with
  the Alloy Analyzer returns a counterexample that shows one potential
  security risk of JSONP.  In this scenario, the calendar application
- (`CalenderServer`) makes its resources available to third-party sites
+ (`CalendarServer`) makes its resources available to third-party sites
  using a JSONP endpoint (`GetSchedule`). To restrict access to the
  resources, `CalendarServer` only sends back a response with the
  schedule for a user if the request contains a cookie that correctly
@@ -1158,7 +1158,7 @@ In the next step (\aosafigref{500l.same-origin-policy.fig-jsonp-2}), the browser
 
 \aosafigure[240pt]{same-origin-policy-images/fig-jsonp-2.png}{JSONP counterexample at time 1}{500l.same-origin-policy.fig-jsonp-2}
 
-This attack, an example of _cross-site request forgery_ (CSRF), shows an inherent weakness of JSOPN; _any_ site on the web can make a JSONP request simply by including a `<script>` tag and access the payload inside the padding. The risk can be mitigated in two ways: (1) ensure that a JSONP request never returns sensitive data, or (2) use another mechanism in place of cookies (e.g. secret tokens) to authorize the request.
+This attack, an example of _cross-site request forgery_ (CSRF), shows an inherent weakness of JSOPN; _any_ site on the web can make a JSONP request simply by including a `<script>` tag and access the payload inside the padding. The risk can be mitigated in two ways: (1) ensure that a JSONP request never returns sensitive data, or (2) use another mechanism in place of cookies (e.g., secret tokens) to authorize the request.
 
 ### PostMessage
 
@@ -1192,7 +1192,7 @@ sig ReceiveMessage extends EventHandler {
 
 The browser passes two parameters to `ReceiveMessage`: a resource (`data`) that corresponds to the message being sent, and the origin of the sender document (`srcOrigin`). The signature fact contains four constraints to ensure that each `ReceiveMessage` is well-formed with respect to its corresponding `PostMessage`.
 
-**Analysis:** Again, let us ask the Alloy Analyzer whether `PostMessage` is a secure way of performing cross-origin communication. This time, the ananlyzer returns a counterexample for the `Integrity` property, meaning the attacker is able to exploit a weakness in `PostMessage` to introduce malicious data into a trusted application.
+**Analysis:** Again, let us ask the Alloy Analyzer whether `PostMessage` is a secure way of performing cross-origin communication. This time, the analyzer returns a counterexample for the `Integrity` property, meaning the attacker is able to exploit a weakness in `PostMessage` to introduce malicious data into a trusted application.
 
 Note that by default, the PostMessage mechanism does not restrict
  who is allowed to send PostMessage; in other words, any document can
@@ -1208,8 +1208,8 @@ The browser then forwards this message to the document(s)
 with the corresponding origin (in this case, `InboxPage`).  Unless
 `InboxScript` specifically checks the value of `srcOrigin` to filter out
 messages from unwanted origins, `InboxPage` will accept the malicious
-data, possibly leading to further security attacks (for example, it
-may embed a piece of JavaScript to carry out an XSS attack). This is shown in \aosafigref{500l.same-origin-policy.fig-postmessage-1}.
+data, possibly leading to further security attacks. (For example, it
+may embed a piece of JavaScript to carry out an XSS attack.) This is shown in \aosafigref{500l.same-origin-policy.fig-postmessage-1}.
 
 \aosafigure[240pt]{same-origin-policy-images/fig-postmessage-2.png}{PostMessage counterexample at time 1}{500l.same-origin-policy.fig-postmessage-2}
 
@@ -1222,13 +1222,13 @@ inject bad content as part of a `PostMessage` [cite PostMessage
 study].
 
 However, the omission of the origin check may not simply be the result
-of programmer ignorance. Implementing an appropriate check on incoming
+of programmer ignorance. Implementing an appropriate check on an incoming
 PostMessage can be tricky; in some applications, it is hard to
 determine in advance the list of trusted origins from which messages
-are expected to be received (in some apps, this list may even change
-dynamically). This, again, highlights the tension between security and
+are expected to be received. (In some apps, this list may even change
+dynamically.) This, again, highlights the tension between security and
 functionality: PostMessage can be used for secure cross-origin
-communication, but only in the context where a whitelist of trusted
+communication, but only when a whitelist of trusted
 origins is known.
 
 ### Cross-Origin Resource Sharing (CORS)
@@ -1282,7 +1282,7 @@ fact corsRule {
 
 **Analysis:** Can CORS be misused in a way that would allow the
 attacker to compromise the security of a trusted site? When prompted,
-the Alloy Analyzer returns asimple counterexample for the
+the Alloy Analyzer returns a simple counterexample for the
 `Confidentiality` property. 
 
 Here, the developer of the calendar application decides to share some
@@ -1291,7 +1291,7 @@ mechanism. Unfortunately, `CalendarServer` is configured to return
 `Origin` (which represents the set of all origin values) for the
 `access-control-allow-origin` header in CORS responses. As a result, a
 script from any origin, including `EvilDomain`, is allowed to make
-a cross-site request to `CalendarServer` and read its response (\aosafigref{500l.same-origin-policy.fig-cors}.)
+a cross-site request to `CalendarServer` and read its response (\aosafigref{500l.same-origin-policy.fig-cors}).
 
 \aosafigure[240pt]{same-origin-policy-images/fig-cors.png}{CORS counterexample}{500l.same-origin-policy.fig-cors}
 
@@ -1308,7 +1308,7 @@ Why would a developer ever use the wildcard? It turns out that
 specifying the allowed origins can be tricky, since it may not be
 clear at design time which origins should be granted access at runtime
 (similar to the PostMessage issue discusssed above). A service may,
-for example, allow third party applications to subscribe dynamically
+for example, allow third-party applications to subscribe dynamically
 to its resources.
 
 ## Conclusion
@@ -1329,7 +1329,7 @@ modeling would potentially be even more beneficial if it is done
 during the early stage of system design.
 
 Besides the SOP, Alloy has been used to model and reason about a
-variety of systems across different domains -- ranging from network
+variety of systems across different domains --- ranging from network
 protocols, semantic web, bytecode security to electronic voting and
 medical systems. For many of these systems, Alloy's analysis led to
 discovery of design flaws and bugs that had eluded the developers, in
@@ -1349,8 +1349,8 @@ idioms can be captured as a generic module and reused across multiple
 systems.
 
 In our model of the SOP, we model the system as a set of endpoints
-that communicate to each other by making one or more _calls_. Since
-call is a fairly generic notion, we encapsulate its description in a
+that communicate with each other by making one or more _calls_. Since
+_call_ is a fairly generic notion, we encapsulate its description in a
 separate Alloy module, to be imported from other modules that rely on
 it -- similar to standard libraries in programming languages:
 
@@ -1376,16 +1376,16 @@ order on the type parameter, and so by importing `ordering[Time]`, we
 obtain a set of `Time` objects that behave like other totally ordered
 sets (e.g., natural numbers).
 
-Note that there is absolutely nothing special about `Time`; we've
-could named it any other way (for example, `Step` or `State`), and it
+Note that there is absolutely nothing special about `Time`; we
+could have named it any other way (for example, `Step` or `State`), and it
 wouldn't have changed the behavior of the model at all. All we are
 doing here is using an additional column in a relation as a way of
 representing the content of a field at different points in a system
-execution (for example, `cookies` in the `Browser` signature). In this
+execution; for example, `cookies` in the `Browser` signature. In this
 sense, `Time` objects are nothing but helper objects used as a kind of
-indices.
+index.
 
-Each call occurs between two points in time -- its `start` and `end`
+Each call occurs between two points in time --- its `start` and `end`
 times, and is associated with a sender (represented by `from`) and a
 receiver (`to`):
 
@@ -1396,9 +1396,9 @@ abstract sig Call { start, end: Time, from, to: T }
 Recall that in our discussion of HTTP requests, we imported the module
 `call` by passing `Endpoint` as its type parameter. As a result, the
 parametric type `T` is instantiated to `Endpoint`, and we obtain a set
-of `Call` objects that are associated to a pair of sender and receiver
+of `Call` objects that are associated with a pair of sender and receiver
 endpoints. A module can be imported multiple times; for example, we
 could declare a signature called `UnixProcess`, and instantiate the
 module `call` to obtain a distinct set of `Call` objects that are sent
-from one UNIX process to another.
+from one Unix process to another.
 
