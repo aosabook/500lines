@@ -5,16 +5,17 @@ _Cate Huston is a developer and entrepreneur focused on mobile. She’s lived an
 
 ## A Brilliant Idea (That Wasn’t All That Brilliant)
 
-In Chinese art, there is often a series of four paintings showing the same
+Imagine a series of four paintings showing the same
 place in different seasons. Color — the cool whites of winter, pale hues of
-spring, lush greens of summer, and red and yellows of fall — is what
-differentiates the seasons. Sometime around 2011, I had what I thought was a brilliant
-idea. I wanted to be able to visualize a photo series as a series of colors. I
+spring, lush greens of summer, and reds and yellows of fall — is what
+visually 
+differentiates the seasons. Around 2011, I had what I thought was a brilliant
+idea: I wanted to be able to visualize a photo series as a series of colors. I
 thought it would show travel, and progression through the seasons.
 
 But I didn’t know how to calculate the dominant color from an image. I thought
 about scaling the image down to a 1x1 square and seeing what was left, but that
-seemed like cheating. I knew how I wanted to display it though: in a layout
+seemed like cheating. I knew how I wanted to display the images, though: in a layout
 called the [Sunflower
 layout](http://www.catehuston.com/applets/Sunflower/index.html). It’s the most
 efficient way to lay out circles.
@@ -39,14 +40,14 @@ phone booth and everything else in grayscale.
 
 I used a framework called [Processing](https://processing.org/) because I was
 familiar with it from developing programming curricula, and because I knew it
-made it really easy to create visual applications. It’s a tool originally
+made it easy to create visual applications. It’s a tool originally
 designed for artists, so it abstracts away much of the boilerplate. It allowed
-me to play, and to experiment.
+me to play and experiment.
 
-University and, later, work, filled up my time with other people’s ideas and
+University, and later work, filled up my time with other people’s ideas and
 priorities. Part of finishing this project was learning how to carve out time
-to make progress on my own ideas. I calculated the time required to
-be about four hours of good mental time a week. A tool that allowed me to
+to make progress on my own ideas; I required 
+about four hours of good mental time a week. A tool that allowed me to
 move faster was therefore really helpful, even necessary --- although it came with
 its own set of problems, especially around writing tests. 
 
@@ -63,50 +64,46 @@ This chapter will cover some details about Processing and talk you through color
 spaces, decomposing an image into pixels and manipulating them, and unit
 testing something that wasn’t designed with testing in mind. But I hope it will
 also prompt you to make some progress on whatever idea you haven’t made
-time for lately, because even if your idea turns out to be as terrible as mine
+time for lately; even if your idea turns out to be as terrible as mine
 was, you may make something cool and learn something fascinating in the
 process.
 
 ## The App
 
 This chapter will show you how to create an image filter application
-that you can load your
-digital images into and manipulate them using filters that you create.
+that you can use to
+manipulate your digital images using filters that you create.
 We'll use Processing, a programming language and development environment built in
-Java as a tool for artists to create with. 
-We’ll cover aspects of color, setting up the application in Processing, some of
-the features of Processing, how to create color filters (mimicking what was
-used in old-fashioned photography) and we'll create a special kind of filter that
+Java. 
+We’ll cover setting up the application in Processing, some of
+the features of Processing, aspects of color representation, and how to create color filters (mimicking what was
+used in old-fashioned photography). We'll also create a special kind of filter that
 can only be done digitally: determining the dominant hue of an image and
 showing or hiding it, to create eerie partially colored images.
 
-We’ll also add a thorough test suite, and cover how to handle some of
+Finally, we’ll add a thorough test suite, and cover how to handle some of
 the limitations of Processing when it comes to testability.
 
 ## Background
 
 Today we can take a photo, manipulate it, and share it with all our friends in
-a matter of seconds. However, a long long time ago (in digital terms anyway),
+a matter of seconds. However, a long long time ago (in digital terms),
 it was a process that took weeks.
 
-We would take the picture, then when we had used a whole roll of film, we would
-take it in to be developed (often at the pharmacy). We'd pick up the developed picture some days later --- 
-and then discover that there was something wrong with many of them.
+In the old days, we would take the picture, then when we had used a whole roll of film, we would
+take it in to be developed (often at the pharmacy). We'd pick up the developed pictures some days later --- 
+and discover that there was something wrong with many of them.
 Hand not steady enough? Random person or thing that we didn’t notice at
 the time? Overexposed? Underexposed? Of course by then it was too late to remedy the problem.
-
-The next time we had friends over, we could show them our carefully curated
-album of that trip we took, or just tip the pictures out of a
-shoebox onto the coffee table.
 
 The process that turned the film into pictures was one that most people
 didn’t understand. Light was a problem, so you had to be careful with the film.
 There was a process, involving darkened rooms and chemicals, that they
-sometimes showed bits of in films or on TV.
+sometimes showed in films or on TV.
 
-But that actually seems familiar. Today, even fewer people understand how we get from the 
-point-and-click on our smartphone camera to an image on Instagram. But 
-actually there are many similarities.
+But probably even fewer people understand how we get from the 
+point-and-click on our smartphone camera to an image on Instagram. 
+There are actually many similarities.
 
 ### Photographs, the Old Way
 
@@ -121,9 +118,9 @@ changed in varying degrees, according to the amount of light. Then, the
 [development
 process](http://photography.tutsplus.com/tutorials/step-by-step-guide-to-developing-black-and-white-t-max-film--photo-2580)
 converts the silver salts to metallic silver, creating the negative. The
-negative has light and dark areas of the image inverted. Once
+negative has the light and dark areas of the image inverted. Once
 the negatives have been developed, there is another series of steps to
-reverse the image back and print it.
+reverse the image and print it.
 
 ### Photographs, the Digital Way
 
@@ -138,16 +135,16 @@ in each array "box" containing the color.
 
 In \aosafigref{500l.imagefilters.animals}, we see a high-resolution picture of some blow-up animals taken at
 MoMA in NYC. \aosafigref{500l.imagefilters.pixelanimals} is
-the same image blown-up, but with just 24 x 32 pixels.
+the same image blown up, but with just 24 x 32 pixels.
 
 \aosafigure[240pt]{image-filters-images/animals.jpg}{Blow-up animals at MoMA NY}{500l.imagefilters.animals}
 
-\aosafigure[240pt]{image-filters-images/pixelanimals.jpg}{Blow-up animals, blown-up}{500l.imagefilters.pixelanimals}
+\aosafigure[240pt]{image-filters-images/pixelanimals.jpg}{Blow-up animals, blown up}{500l.imagefilters.pixelanimals}
 
 See how it's so blurry? We call
 that _pixelation_, which means the image is too big for the number of pixels it
 contains and the squares become visible. Here we can use it to get a better
-sense of an image made up of squares of color.
+sense of an image being made up of squares of color.
 
 What do these pixels look like? If we print out the colors of some of the
 pixels in the middle (10,10 to 10,14) using the handy `Integer.toHexString` in
@@ -161,7 +158,7 @@ FFFCC2
 FFF5B7
 ```
 
-Hex colors are 6 characters long. The first two are the red value, the second
+Hex colors are six characters long. The first two are the red value, the second
 two the green value, and the third two the blue value. Sometimes there are an
 extra two characters which are the alpha value. In this case `FFFAC4` means:
 
@@ -186,9 +183,8 @@ Some things we can do:
 \aosafigure[240pt]{image-filters-images/app.jpg}{The App}{500l.imagefilters.app}
 
 Processing makes it simple to create a little
-application and do image manipulation, because it 
-was originally created as a way for designers and artists to create digital
-apps, so it has a very visual focus. We’ll work with the Java-based version, although Processing has now been ported
+application and do image manipulation;
+it has a very visual focus. We’ll work with the Java-based version, although Processing has now been ported
 to other languages (including Javascript which is awesome if you want to
 upload your apps to the Internet).
 
@@ -350,7 +346,7 @@ Processing handles most of the file choosing process; we just need to call
 implement a callback (which must be public). 
 
 To people familiar with Java this might seem odd; a listener or a lambda
-expression might make more sense. However as Processing was developed as a tool
+expression might make more sense. However, as Processing was developed as a tool
 for artists, for the most part these things have been
 abstracted away by the language to keep it unintimidating. This is a choice the
 designers made: to prioritize simplicity and approachability over power
@@ -358,7 +354,7 @@ and flexibility. If you use the stripped-down Processing editor, rather than
 Processing as a library in Eclipse, you don’t even need to define class names. 
 
 Other language designers with different target audiences make different
-choices, as they should. For example in Haskell, a purely
+choices, as they should. For example, in Haskell, a purely
 functional language, purity of functional language paradigms is
 prioritised over everything else. This makes it a better tool for mathematical
 problems than for anything requiring IO.
@@ -405,13 +401,13 @@ This app doesn’t do a lot yet, but we can already see number of places where
 things can go wrong; for example, triggering the wrong action with key presses.
 As we add complexity, we add more potential problems, such as updating the
 image state incorrectly, or miscalculating pixel colors after applying
-a filter. I also (some think weirdly) just enjoy writing unit tests. Whilst
+a filter. I also just enjoy (some think weirdly) writing unit tests. Whilst
 some people seem to think of testing as a thing that delays checking code in, I
-see tests as my #1 debugging tool, and an opportunity to deeply understand what
+see tests as my #1 debugging tool, and as an opportunity to deeply understand what
 is going on in my code.
 
-I adore Processing but, as covered above, it’s designed as a tool for artists to
-create visual applications, and in this area, maybe unit testing isn’t a huge
+I adore Processing, but it’s designed to
+create visual applications, and in this area maybe unit testing isn’t a huge
 concern. It’s clear it isn’t written for testability; in fact it’s written in
 such a way that makes it untestable, as is. Part of this is because it hides
 complexity, and some of that hidden complexity is really useful in writing unit
@@ -428,16 +424,16 @@ going wrong. Then maybe we don’t write perfect tests, but writing tests at all
 will help us navigate the situation, document what is happening and move
 forward.
 
-To do that we create "seams" that will allow us to break something up from its
+We create "seams" that allow us to break something up from its
 amorphous mass of tangled pieces and verify it in parts. To do this, we will sometimes
-create wrapper classes that can be mocked. These do nothing more than hold a
+create wrapper classes that can be mocked. These classes do nothing more than hold a
 collection of similar methods, or forward calls on to another object that 
 cannot be mocked (due to final or static methods), and as such they are 
 very dull
 to write, but key to creating seams and making the code testable.
 
 I used JUnit for tests, as I was working in Java with Processing as a library.
-For mocking, I used Mockito. You can download
+For mocking I used Mockito. You can download
 [Mockito](https://code.google.com/p/mockito/downloads/list) and add the JAR to
 your buildpath in the same way you added `core.jar`. I created two helper
 classes that make it possible to mock and test the app (otherwise we can’t test
@@ -469,8 +465,8 @@ through light with enough red (or green, or blue).
 <markdown>
 By applying different filters to this image
 \aosafigref{500l.imagefilters.frankfurt} (taken on a spring trip to Frankfurt)
-it’s almost like the seasons are different. (Remember the Chinese four-seasons
-paintings mentioned earlier?)  See how much more green the tree becomes when
+it’s almost like the seasons are different. (Remember the four-seasons
+paintings we imagined earlier?)  See how much more green the tree becomes when
 the red filter is applied.
 
 \aosafigure[240pt]{image-filters-images/frankfurt.jpg}{Four (Simulated) Seasons in Frankfurt}{500l.imagefilters.frankfurt}
@@ -478,8 +474,8 @@ the red filter is applied.
 <latex>
 By applying different RGB filters to an image we can make it almost seem like
 the seasons are different depending which colors are filtered out 
-and which are emphasized. (Remember the Chinese four-seasons paintings
-mentioned earlier?) 
+and which are emphasized. (Remember the four-seasons paintings
+we imagined earlier?) 
 </latex>
 
 How do we do it? 
@@ -594,7 +590,7 @@ opacity, where 0 is transparent and 100% is opaque.
 This color space is not quite as well known as RGB. The first number represents
 the hue, the second number the saturation (how intense the color is), and the third
 number the brightness. The image at the top was created by manipulating in this
-color space. The HSB color space can be represented by drawing a cone: The hue
+color space. The HSB color space can be represented by a cone: The hue
 is the position around the cone, saturation the distance from the centre, and
 brightness the height (0 brightness is black).
 
@@ -604,7 +600,7 @@ only do digitally. Digitally, we can manipulate the image in a way that isn’t 
 uniform.
 
 When I look through my stream of pictures I can see themes
-emerging. The nighttime series from the boat I took at sunset around Hong Kong
+emerging. The nighttime series I took at sunset from a boat on Hong Kong
 harbour, the grey of North Korea, the lush greens of Bali, the icy whites and
 pale blues of an Icelandic winter. Can we take a picture and pull out that main
 color that dominates the scene?
@@ -623,7 +619,7 @@ hues together, and we can handle this using two strategies.
 
 Firstly we will round the decimals that come back to whole numbers, as this
 makes it simple to determine which "bucket" we put each pixel in. Secondly we
-can change the range of the hues. If we think back up to the diagram above, we
+can change the range of the hues. If we think back to the cone representation above, we
 might think of hues as having 360 degrees (like a circle). Processing uses 255
 by default, which is the same as is typical for RGB (255 is FF in hexadecimal).
 The higher the range we use, the more distinct the hues in the picture will be.
@@ -653,7 +649,7 @@ for(int px in pixels) {
 
 <markdown>
 At the end we can print this hue to the screen, or display it next to the
-picture (\aosafigref{500l.imagefilters.hueranges}).
+picture (\aosafigref{500l.imagefilters.hueranges}). 
 
 \aosafigure[240pt]{image-filters-images/hueranges.jpg}{Dominant hue versus number of buckets used in hue range}{500l.imagefilters.hueranges}
 
@@ -675,6 +671,7 @@ amount either side of the most popular hue that gets grouped together.
 
 \aosafigure[240pt]{image-filters-images/showdominant.jpg}{Showing dominant hue}{500l.imagefilters.showdominant}
 </markdown>
+
 <latex>
 Once we’ve extracted the "dominant" hue, we can choose to either show or hide
 it in the image. We can show the dominant hue with varying tolerance (ranges
@@ -782,10 +779,10 @@ is the hardest to test, so we want to keep it as small as possible.
 ### Model
 Model consists of three files: `HSBColor.java` is a simple container for HSB
 colors (consisting of hue, saturation, and brightness). `IFAImage` is a
-wrapper around `PImage` for testability (`PImage` contains a number of final
-methods which cannot be mocked). Finally, `ImageState.java` is the object
-describing the state of the image — what level of filters should be applied,
-and which filters — and handles loading the image. (Note: the image needs to be reloaded
+wrapper around `PImage` for testability. (`PImage` contains a number of final
+methods which cannot be mocked.) Finally, `ImageState.java` is the object
+which describes the state of the image — what level of filters should be applied,
+and which filters — and handles loading the image. (Note: The image needs to be reloaded
 whenever color filters are adjusted down, and whenever the dominant hue is
 recalculated. For clarity, we just reload each time the image is processed.)
 
@@ -803,7 +800,7 @@ in Java, final methods are methods that cannot be overridden or hidden by
 subclasses, which means they cannot be mocked.
 
 `PixelColorHelper` wraps methods on the applet. This means we need to pass the
-applet in to each method call. (We could alternatively make it a field and set
+applet in to each method call. (Alternatively, we could make it a field and set
 it on initialization.)
 
 ```java
@@ -957,7 +954,7 @@ public class HSBColor {
 
 `ColorHelper` is where all the image manipulation lives. The methods in this
 class could be static if not for needing a `PixelColorHelper`. (Although we
-won’t get into the debate about the merits of static methods here!)
+won’t get into the debate about the merits of static methods here.)
 
 ```java
 package com.catehuston.imagefilter.color;
@@ -1179,17 +1176,17 @@ Notice that:
 
 - We use the `MockitoJUnit` runner.
 - We mock `PApplet`, `IFAImage` (created for expressly this purpose), and `ImageColorHelper`.
-- Test methods are annotated with `@Test` [^habits]. If you want to ignore a test (e.g., whilst debugging) you can add the annotation `@Ignore`.
+- Test methods are annotated with `@Test`[^habits]. If you want to ignore a test (e.g., whilst debugging) you can add the annotation `@Ignore`.
 - In `setup()`, we create the pixel array and have the mock image always return it.
-- Helper methods make it easier to set expectations for reoccurring tasks (e.g., `setHsbValuesForPixel()`, `setRgbValuesForPixel()`).
+- Helper methods make it easier to set expectations for recurring tasks (e.g., `setHsbValuesForPixel()`, `setRgbValuesForPixel()`).
 
 [^habits]: Method names in tests need not start with `test` as of JUnit 4, but habits are hard to break.
 
 ### Image State and Associated Tests
 `ImageState` holds the current "state" of the image — the image itself, and the
 settings and filters that will be applied. We'll omit the full implementation
-of ImageState here, but we'll show how it can be tested. You can visit the source
-repository for this project to see the implementation details of `ImageState`.
+of `ImageState` here, but we'll show how it can be tested. You can visit the source
+repository for this project to see the full implementation details.
 
 ```java
 package com.catehuston.imagefilter.model;
@@ -1398,7 +1395,7 @@ covered, 94.8% for `ImageState`, and 100% for `ColorHelper`.
 
 ### ImageFilterApp
 This is where everything is tied together, but we want as little as possible
-there. The App is hard to unit test (much of it is layout), but because we've pushed so much of the app's functionality into our own tested classes, we're able to assure ourselves that the important parts are working as intended.  
+here. The App is hard to unit test (much of it is layout), but because we've pushed so much of the app's functionality into our own tested classes, we're able to assure ourselves that the important parts are working as intended.  
 
 We set the size of the app, and do the layout. (These things are verified by
 running the app and making sure it looks okay — no matter how good the test coverage,
@@ -1554,7 +1551,7 @@ Making things look just so. Making them fail over. Maintaining that 99.9%
 uptime. We spend more time hunting down corner cases than refining algorithms.
 
 These constraints and requirements are important for our users. However there’s
-also a space for freeing ourselves from them to play and explore.
+also space for freeing ourselves from them to play and explore.
 
 Eventually, I decided to port this to a native mobile app. Processing has an
 Android library, but as many mobile developers do, I opted to go iOS first. I
