@@ -278,9 +278,9 @@ Dagoba.graph = function(V, E) {                 // the factory
 
 We'll accept two optional arguments: a list of vertices and a list of
 edges. JavaScript is rather lax about parameters, so all named
-parameters are optional and default to `undefined' if not supplied
-\footnote{It's also lax in the other direction: all functions are
-  variadic, and all arguments are available by position via the
+parameters are optional and default to \texttt{undefined} if not
+supplied \footnote{It's also lax in the other direction: all functions
+  are variadic, and all arguments are available by position via the
   \texttt{arguments} object, which is almost like an array but not
   quite. (``Variadic'' is a fancy way of saying a function has
   indefinite arity. ``A function has indefinite arity'' is a fancy way
@@ -1633,7 +1633,7 @@ level. Higher priority transformers are placed closer to the front of
 the list. We're ensuring \texttt{fun} is a function, because we're going
 to evaluate it later \footnote{Note that we're keeping the domain of the
   priority parameter open, so it can be an integer, a rational, a
-  negative number, or even things like Infinity or NaN.{]}}.
+  negative number, or even things like Infinity or NaN.}.
 
 We'll assume there won't be an enormous number of transformer additions,
 and walk the list linearly to add a new one. We'll leave a note in case

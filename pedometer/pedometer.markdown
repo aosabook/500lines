@@ -1,9 +1,8 @@
 title: A Pedometer in the Real World
 author: Dessy Daskalov
-
+<markdown>
 _Dessy is an engineer by trade, an entrepreneur by passion, and a developer at heart. She's currently the CTO and co-founder of [Nudge Rewards](http://nudgerewards.com/.) When she’s not busy building product with her team, she can be found teaching others to code, attending or hosting a Toronto tech event, and online at [dessydaskalov.com](http://www.dessydaskalov.com/) and [\@dess_e](https://twitter.com/dess_e)._
-
-
+</markdown>
 ## A Perfect World
 
 Many software engineers reflecting on their training will remember having the pleasure of living in a very perfect world. We were taught to solve discrete problems, with defined parameters, in an ideal domain.

@@ -1,8 +1,8 @@
 title: A Flow Shop Scheduler
 author: Dr. Christian Muise
-
+<markdown>
 _[Dr. Christian Muise](http://haz.ca) is a Research Fellow with the [MERS group](http://groups.csail.mit.edu/mers/) at [MIT's CSAIL](http://www.csail.mit.edu/). He is interested in a variety of topics including AI, data-driven projects, mapping, graph theory, and data visualization, as well as celtic music, carving, soccer, and coffee._
-
+</markdown>
 ## A Flow Shop Scheduler
 *Flow shop scheduling* is one of the most challenging and well-studied problems in operations research. Like many challenging optimization problems, finding the best solution is just not possible for problems of a practical size. In this chapter we consider the implementation of a flow shop scheduling solver that uses a technique called *local search*. Local search allows us to find a solution that is "pretty good" when finding the best solution isn't possible. The solver will try and find new solutions to the problem for a given amount of time, and finish by returning the best solution found.
 

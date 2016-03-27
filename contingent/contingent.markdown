@@ -1,6 +1,6 @@
 title: Contingent: A Fully Dynamic Build System
 author: Brandon Rhodes and Daniel Rocco
-
+<markdown>
 _Brandon Rhodes started using Python in the late 1990s, and for 17 years has
 maintained the PyEphem library for amateur astronomers. He works at
 Dropbox, has taught Python programming courses for corporate clients,
@@ -18,7 +18,7 @@ a frequent speaker at PyAtl on introductory topics, testing, design, and shiny
 things; he loves seeing the spark of wonder and delight in people's eyes when
 someone shares a novel, surprising, or beautiful idea. Daniel lives in Atlanta
 with a microbiologist and four aspiring rocketeers._
-
+</markdown>
 ## Introduction
 
 Build systems have long been a standard tool

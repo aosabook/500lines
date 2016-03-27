@@ -1,12 +1,10 @@
 title: A Python Interpreter Written in Python
 author: Allison Kaptur
-
 <markdown>
 _Allison is an engineer at Dropbox, where she helps maintain one of the largest networks of Python clients in the world. Before Dropbox, she was a facilitator at the Recurse Center, a writers retreat for programmers in New York. She's spoken at PyCon North America about Python internals and loves weird bugs. She blogs at [akaptur.com](http://akaptur.com)._
 
 _(This chapter is also available in [Simplified Chinese](http://qingyunha.github.io/taotao/))_. 
 </markdown>
-
 ## Introduction
 
 Byterun is a Python interpreter implemented in Python. Through my work on Byterun, I was surprised and delighted to discover that the fundamental structure of the Python interpreter fits easily into the 500-line size restriction. This chapter will walk through the structure of the interpreter and give you enough context to explore it further. The goal is not to explain everything there is to know about interpreters --- like so many interesting areas of programming and computer science, you could devote years to developing a deep understanding of the topic.

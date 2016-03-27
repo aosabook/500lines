@@ -1,8 +1,8 @@
 title: DBDB: Dog Bed Database
 author: Taavi Burns
-
+<markdown>
 _As the newest bass (and sometimes tenor) in [Countermeasure](http://www.countermeasuremusic.com), Taavi strives to break the mould... sometimes just by ignoring its existence. This is certainly true through the diversity of workplaces in his career: IBM (doing C and Perl), FreshBooks (all the things), Points.com (doing Python), and now at PagerDuty (doing Scala).  Aside from that—when not gliding along on his Brompton folding bike—you might find him playing Minecraft with his son or engaging in parkour (or rock climbing, or other adventures) with his wife. He knits continental._
-
+</markdown>
 ## Introduction
 
 DBDB (Dog Bed Database) is a Python library that implements a simple key/value database.

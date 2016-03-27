@@ -1,9 +1,8 @@
 title:  Dagoba: an in-memory graph database
 author: Dann Toliver
-
+<markdown>
 _[Dann](https://twitter.com/dann) enjoys building things, like programming languages, databases, distributed systems, communities of smart friendly humans, and pony castles with his two year old._
-
-
+</markdown>
 ## Prologue
 
 > "When we try to pick out anything by itself we find that it is bound fast by a thousand invisible cords that cannot be broken, to everything in the universe."

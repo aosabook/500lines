@@ -1,6 +1,5 @@
 title: A Template Engine
 author: Ned Batchelder
-
 <markdown>
 _Ned Batchelder is a software engineer with a long career, currently working at
 edX to build open source software to educate the world.  He's the maintainer of
@@ -8,7 +7,6 @@ coverage.py, an organizer of Boston Python, and has spoken at many PyCons.  He
 blogs at [http://nedbatchelder.com](http://nedbatchelder.com). He once had
 dinner at the White House._
 </markdown>
-
 ## Introduction
 
 Most programs contain a lot of logic, and a little bit of literal textual data.

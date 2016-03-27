@@ -1,8 +1,8 @@
 title: Blockcode: A visual programming toolkit
 author: Dethe Elza
-
+<markdown>
 _[Dethe](https://twitter.com/dethe) is a geek dad, aesthetic programmer, mentor, and creator of the [Waterbear](http://waterbearlang.com/) visual programming tool. He co-hosts the Vancouver Maker Education Salons and wants to fill the world with robotic origami rabbits._
-
+</markdown>
 In block-based programming languages, you write programs by dragging and connecting blocks that represent parts of the program. Block-based languages differ from conventional programming languages, in which you type words and symbols.
 
 Learning a programming language can be difficult because they are extremely sensitive to even the slightest of typos. Most programming languages are case-sensitive, have obscure syntax, and will refuse to run if you get so much as a semicolon in the wrong place --- or worse, leave one out. Further, most programming languages in use today are based on English and their syntax cannot be localized.

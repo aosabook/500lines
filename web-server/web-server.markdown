@@ -1,8 +1,8 @@
 title: A Simple Web Server
 author: Greg Wilson
-
+<markdown>
 _[Greg Wilson](https://twitter.com/gvwilson) is the founder of Software Carpentry, a crash course in computing skills for scientists and engineers.  He has worked for 30 years in both industry and academia, and is the author or editor of several books on computing, including the 2008 Jolt Award winner *Beautiful Code* and the first two volumes of *The Architecture of Open Source Applications*. Greg received a PhD in Computer Science from the University of Edinburgh in 1993._
-
+</markdown>
 ## Introduction
 
 The web has changed society in countless ways over the last two decades,

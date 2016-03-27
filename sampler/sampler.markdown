@@ -1,8 +1,8 @@
 title: A Rejection Sampler
 author: Jessica B. Hamrick
-
+<markdown>
 _Jess is a Ph.D. student at UC Berkeley where she studies human cognition by combining probabilistic models from machine learning with behavioral experiments from cognitive science. In her spare time, Jess is a core contributor to IPython and Jupyter. She also holds a B.S. and M.Eng. in Computer Science from MIT._
-
+</markdown>
 ## Introduction
 
 Frequently, in computer science and engineering, we run into problems
