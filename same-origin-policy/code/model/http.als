@@ -3,7 +3,6 @@
   *    A model of the Hypertext Transfer Protocol.
   */
 module http
-
 open call[Endpoint]
 open util/relation
 
@@ -12,7 +11,6 @@ abstract sig Endpoint {}
 
 abstract sig Protocol, Port, Path {}
 sig Domain { subsumes: set Domain }
-
 fact subsumesRule { partialOrder[subsumes, Domain] }
 
 sig Url {
@@ -23,7 +21,6 @@ sig Url {
 }
 
 /* HTTP Requests */
-
 abstract sig HttpRequest extends Call {
   -- request
   url: Url,
@@ -40,7 +37,6 @@ abstract sig HttpRequest extends Call {
 }
 
 /* HTTP Components */
-
 abstract sig Client extends Endpoint {}
 abstract sig Server extends Endpoint { resources: Path -> lone Resource }
 
@@ -50,18 +46,12 @@ fact ServerAssumption {
     (some Dns.map.s1 & Dns.map.s2) implies s1.resources = s2.resources
 }
 
-sig Cookie {
-  -- by default all cookies are scoped to the host. The cookie domain and path
-  -- field could be used to broaden (thus adding more hosts) or limit the scope
-  -- of the cookie.
-  domains: set Domain,
-}
+-- by default all cookies are scoped to the host. The cookie domain and path
+-- field could be used to broaden or limit the scope of the cookie.
+sig Cookie {  domains: set Domain }
 
 /* Domain Name Server */
-
-one sig Dns {
-  map: Domain -> Server
-}
+one sig Dns { map: Domain -> Server }
 
 /* Commands */
 

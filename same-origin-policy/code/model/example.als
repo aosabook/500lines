@@ -3,7 +3,6 @@
   *    A model of an Email application
   */
 module example
-
 open analysis
 
 /**
@@ -96,131 +95,12 @@ fact SecurityAssumptions {
   MyInboxInfo != MySchedule
 }
 
-run {} for 3
-
-/* Restrictions */
-
--- you can comment out any of these facts if you prefer
-
-// Restrict calls to be only of one kind
--- leave uncommented the kind of call you want to see only
-pred asm1 {
-  #Call = 2
-  one XmlHttpRequest
-  one ReadDom
-  no CorsRequest
-  MyInboxInfo in EvilServer.accesses.last
-  EvilScript.context = AdBanner
-}
-run asm1 for 3 but 2 Call
-
-pred asm2 {
-  Call in XmlHttpRequest
-  Call.from = EvilScript
-  Call.to = EmailServer
-  GetInboxInfo = Call
-  some sentCookies
-  one Cookie
-  MyInboxInfo in EvilScript.accesses.last
-  EvilScript.context = AdBanner
-}
-run asm2 for 2 but 1 Call
-
-one sig Leak extends Callback {}
-pred jsonpAttack {
-  one GetSchedule
-  one ExecCallback
-  ExecCallback.to in EvilScript
-  MySchedule in EvilScript.accesses.last
-  GetSchedule in JsonpRequest
-  one Cookie
-  no MyInboxInfo & MySchedule
-  EvilScript.context = AdBanner
-}
-run jsonpAttack for 3 but 2 Call, 3 Resource
-
-pred postmessageAttack {
-  one PostMessage
-  one ReceiveMessage
-  PostMessage.from in EvilScript
-  ReceiveMessage.to in InboxScript
-  some MaliciousData & InboxScript.accesses.last 
-  no MyInboxInfo & MySchedule
-  no Port
-  EvilScript.context = AdBanner
-}
-run postmessageAttack for 3 but 3 Time, 2 Call//, 2 Resource
-
-pred corsAttack {
-  GetSchedule in CorsRequest
-  GetSchedule.from = EvilScript
-  MySchedule in EvilScript.accesses.last
-  no MyInboxInfo & MySchedule
-  no Port
-  no body
-  one resources
-  EvilScript.context = AdBanner
-}
-run corsAttack for 3 but 2 Time, 1 Call
-
-pred CRASH {
-  subsumes = 
-    ExampleDomain -> EmailDomain + ExampleDomain -> CalendarDomain  +
-    ExampleDomain -> BlogDomain + (Domain <: iden)
-  
-  some o: SetDomain | o.start = init and o.from = InboxScript and o.newDomain = ExampleDomain
-  some o: SetDomain | o.start = init.next and o.from = CalendarScript and o.newDomain = ExampleDomain
-  some o: ReadDom {
-//    o.from = CalendarScript 
-    o.doc = InboxPage
-//    o.from = CalendarPage
-  }
-}
-run CRASH for 7 but 5 Domain, 4 Time, 3 Call
-
-pred setdomainNormal {
-  subsumes = 
-    ExampleDomain -> EmailDomain + ExampleDomain -> CalendarDomain  +
-    ExampleDomain -> BlogDomain + (Domain <: iden)
-  
-  some o: SetDomain | o.start = init and o.from = InboxScript and o.newDomain = ExampleDomain
-  some o: SetDomain | o.start = init.next and o.from = CalendarScript and o.newDomain = ExampleDomain
-  some o: ReadDom {
-    o.from = CalendarScript 
-//    o.doc = InboxPage
-//    o.from = CalendarPage
-  }
-}
-run setdomainNormal for 7 but 5 Domain, 4 Time, 3 Call
-
-pred setdomainAttack {
-  subsumes = 
-    ExampleDomain -> EmailDomain + ExampleDomain -> CalendarDomain + 
-    ExampleDomain -> BlogDomain + (Domain <: iden)
-  EvilScript.context = BlogPage
-  
-  some o: SetDomain | o.start = init and o.from = InboxScript and o.newDomain = ExampleDomain
-  some o: SetDomain | o.start = init.next and o.from = CalendarScript and o.newDomain = ExampleDomain
-  some o: ReadDom {
-    o.start = init.next.next
-    o.from = CalendarScript 
-    o.doc = InboxPage
-  }
-  some o: SetDomain | o.start = init.next.next.next and o.from = EvilScript and o.newDomain = ExampleDomain
-  some o: ReadDom {
-    o.start = init.next.next.next.next
-    o.from = EvilScript
-    o.doc = InboxPage
-  }
-}
-run setdomainAttack for 7 but 5 Domain, 6 Time, 5 Call
-
 /* Helper functions for visualization */
-
 fun currentCall: Call -> Time {
   {c: Call, t: Time | c.start = t }
 }
-
 fun relevantModules: DataflowModule -> Time {
   {m: DataflowModule, t: Time | m in currentCall.t.(from + to) }
 }
+
+run {} for 3

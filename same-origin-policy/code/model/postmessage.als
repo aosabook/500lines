@@ -31,4 +31,3 @@ sig ReceiveMessage extends EventHandler {
 }
 
 run { some m: ReceiveMessage | m.srcOrigin != m.causedBy.targetOrigin }
-

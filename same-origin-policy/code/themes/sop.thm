@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <alloy>
 
-<view nodetheme="Martha">
+<view nodetheme="Martha" edgetheme="Martha">
 
-<projection> <type name="http/call/Time"/> </projection>
+<projection> <type name="browser/http/call/Time"/> </projection>
 
 <defaultnode/>
 
@@ -12,122 +12,78 @@
 <node>
    <type name="Int"/>
    <type name="String"/>
-   <type name="Univ"/>
    <type name="univ"/>
-   <type name="browser/BrowserHttpRequest"/>
-   <type name="http/Client"/>
-   <type name="seq/Int"/>
-   <type name="http/call/Call"/>
-   <type name="http/call/Time"/>
-   <type name="http/call/ord/Ord"/>
-   <set name="$c" type="http/call/Call"/>
-   <set name="$c&apos;" type="script/ReadDom"/>
-   <set name="$c&apos;" type="script/WriteDom"/>
-   <set name="end" type="http/call/Call"/>
-   <set name="First" type="http/call/ord/Ord"/>
-   <set name="Next" type="http/call/ord/Ord"/>
-   <set name="start" type="http/call/Call"/>
-</node>
-
-<node color="Blue">
-   <type name="http/Endpoint"/>
-</node>
-
-<node color="Blue" label="Browser">
    <type name="browser/Browser"/>
-</node>
-
-<node color="Blue" label="Script">
-   <type name="script/Script"/>
-</node>
-
-<node label="Cookie">
-   <type name="http/Cookie"/>
-</node>
-
-<node label="CorsRequest">
-   <set name="cors/CorsRequest" type="script/XmlHttpRequest"/>
-</node>
-
-<node label="Document">
+   <type name="browser/BrowserHttpRequest"/>
    <type name="browser/Document"/>
-</node>
-
-<node label="Domain">
-   <type name="http/Domain"/>
-</node>
-
-<node label="EventHandler">
-   <type name="script/EventHandler"/>
-</node>
-
-<node label="HttpRequest">
-   <type name="http/HttpRequest"/>
-</node>
-
-<node label="Origin">
    <type name="origin/Origin"/>
-</node>
-
-<node label="Resource">
-   <type name="http/Resource"/>
-</node>
-
-<node label="Server">
-   <type name="http/Server"/>
-</node>
-
-<node label="SetDomain">
+   <type name="seq/Int"/>
    <type name="setDomain/SetDomain"/>
+   <type name="browser/http/Cookie"/>
+   <type name="browser/http/Dns"/>
+   <type name="browser/http/Domain"/>
+   <type name="browser/http/HttpRequest"/>
+   <type name="browser/http/Path"/>
+   <type name="browser/http/Port"/>
+   <type name="browser/http/Protocol"/>
+   <type name="browser/http/Resource"/>
+   <type name="cors/script/BrowserOp"/>
+   <type name="cors/script/EventHandler"/>
+   <type name="cors/script/ReadDom"/>
+   <type name="cors/script/Script"/>
+   <type name="cors/script/WriteDom"/>
+   <type name="cors/script/XmlHttpRequest"/>
+   <type name="browser/http/call/Time"/>
+   <type name="browser/http/call/ord/Ord"/>
+   <set name="$c" type="browser/http/call/Call"/>
+   <set name="$c&apos;" type="cors/script/ReadDom"/>
+   <set name="$c&apos;" type="cors/script/WriteDom"/>
+   <set name="end" type="browser/http/call/Call"/>
+   <set name="First" type="browser/http/call/ord/Ord"/>
+   <set name="Next" type="browser/http/call/ord/Ord"/>
+   <set name="cors/CorsRequest" type="cors/script/XmlHttpRequest"/>
 </node>
 
-<node label="WriteDom">
-   <type name="script/WriteDom"/>
+<node shape="Box">
+   <type name="browser/http/Client"/>
 </node>
 
-<node label="XmlHttpRequest">
-   <type name="script/XmlHttpRequest"/>
+<node shape="Circle" color="Blue">
+   <type name="browser/http/Endpoint"/>
 </node>
 
-<node shape="Egg" color="Black" label="Url">
-   <type name="http/Url"/>
+<node shape="Egg" color="Black">
+   <type name="browser/http/Url"/>
 </node>
 
-<node shape="Parallelogram" color="Green" label="BrowserOp">
-   <type name="script/BrowserOp"/>
+<node shape="House" color="Gray">
+   <type name="browser/http/Server"/>
 </node>
 
-<node shape="Parallelogram" color="Green" label="ReadDom">
-   <type name="script/ReadDom"/>
+<node visible="no" shape="Parallelogram" color="Green">
+   <type name="browser/http/call/Call"/>
 </node>
 
-<node visible="no" label="Dns">
-   <type name="http/Dns"/>
-</node>
-
-<node visible="no" label="Path">
-   <type name="http/Path"/>
-</node>
-
-<node visible="no" label="Port">
-   <type name="http/Port"/>
-</node>
-
-<node visible="no" label="Protocol">
-   <type name="http/Protocol"/>
+<node visible="yes">
+   <set name="start" type="browser/http/call/Call"/>
 </node>
 
 <edge color="Black">
-   <relation name="from"> <type name="http/call/Call"/> <type name="http/Endpoint"/> </relation>
-   <relation name="to"> <type name="http/call/Call"/> <type name="http/Endpoint"/> </relation>
+   <relation name="url"> <type name="browser/http/HttpRequest"/> <type name="browser/http/Url"/> </relation>
 </edge>
 
 <edge visible="no" attribute="yes">
-   <relation name="host"> <type name="http/Url"/> <type name="http/Domain"/> </relation>
-   <relation name="path"> <type name="http/Url"/> <type name="http/Path"/> </relation>
-   <relation name="port"> <type name="http/Url"/> <type name="http/Port"/> </relation>
-   <relation name="protocol"> <type name="http/Url"/> <type name="http/Protocol"/> </relation>
-   <relation name="src"> <type name="browser/Document"/> <type name="http/Url"/> </relation>
+   <relation name="cookies"> <type name="browser/Browser"/> <type name="browser/http/Cookie"/> </relation>
+   <relation name="domain"> <type name="browser/Document"/> <type name="browser/http/Domain"/> </relation>
+   <relation name="domains"> <type name="browser/http/Cookie"/> <type name="browser/http/Domain"/> </relation>
+   <relation name="host"> <type name="origin/Origin"/> <type name="browser/http/Domain"/> </relation>
+   <relation name="host"> <type name="browser/http/Url"/> <type name="browser/http/Domain"/> </relation>
+   <relation name="path"> <type name="browser/http/Url"/> <type name="browser/http/Path"/> </relation>
+   <relation name="port"> <type name="origin/Origin"/> <type name="browser/http/Port"/> </relation>
+   <relation name="port"> <type name="browser/http/Url"/> <type name="browser/http/Port"/> </relation>
+   <relation name="protocol"> <type name="origin/Origin"/> <type name="browser/http/Protocol"/> </relation>
+   <relation name="protocol"> <type name="browser/http/Url"/> <type name="browser/http/Protocol"/> </relation>
+   <relation name="subsumes"> <type name="browser/http/Domain"/> <type name="browser/http/Domain"/> </relation>
 </edge>
 
 </view>

@@ -12,7 +12,6 @@
 <node>
    <type name="AdBanner"/>
    <type name="BlogDomain"/>
-   <type name="BlogPage"/>
    <type name="BlogServer"/>
    <type name="CalendarDomain"/>
    <type name="CalendarPage"/>
@@ -23,26 +22,35 @@
    <type name="EvilDomain"/>
    <type name="EvilScript"/>
    <type name="EvilServer"/>
+   <type name="ExampleDomain"/>
    <type name="HTTP"/>
    <type name="InboxPage"/>
    <type name="InboxScript"/>
    <type name="Int"/>
-   <type name="Leak"/>
    <type name="MyBrowser"/>
-   <type name="ParentDomain"/>
    <type name="String"/>
    <type name="seq/Int"/>
    <type name="analysis/flow/cors/script/BrowserOp"/>
    <type name="analysis/flow/cors/script/EventHandler"/>
    <type name="analysis/flow/cors/script/Script"/>
    <type name="analysis/flow/cors/script/WriteDom"/>
-   <type name="analysis/flow/cors/origin/browser/Browser"/>
+   <type name="analysis/flow/sop/browser/Browser"/>
+   <type name="analysis/flow/sop/browser/BrowserHttpRequest"/>
+   <type name="analysis/flow/sop/browser/Document"/>
    <type name="analysis/flow/cors/origin/http/Client"/>
    <type name="analysis/flow/cors/origin/http/HttpRequest"/>
    <type name="analysis/flow/cors/origin/http/Server"/>
+   <type name="analysis/flow/cors/origin/http/call/Time"/>
    <type name="analysis/flow/cors/origin/http/call/ord/Ord"/>
+   <set name="$c" type="analysis/flow/cors/origin/http/call/Call"/>
+   <set name="$relevantModules" type="analysis/flow/cors/origin/http/Endpoint"/>
    <set name="First" type="analysis/flow/cors/origin/http/call/ord/Ord"/>
    <set name="Next" type="analysis/flow/cors/origin/http/call/ord/Ord"/>
+   <set name="analysis/flow/jsonp/JsonpRequest" type="analysis/flow/sop/browser/BrowserHttpRequest"/>
+</node>
+
+<node color="Gray" label="Endpoint">
+   <type name="analysis/flow/cors/origin/http/Endpoint"/>
 </node>
 
 <node color="Green" label="Cookie">
@@ -65,20 +73,12 @@
    <type name="univ"/>
 </node>
 
-<node label="BrowserHttpRequest">
-   <type name="analysis/flow/cors/origin/browser/BrowserHttpRequest"/>
-</node>
-
 <node label="Callback">
    <type name="analysis/flow/jsonp/Callback"/>
 </node>
 
 <node label="CorsRequest">
    <set name="analysis/flow/cors/CorsRequest" type="analysis/flow/cors/script/XmlHttpRequest"/>
-</node>
-
-<node label="Document">
-   <type name="analysis/flow/cors/origin/browser/Document"/>
 </node>
 
 <node label="Domain">
@@ -95,10 +95,6 @@
 
 <node label="GetSchedule">
    <set name="this/GetSchedule" type="analysis/flow/cors/origin/http/HttpRequest"/>
-</node>
-
-<node label="JsonpRequest">
-   <set name="analysis/flow/jsonp/JsonpRequest" type="analysis/flow/cors/origin/browser/BrowserHttpRequest"/>
 </node>
 
 <node label="JsonpResponse">
@@ -133,20 +129,8 @@
    <type name="analysis/flow/cors/origin/http/Protocol"/>
 </node>
 
-<node label="ReadDom">
-   <type name="analysis/flow/cors/script/ReadDom"/>
-</node>
-
 <node label="ReceiveMessage">
    <type name="analysis/flow/postMessage/ReceiveMessage"/>
-</node>
-
-<node label="SetDomain">
-   <type name="analysis/flow/setDomain/SetDomain"/>
-</node>
-
-<node label="Time">
-   <type name="analysis/flow/cors/origin/http/call/Time"/>
 </node>
 
 <node label="Url">
@@ -157,15 +141,19 @@
    <type name="analysis/flow/cors/script/XmlHttpRequest"/>
 </node>
 
+<node numberatoms="no" label="ReadDom">
+   <type name="analysis/flow/cors/script/ReadDom"/>
+</node>
+
 <node numberatoms="no" label="Resource">
    <type name="analysis/flow/cors/origin/http/Resource"/>
 </node>
 
+<node numberatoms="no" label="SetDomain">
+   <type name="analysis/flow/setDomain/SetDomain"/>
+</node>
+
 <node showlabel="no">
-   <set name="$setdomainNormal_c" type="analysis/flow/cors/origin/http/call/Call"/>
-   <set name="$setdomainNormal_o" type="analysis/flow/setDomain/SetDomain"/>
-   <set name="$setdomainNormal_o&apos;" type="analysis/flow/setDomain/SetDomain"/>
-   <set name="$setdomainNormal_o&apos;&apos;" type="analysis/flow/cors/script/ReadDom"/>
    <set name="end" type="analysis/flow/cors/origin/http/call/Call"/>
    <set name="start" type="analysis/flow/cors/origin/http/call/Call"/>
    <set name="analysis/CriticalData" type="analysis/flow/cors/origin/http/Cookie"/>
@@ -184,8 +172,8 @@
    <set name="analysis/CriticalData" type="analysis/flow/cors/origin/http/Resource"/>
 </node>
 
-<node visible="no" color="Gray" label="Endpoint">
-   <type name="analysis/flow/cors/origin/http/Endpoint"/>
+<node visible="no">
+   <type name="BlogPage"/>
 </node>
 
 <node visible="no" label="Dns">
@@ -196,9 +184,8 @@
    <type name="analysis/flow/cors/origin/http/call/Call"/>
 </node>
 
-<node visible="yes" showlabel="no">
+<node visible="yes">
    <set name="$currentCall" type="analysis/flow/cors/origin/http/call/Call"/>
-   <set name="$relevantModules" type="analysis/flow/cors/origin/http/Endpoint"/>
 </node>
 
 <edge attribute="no">
@@ -209,8 +196,6 @@
 <edge visible="no">
    <relation name="args"> <type name="analysis/flow/cors/origin/http/call/Call"/> <type name="analysis/flow/cors/origin/http/Cookie"/> </relation>
    <relation name="args"> <type name="analysis/flow/cors/origin/http/call/Call"/> <type name="analysis/flow/cors/origin/http/Resource"/> </relation>
-   <relation name="content"> <type name="analysis/flow/cors/origin/browser/Document"/> <type name="analysis/flow/cors/origin/http/Resource"/> </relation>
-   <relation name="cookies"> <type name="analysis/flow/cors/origin/browser/Browser"/> <type name="analysis/flow/cors/origin/http/Cookie"/> </relation>
    <relation name="payload"> <type name="analysis/flow/cors/origin/http/Resource"/> <type name="analysis/flow/cors/origin/http/Resource"/> </relation>
    <relation name="receivedCookies"> <type name="analysis/flow/cors/origin/http/HttpRequest"/> <type name="analysis/flow/cors/origin/http/Cookie"/> </relation>
    <relation name="returns"> <type name="analysis/flow/cors/origin/http/call/Call"/> <type name="analysis/flow/cors/origin/http/Cookie"/> </relation>
@@ -221,26 +206,23 @@
 <edge visible="no" attribute="no">
    <relation name="accesses"> <type name="analysis/flow/cors/origin/http/Endpoint"/> <type name="analysis/flow/cors/origin/http/Cookie"/> </relation>
    <relation name="accesses"> <type name="analysis/flow/cors/origin/http/Endpoint"/> <type name="analysis/flow/cors/origin/http/Resource"/> </relation>
-   <relation name="doc"> <type name="analysis/flow/cors/script/BrowserOp"/> <type name="analysis/flow/cors/origin/browser/Document"/> </relation>
-   <relation name="src"> <type name="analysis/flow/cors/origin/browser/Document"/> <type name="analysis/flow/cors/origin/http/Url"/> </relation>
 </edge>
 
 <edge visible="no" attribute="yes">
    <relation name="cb"> <type name="analysis/flow/jsonp/ExecCallback"/> <type name="analysis/flow/jsonp/Callback"/> </relation>
    <relation name="cb"> <type name="analysis/flow/cors/origin/http/Resource"/> <type name="analysis/flow/jsonp/Callback"/> </relation>
-   <relation name="doc"> <type name="analysis/flow/cors/origin/browser/BrowserHttpRequest"/> <type name="analysis/flow/cors/origin/browser/Document"/> </relation>
-   <relation name="domain"> <type name="analysis/flow/cors/origin/browser/Document"/> <type name="analysis/flow/cors/origin/http/Domain"/> </relation>
+   <relation name="domain"> <type name="analysis/flow/sop/browser/Document"/> <type name="analysis/flow/cors/origin/http/Domain"/> </relation>
    <relation name="domains"> <type name="analysis/flow/cors/origin/http/Cookie"/> <type name="analysis/flow/cors/origin/http/Domain"/> </relation>
    <relation name="host"> <type name="analysis/flow/cors/origin/Origin"/> <type name="analysis/flow/cors/origin/http/Domain"/> </relation>
    <relation name="host"> <type name="analysis/flow/cors/origin/http/Url"/> <type name="analysis/flow/cors/origin/http/Domain"/> </relation>
    <relation name="newDomain"> <type name="analysis/flow/setDomain/SetDomain"/> <type name="analysis/flow/cors/origin/http/Domain"/> </relation>
-   <relation name="padding"> <type name="analysis/flow/cors/origin/browser/BrowserHttpRequest"/> <type name="analysis/flow/jsonp/Callback"/> </relation>
    <relation name="path"> <type name="analysis/flow/cors/origin/http/Url"/> <type name="analysis/flow/cors/origin/http/Path"/> </relation>
    <relation name="port"> <type name="analysis/flow/cors/origin/Origin"/> <type name="analysis/flow/cors/origin/http/Port"/> </relation>
    <relation name="port"> <type name="analysis/flow/cors/origin/http/Url"/> <type name="analysis/flow/cors/origin/http/Port"/> </relation>
    <relation name="protocol"> <type name="analysis/flow/cors/origin/Origin"/> <type name="analysis/flow/cors/origin/http/Protocol"/> </relation>
    <relation name="protocol"> <type name="analysis/flow/cors/origin/http/Url"/> <type name="analysis/flow/cors/origin/http/Protocol"/> </relation>
    <relation name="resources"> <type name="analysis/flow/cors/origin/http/Server"/> <type name="analysis/flow/cors/origin/http/Path"/> <type name="analysis/flow/cors/origin/http/Resource"/> </relation>
+   <relation name="src"> <type name="analysis/flow/sop/browser/Document"/> <type name="analysis/flow/cors/origin/http/Url"/> </relation>
    <relation name="url"> <type name="analysis/flow/cors/origin/http/HttpRequest"/> <type name="analysis/flow/cors/origin/http/Url"/> </relation>
 </edge>
 
