@@ -57,7 +57,7 @@ If we don't have cheap threads at our disposal or we are unwilling to work with 
 
 Since we are only managing a single thread, we don't have to worry as much about protecting shared resources from simultaneous access. However, we do have a unique problem of our own in this model. Since our single thread is working on all in-flight requests at once, we must make sure that it __never blocks__. Blocking on any connection blocks the entire server from making progress on any other request. We have to be able to move on to another client if the current one can't be serviced further, and we need to be able to do so in a manner that doesn't throw out all of the work done so far[^crawler]. 
 
-[^crawler]: See the \aosachapref{s:crawler} web crawler chapter for another take on this problem. 
+[^crawler]: See \aosachapref{s:crawler} for another take on this problem. 
 
 While it is uncommon for a programmer to explicitly tell a thread to stop working, many common operations carry a risk of blocking. Because threads are so prevalent and reasoning about asychronousity is a heavy burden on the programmer, many languages and their frameworks assume that blocking on IO is a desirable property. This makes it very easy to block somewhere _by accident_. Luckily, Common Lisp does provide us with a minimal set of asynchronous IO primitives which we can build on top of.
 
