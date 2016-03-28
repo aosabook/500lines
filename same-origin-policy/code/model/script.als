@@ -73,3 +73,5 @@ pred noBrowserChange[start, end: Time] {
 pred noDocumentChange[start, end: Time] {
   content.end = content.start and domain.end = domain.start
 }
+
+run {} for 3

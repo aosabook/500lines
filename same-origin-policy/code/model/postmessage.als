@@ -1,5 +1,5 @@
 /**
-  *  postMessage
+  *  postmessage.als
   *    A model of the HTML5 PostMessage mechanism intended for cross-domain
   *    communication between scripts
   */
@@ -31,4 +31,3 @@ sig ReceiveMessage extends EventHandler {
 }
 
 run { some m: ReceiveMessage | m.srcOrigin != m.causedBy.targetOrigin }
-

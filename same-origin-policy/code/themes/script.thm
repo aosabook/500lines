@@ -11,9 +11,9 @@
 
 <node>
    <type name="BrowserOp"/>
+   <type name="EventHandler"/>
    <type name="Int"/>
    <type name="ReadDom"/>
-   <type name="SetDomain"/>
    <type name="String"/>
    <type name="univ"/>
    <type name="WriteDom"/>
@@ -33,8 +33,7 @@
    <type name="browser/http/call/Time"/>
    <type name="browser/http/call/ord/Ord"/>
    <set name="$c" type="browser/http/call/Call"/>
-   <set name="$sd" type="SetDomain"/>
-   <set name="after" type="browser/http/call/Call"/>
+   <set name="end" type="browser/http/call/Call"/>
    <set name="First" type="browser/http/call/ord/Ord"/>
    <set name="Next" type="browser/http/call/ord/Ord"/>
 </node>
@@ -51,20 +50,20 @@
    <type name="browser/http/Endpoint"/>
 </node>
 
-<node shape="Circle" color="Gray">
-   <type name="browser/http/Server"/>
-</node>
-
 <node shape="Egg" color="Black">
    <type name="browser/http/Url"/>
+</node>
+
+<node shape="House" color="Gray">
+   <type name="browser/http/Server"/>
 </node>
 
 <node visible="no" shape="Parallelogram" color="Green">
    <type name="browser/http/call/Call"/>
 </node>
 
-<node visible="yes" showlabel="no">
-   <set name="before" type="browser/http/call/Call"/>
+<node visible="yes">
+   <set name="start" type="browser/http/call/Call"/>
 </node>
 
 <edge color="Black">

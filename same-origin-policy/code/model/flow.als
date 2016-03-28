@@ -4,7 +4,6 @@
   *    as an argument or return type in calls
   */
 module flow
-
 open jsonp
 open postMessage
 open setDomain
@@ -61,13 +60,7 @@ sig DataflowModule in Endpoint {
   this in Server implies Path.(this.resources) in initData
 }
 
-fact {
-  Call in DataflowCall
-  Endpoint in DataflowModule
-}
-
-fun initData[m: DataflowModule] : set Data {
-  m.accesses.first
-}
+fact { Call in DataflowCall and Endpoint in DataflowModule }
+fun initData[m: DataflowModule] : set Data { m.accesses.first }
 
 run { some Client.accesses } for 3
