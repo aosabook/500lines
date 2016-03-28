@@ -3,7 +3,7 @@
   *    A model of the same-origin policy
   */
 module sop
-
+open browser
 open cors
 open origin
 open setDomain
@@ -32,9 +32,6 @@ pred xmlHttpReqSop {
     -- (relaxation) it's a CORS request
     x in CorsRequest
 }
-
-
-/* Commands */
 
 // Can a script read or write the DOM of a document with another origin?
 run { some c: ReadDom + WriteDom | origin[c.doc.src] != origin[c.from.context.src] } for 4

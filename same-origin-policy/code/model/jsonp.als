@@ -4,15 +4,12 @@
   *    script and a server
   */
 module jsonp
-
 open script
 
 abstract sig Callback {}  // identifier of a callback function
 
 // Request sent as a result of <script> tag
-sig JsonpRequest in BrowserHttpRequest {
-  padding: Callback
-}{
+sig JsonpRequest in BrowserHttpRequest { padding: Callback }{
   response in JsonpResponse
 }
 
@@ -24,9 +21,7 @@ sig JsonpResponse in Resource {
   payload != this
 }
 
-fact {
-  all r: JsonpResponse | some req: JsonpRequest | req.response = r
-}
+fact { all r: JsonpResponse | some req: JsonpRequest | req.response = r }
 
 // Callback function called when the JSONP request completes
 sig ExecCallback extends EventHandler {
@@ -42,4 +37,3 @@ sig ExecCallback extends EventHandler {
 }
 
 run { some cb: ExecCallback | some cb.payload }
-

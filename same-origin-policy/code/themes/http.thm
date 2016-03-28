@@ -21,14 +21,12 @@
    <type name="Resource"/>
    <type name="String"/>
    <type name="univ"/>
+   <type name="call/Time"/>
    <type name="seq/Int"/>
    <type name="call/ord/Ord"/>
+   <set name="end" type="call/Call"/>
    <set name="First" type="call/ord/Ord"/>
    <set name="Next" type="call/ord/Ord"/>
-</node>
-
-<node hideunconnected="no">
-   <type name="call/Time"/>
 </node>
 
 <node hideunconnected="no" color="White">
@@ -49,16 +47,14 @@
 
 <node showlabel="no">
    <set name="$c" type="call/Call"/>
-   <set name="$r" type="call/Call"/>
-   <set name="after" type="call/Call"/>
 </node>
 
 <node visible="no" shape="Parallelogram" color="Green">
    <type name="call/Call"/>
 </node>
 
-<node visible="yes" showlabel="no">
-   <set name="before" type="call/Call"/>
+<node visible="yes">
+   <set name="start" type="call/Call"/>
 </node>
 
 <edge color="Black">

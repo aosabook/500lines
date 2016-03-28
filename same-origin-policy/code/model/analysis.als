@@ -3,7 +3,6 @@
   *    End-to-end analysis of security properties
   */
 module analysis
-
 open flow
 
 // General security properties

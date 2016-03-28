@@ -4,7 +4,6 @@
   *    intended for cross-domain communication from a script and a server
   */
 module cors
-
 open script
 open origin
 
@@ -24,5 +23,3 @@ fact corsRule {
     -- the specified origin is one of the allowed origins
     r.origin in r.allowedOrigins
 }
-
-run {}

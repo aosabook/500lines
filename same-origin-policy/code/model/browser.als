@@ -3,7 +3,6 @@
   *    A model of a browser
   */
 module browser
-
 open http
 
 abstract sig Document {
@@ -27,9 +26,7 @@ fact Wellformedness {
 
 /* HTTP request sent from a browser to a server */
 
-sig BrowserHttpRequest extends HttpRequest {
-  doc: lone Document
-}{
+sig BrowserHttpRequest extends HttpRequest { doc: lone Document }{
   -- the request comes from a browser
   from in Browser
   -- the cookies being sent exist in the browser at the time of the request
@@ -55,10 +52,6 @@ sig BrowserHttpRequest extends HttpRequest {
 pred matchingScope[cookies: set Cookie, url: Url] {
   all c: cookies | url.host in c.domains
 }
-
-/* Commands */
-
-run {}
 
 // Can we have two documents with different src but the same "document.domain"
 // property at some point in time?

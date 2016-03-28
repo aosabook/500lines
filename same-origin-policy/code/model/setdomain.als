@@ -4,7 +4,6 @@
   *    property
   */
 module setDomain
-
 open script
 
 // Modify the document.domain property
@@ -21,12 +20,9 @@ fact setDomainRule {
    all d: Document | d.src.host in (d.domain.Time).subsumes
 }
 
-/* Commands */
-
 // Can a script set the "document.domain" property with a new_domain that
 // doesn't match the host of the src?
 run { some sd: SetDomain | sd.doc.src.host != sd.newDomain }
-
 
 // Can a script set the "document.domain" property with a new_domain that
 // doesn't match the host of the src even if there are no domains that subsume
