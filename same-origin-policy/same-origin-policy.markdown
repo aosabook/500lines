@@ -135,7 +135,7 @@ objects. Let's start with resources:
 sig Resource {}
 ```
 
-The keyword “sig” identifies this as an Alloy signature
+The keyword `sig` identifies this as an Alloy _signature_
 declaration. This introduces a set of resource objects; think of
 these, just like the objects of a class with no instance variables, as
 blobs that have identity but no content. When the analysis runs, this
@@ -151,12 +151,13 @@ sig Url {
   port: lone Port,
   path: Path
 }
-sig Protocol, Domain, Port, Path {}
+sig Protocol, Port, Path {}
+sig Domain { subsumes: set Domain }
 ```
 
 Here we have five signature declarations, introducing a set of URLs
 and four additional sets for each of the basic kinds of objects they
-comprise. Within the URL declaration, we have four fields. Fields are
+comprise. Within the URL declaration, we have four _fields_. Fields are
 like instance variables in a class; if `u` is a URL, for example, then
 `u.protocol` would represent the protocol of that URL (just like dot
 in Java). But in fact, as we'll see later, these fields are
@@ -167,7 +168,7 @@ innocuous looking dot operator is in fact a rather general kind of
 relational join, so that you could also write `protocol.p` for all the
 URLs with a protocol `p` --- but more on that later.
 
-Note that domains and paths, unlike URLs, are treated as if they have
+Note that paths, unlike URLs, are treated as if they have
 no structure --- a simplification. The keyword `lone` (which can be
 read "less than or equal to one") says that each URL has at most one
 port. The path is the string that follows the host name in the URL,
@@ -277,7 +278,7 @@ run {} for 3	-- generate an instance with up to 3 objects of every signature typ
 ```
 
 As soon as the analyzer finds a possible instance of the system, it
-displays it graphically, like in \aosafigref{500l.same-origin-policy.fig-http-1}.
+automatically produces a diagram of the instance, like in \aosafigref{500l.same-origin-policy.fig-http-1}.
 
 \aosafigure[240pt]{same-origin-policy-images/fig-http-1.png}{A possible instance}{500l.same-origin-policy.fig-http-1}
 
@@ -347,12 +348,13 @@ analyzer no longer reports any counterexamples for the property. This
 doesn't mean the property has been proven to be true, since there
 might be a counterexample in a larger scope. But it is unlikely that
 the property is false, since the analyzer has tested all possible
-instances involving 3 objects of each type. In this scope, the `map`
-field alone (representing the DNS mapping) has 512 possible values.
+instances involving 3 objects of each type.
+
+If desired, however, we can re-run the analysis with a larger scope for increased confidence. For example, running the above check with the scope of 10 still does not produce any counterexample, suggesting that the property is likely to be valid. However, keep in mind that given a larger scope, the analyzer needs to test a greater number of instances, and so it will likely take longer to complete.
 
 ### Browser
 
-Let's introduce browsers:
+Let's now introduce browsers into our model:
 
 ```alloy
 sig Browser extends Client {
@@ -439,15 +441,15 @@ the mapping from browsers to documents when the call has ended. So
 this constraint says that after the call, the mapping is the same,
 except for a new entry in the table mapping `from` to `doc`.
 
-Some constraints use the `++` relational override operator: `e1 ++ e2`
+Some constraints use the `++` relational _override_ operator: `e1 ++ e2`
 contains all tuples of `e2`, and additionally, any tuples of `e1`
 whose first element is not the first element of a tuple in `e2`. For
 example, the constraint `content.end = content.start ++ doc ->
 response` says that after the call, the `content` mapping will be
-updated to map `doc` to `response` (clobbering any previous mapping of
+updated to map `doc` to `response` (overriding any previous mapping of
 `doc`).  If we were to use the union operator `+` instead, then the
-same document might (incorrectly) be mapped in the after state to
-multiple resources.
+same document might (incorrectly) be mapped to multiple resources in
+the after state.
 
 ### Script
 
@@ -745,7 +747,7 @@ assert Confidentiality {
 }
 ```
 
-The integrity property is the double of confidentiality: 
+The integrity property is the dual of confidentiality: 
 
 ```alloy
 // No malicious data should ever flow into a trusted module
@@ -826,7 +828,7 @@ scripts could be malicious. This is exactly where the SOP comes in.
 ## Same-Origin Policy
 
 Before we can state the SOP, the first thing we should do is to introduce the
-notion of an origin, which is composed of a protocol, host, and optional port:
+notion of an _origin_, which is composed of a protocol, host, and optional port:
 
 ```alloy
 sig Origin {
@@ -836,7 +838,7 @@ sig Origin {
 }
 ```
 
-We define a function that, given a URL, returns the corresponding origin:
+For convenience, let us define a function that, given a URL, returns the corresponding origin:
 
 ```alloy
 fun origin[u: Url] : Origin {
@@ -845,16 +847,16 @@ fun origin[u: Url] : Origin {
 ```
 The SOP itself has two parts, restricting the ability of a script to (1) make DOM API calls and (2) send HTTP requests. The first part of the policy states that a script can only read from and write to a document that comes from the same origin as the script:
 ```alloy
-pred domSop {
+fact domSop {
   all o: ReadDom + WriteDom |  let target = o.doc, caller = o.from.context |
     origin[target] = origin[caller] 
 }
 ```
-An instance such as the first script scenario is not possible under `domSop`, since `Script` is not allowed to invoke `ReadDom` on a document from a different origin.
+An instance such as the first script scenario (from the previous section) is not possible under `domSop`, since `Script` is not allowed to invoke `ReadDom` on a document from a different origin.
 
 The second part of the policy says that a script cannot send an HTTP request to a server unless its context has the same origin as the target URL --- effectively preventing instances such as the second script scenario.
 ```alloy
-pred xmlHttpReqSop { 
+fact xmlHttpReqSop { 
   all x: XmlHttpRequest | origin[x.url] = origin[x.from.context.src] 
 }
 ```
@@ -882,7 +884,7 @@ security; we want to make sure our sites are robust and functional,
 but the mechanism for securing it can sometimes get in the
 way. Indeed, when the SOP was initially introduced, developers ran
 into trouble building sites that made legitimate uses of cross-domain
-communication --- for example, for mashups.
+communication (e.g., mashups).
 
 In this section, we will discuss four techniques that have been
 devised and frequently used by web developers to bypass the
@@ -962,7 +964,7 @@ scripts can interact with each other (that is, read and write each
 other's DOM). 
 
 ```alloy
-pred domSop {
+fact domSop {
   -- For every successful read/write DOM operation,
   all o: ReadDom + WriteDom |  let target = o.doc, caller = o.from.context |
     -- (1) target and caller documents are from the same origin, or
@@ -1032,11 +1034,11 @@ other page that has "example.com" as a superdomain
 constructs a special script (`EvilScript`) that runs inside the
 attacker's blog page (`BlogPage`). In the next step (\aosafigref{500l.same-origin-policy.fig-setdomain-2a}), the script executes the `SetDomain` operation to modify the domain property of `BlogPage` to `ExampleDomain`.
 
-\aosafigure[240pt]{same-origin-policy-images/fig-setdomain-2a.png}{Cross-origin counterexample at time 4}{500l.same-origin-policy.fig-setdomain-2a}
+\aosafigure[240pt]{same-origin-policy-images/fig-setdomain-2a.png}{Cross-origin counterexample at time 3}{500l.same-origin-policy.fig-setdomain-2a}
 
 Now that `BlogPage` has the same domain property as the other two documents, it can successfully execute the `ReadDOM` operation to access their content (\aosafigref{500l.same-origin-policy.fig-setdomain-2b}.)
 
-\aosafigure[240pt]{same-origin-policy-images/fig-setdomain-2b.png}{Cross-origin counterexample at time 5}{500l.same-origin-policy.fig-setdomain-2b}
+\aosafigure[240pt]{same-origin-policy-images/fig-setdomain-2b.png}{Cross-origin counterexample at time 4}{500l.same-origin-policy.fig-setdomain-2b}
 
 This attack points out one crucial weakness of the domain property
 method for cross-origin communication: The security of an application
@@ -1117,6 +1119,8 @@ sig JsonpCallback extends EventHandler {
     payload = resp.@payload
 }
 ```
+
+(`EventHandler` is a special type of call that must take place sometime after another call, which is denoted by `causedBy`; we will use event handlers to model  actions that are performed by scripts in response to browser events.) 
 
 Note that the callback function executed is the same as the one that's
 included in the response (`cb = resp.@cb`), but _not_ necessarily the
@@ -1218,8 +1222,7 @@ and it is the responsibility of the receiving document to
 _additionally_ check the `srcOrigin` parameter to ensure that the
 message is coming from a trustworthy document. Unfortunately, in
 practice, many sites omit this check, enabling a malicious document to
-inject bad content as part of a `PostMessage` [cite PostMessage
-study].
+inject bad content as part of a `PostMessage` [^postMessageStudy].
 
 However, the omission of the origin check may not simply be the result
 of programmer ignorance. Implementing an appropriate check on an incoming
@@ -1302,7 +1305,7 @@ resource on the server. This access pattern is appropriate if the
 resource is considered public and accessible to anyone. However, it
 turns out that many sites use "\*" as the default value even for
 private resources, inadvertently allowing malicious scripts to access
-them through CORS requests [cite CORS study].
+them through CORS requests [^corsStudy].
 
 Why would a developer ever use the wildcard? It turns out that
 specifying the allowed origins can be tricky, since it may not be
@@ -1335,6 +1338,10 @@ medical systems. For many of these systems, Alloy's analysis led to
 discovery of design flaws and bugs that had eluded the developers, in
 some cases, for years. We invite our readers to visit the [Alloy
 page](http://alloy.mit.edu) and try building a model of their favorite system!
+
+[^postMessageStudy]: Sooel Son and Vitaly Shmatikov. *The Postman Always Rings Twice: Attacking and Defending postMessage in HTML5 Websites*. Network and Distributed System Security Symposium (NDSS), 2013.
+
+[^corsStudy]: Sebastian Lekies, Martin Johns, and Walter Tighzert. *The State of the Cross-Domain Nation*. Web 2.0 Security and Privacy (W2SP), 2011.
 
 ## Appendix: Reusing Modules in Alloy 
 
