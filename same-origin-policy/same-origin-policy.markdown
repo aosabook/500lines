@@ -331,7 +331,7 @@ objects, not to types.)
 Note that while the DNS maps `Domain` to both `Server0` and
 `Server1` (in reality, this is a common practice for load balancing),
 only `Server1` maps `Path` to a resource object, causing
-`HttpRequest1` to result in empty response: another error in our
+`HttpRequest1` to result in an empty response: another error in our
 model. To fix this, we add an Alloy *fact* recording the assumption
 that any two servers to which DNS maps a single host provide the same
 set of resources:
