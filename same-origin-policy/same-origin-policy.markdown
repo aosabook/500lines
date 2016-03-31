@@ -260,7 +260,7 @@ open call[Endpoint]
 
 It's a polymorphic module, so it's instantiated with `Endpoint`, the
 set of things calls are from and to. (The module appears in full in
-the Appendix.)
+ \aosasecref{500l.sop.appendix}.)
 
 Following the field declarations in `HttpRequest` is a collection of
 constraints. Each of these constraints applies to all members of the
@@ -371,7 +371,7 @@ final column for every time-varying field. For example, the expression
 `b.cookies.t` represents the set of cookies that are stored in browser
 `b` at a particular time `t`. Likewise, the `documents` field associates
 a set of documents with each browser at a given time. (For more details
-about how we model the dynamic behavior, see the Appendix.)
+about how we model the dynamic behavior, see \aosasecref{500l.sop.appendix}.)
 
 Documents are created from a response to an HTTP request. They can
 also be destroyed if, for example, the user closes a tab or the
@@ -1344,7 +1344,7 @@ page](http://alloy.mit.edu) and try building a model of their favorite system!
 [^corsStudy]: Sebastian Lekies, Martin Johns, and Walter Tighzert. *The State of the Cross-Domain Nation*. Web 2.0 Security and Privacy (W2SP), 2011.
 
 ## Appendix: Reusing Modules in Alloy 
-
+\label{500l.sop.appendix}
 As mentioned earlier in this chapter, Alloy makes no assumptions about
 the behavior of the system being modeled. The lack of a built-in
 paradigm allows the user to encode a wide range of modeling idioms
