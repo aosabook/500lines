@@ -23,7 +23,7 @@
   (let ((buf (or (gethash ready conns)
 		 (setf (gethash ready conns) (make-instance 'buffer :bi-stream (flex-stream ready))))))
     (if (eq :eof (buffer! buf))
-	(ignore-errors 
+	(ignore-errors
 	  (remhash ready conns)
 	  (socket-close ready))
 	(let ((too-big? (> (total-buffered buf) +max-request-size+))
@@ -39,7 +39,7 @@
 		 (remhash ready conns)
 		 (when (contents buf)
 		   (setf (parameters (request buf))
-			 (nconc (parse buf) (parameters (request buf)))))	     
+			 (nconc (parse buf) (parameters (request buf)))))
 		 (handler-case
 		     (handle-request ready (request buf))
 		   (http-assertion-error () (error! +400+ ready))
@@ -57,7 +57,7 @@
 	   do (push char (contents buffer))
 	   do (incf (total-buffered buffer))
 	   when (request buffer) do (decf (expecting buffer))
-	   when (starts-with-subseq 
+	   when (starts-with-subseq
 		 '(#\linefeed #\return #\linefeed #\return)
 		 (contents buffer))
 	   do (multiple-value-bind (parsed expecting) (parse buffer)
@@ -109,30 +109,40 @@
   (values))
 
 (defmethod write! ((res response) (socket usocket))
-  (let ((stream (flex-stream socket)))
-    (flet ((write-ln (&rest sequences)
-	     (mapc (lambda (seq) (write-sequence seq stream)) sequences)
-	     (crlf stream)))
-      (write-ln "HTTP/1.1 " (response-code res))  
-      (write-ln "Content-Type: " (content-type res) "; charset=" (charset res))
-      (write-ln "Cache-Control: no-cache, no-store, must-revalidate")
-      (when (keep-alive? res) 
-	(write-ln "Connection: keep-alive")
-	(write-ln "Expires: Thu, 01 Jan 1970 00:00:01 GMT"))
-      (awhen (body res)
-	(write-ln "Content-Length: " (write-to-string (length it)))
-	(crlf stream)
-	(write-ln it))
+  (handler-case
+      (with-timeout (.2)
+	(let ((stream (flex-stream socket)))
+	  (flet ((write-ln (&rest sequences)
+		   (mapc (lambda (seq) (write-sequence seq stream)) sequences)
+		   (crlf stream)))
+	    (write-ln "HTTP/1.1 " (response-code res))
+	    (write-ln
+	     "Content-Type: " (content-type res) "; charset=" (charset res))
+	    (write-ln "Cache-Control: no-cache, no-store, must-revalidate")
+	    (when (keep-alive? res)
+	      (write-ln "Connection: keep-alive")
+	      (write-ln "Expires: Thu, 01 Jan 1970 00:00:01 GMT"))
+	    (awhen (body res)
+	      (write-ln "Content-Length: " (write-to-string (length it)))
+	      (crlf stream)
+	      (write-ln it))
+	    (values))))
+    (trivial-timeout:timeout-error ()
       (values))))
 
 (defmethod write! ((res sse) (socket usocket))
   (let ((stream (flex-stream socket)))
-    (format stream "~@[id: ~a~%~]~@[event: ~a~%~]~@[retry: ~a~%~]data: ~a~%~%"
-	    (id res) (event res) (retry res) (data res))))
+    (handler-case
+	(with-timeout (.2)
+	  (format
+	   stream "~@[id: ~a~%~]~@[event: ~a~%~]~@[retry: ~a~%~]data: ~a~%~%"
+	   (id res) (event res) (retry res) (data res)))
+      (trivial-timeout:timeout-error ()
+	(values)))))
 
 (defmethod error! ((err response) (socket usocket) &optional instance)
   (declare (ignorable instance))
-  (ignore-errors 
+  (ignore-errors
     (write! err socket)
     (socket-close socket)))
 
@@ -146,7 +156,7 @@
     (setf (lookup channel *channels*)
 	  (loop with msg = (make-instance 'sse :data message)
 	     for socket in it
-	     when (ignore-errors 
+	     when (ignore-errors
 		    (write! msg socket)
 		    (force-output (socket-stream socket))
 		    socket)
