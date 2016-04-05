@@ -580,7 +580,7 @@ it’s important to understand how they work.
 
 #### RGB colors
 The color space that most programmers are familiar with is RGBA: red, green,
-blue and alpha. In hexadecimal (base 16), the first two digits are the amount of
+blue and alpha; it's what we were using above. In hexadecimal (base 16), the first two digits are the amount of
 red, the second two blue, the third two green, and the final two (if they are
 there) are the alpha value. The values range from 00 in base 16 (0 in base
 10) through to FF (255 in base 10). The alpha represents 
@@ -651,7 +651,7 @@ for(int px in pixels) {
 At the end we can print this hue to the screen, or display it next to the
 picture (\aosafigref{500l.imagefilters.hueranges}). 
 
-\aosafigure[240pt]{image-filters-images/hueranges.jpg}{Dominant hue versus number of buckets used in hue range}{500l.imagefilters.hueranges}
+\aosafigure[240pt]{image-filters-images/hueranges.jpg}{Dominant hue versus size of range (number of buckets) used}{500l.imagefilters.hueranges}
 
 </markdown>
 
@@ -666,7 +666,7 @@ it in the image. We can show the dominant hue with varying tolerance (ranges
 around it that we will accept). Pixels that don’t fall into this range can be
 changed to grayscale by setting the value based on the brightness.
 \aosafigref{500l.imagefilters.showdominant} shows the dominant hue determined
-using a hue range of 240, and with varying tolerance. The tolerance is the
+using a range of 240, and with varying tolerance. The tolerance is the
 amount either side of the most popular hue that gets grouped together. 
 
 \aosafigure[240pt]{image-filters-images/showdominant.jpg}{Showing dominant hue}{500l.imagefilters.showdominant}
@@ -677,7 +677,7 @@ Once we’ve extracted the "dominant" hue, we can choose to either show or hide
 it in the image. We can show the dominant hue with varying tolerance (ranges
 around it that we will accept). Pixels that don’t fall into this range can be
 changed to grayscale by setting the value based on the brightness.
-Alternatively, we can hide the dominant hue by redrawing pixels with that hue in greyscale and leaving other pixels as they are. 
+Alternatively, we can hide the dominant hue by setting the color for pixels with that hue to greyscale, and leaving other pixels as they are. 
 </latex>
 
 <markdown>
@@ -796,7 +796,7 @@ abstracts out final `PApplet` methods for pixel colors for testability.
 ### Wrapper Classes and Tests
 Briefly mentioned above, there are two wrapper classes (`IFAImage` and
 `PixelColorHelper`) that wrap library methods for testability. This is because,
-in Java, final methods are methods that cannot be overridden or hidden by
+in Java, the keyword "final" indicates a method that cannot be overridden or hidden by
 subclasses, which means they cannot be mocked.
 
 `PixelColorHelper` wraps methods on the applet. This means we need to pass the
@@ -1062,8 +1062,10 @@ public class ColorHelper {
 }
 ```
 
-Clearly we can’t test this with whole images. Instead we can mock the images
-and make them return an array of pixels — in this case, 5. This allows us to
+We don't want to test this with whole images, because we want images that we
+know the properties of and reason about. We approximate this by mocking the
+images and making them return an array of pixels — in this case, 5. This
+allows us to
 verify that the behavior is as expected. Earlier we covered the concept of mock
 objects, and here we see their use. We are using
 [Mockito](http://docs.mockito.googlecode.com/hg/org/mockito/Mockito.html) as
@@ -1547,7 +1549,7 @@ Notice that:
 
 ## The Value of Prototyping
 In real world programming, we spend a lot of time on productionisation work.
-Making things look just so. Making them fail over. Maintaining that 99.9%
+Making things look just so. Making them failover. Maintaining that 99.9%
 uptime. We spend more time hunting down corner cases than refining algorithms.
 
 These constraints and requirements are important for our users. However there’s
