@@ -7,7 +7,7 @@ This is a problem that turns out to be more complicated than it first seems. In 
 
 ## The Basics of HTTP Servers
 
-At the simplest level, an HTTP exchange is a single request followed by a single response. A _client_ sends a request, which includes a resource identifier, an HTTP version tag, some headers and some parameters. The _server_ parses that request, figures out what to do about it, and sends a response which includes the same HTTP version tag, a response code, some headers and a request body. (For more on this, see the FIXME web server chapter.)
+At the simplest level, an HTTP exchange is a single request followed by a single response. A _client_ sends a request, which includes a resource identifier, an HTTP version tag, some headers and some parameters. The _server_ parses that request, figures out what to do about it, and sends a response which includes the same HTTP version tag, a response code, some headers and a request body. (For more on this, see \aosachapref{s:web-server}.)
 
 Notice that, in this description, the server responds to a request from a specific client. In our case, we want each player to be updated about _any_ moves as soon as they happen, rather than only getting notifications when their own move is made. This means we need the server to _push_ messages to clients without first receiving a request for the information [^polling].
 
@@ -34,6 +34,7 @@ These three approaches are quite different from one another, but they all share 
 To see why this might cause problems for your average HTTP server, let's consider how the underlying implementation might work.
 
 ### Traditional HTTP Server Architecture
+\label{sec.eventsweb.serverarch}
 
 A single HTTP server processes many requests concurrently. Historically, many HTTP servers have used a _thread-per-request_ architecture. That is, for each incoming request, the server creates a thread to do the work necessary to respond.
 
@@ -56,7 +57,7 @@ If we don't have cheap threads at our disposal or we are unwilling to work with 
 
 Since we are only managing a single thread, we don't have to worry as much about protecting shared resources from simultaneous access. However, we do have a unique problem of our own in this model. Since our single thread is working on all in-flight requests at once, we must make sure that it __never blocks__. Blocking on any connection blocks the entire server from making progress on any other request. We have to be able to move on to another client if the current one can't be serviced further, and we need to be able to do so in a manner that doesn't throw out all of the work done so far[^crawler].
 
-[^crawler]: See the FIXME web crawler chapter for another take on this problem.
+[^crawler]: See \aosachapref{s:crawler} for another take on this problem. 
 
 While it is uncommon for a programmer to explicitly tell a thread to stop working, many common operations carry a risk of blocking. Because threads are so prevalent and reasoning about asychronousity is a heavy burden on the programmer, many languages and their frameworks assume that blocking on IO is a desirable property. This makes it very easy to block somewhere _by accident_. Luckily, Common Lisp does provide us with a minimal set of asynchronous IO primitives which we can build on top of.
 
@@ -107,9 +108,9 @@ If you haven't written a Common Lisp program before, this code block requires so
 
 ### CLOS and Generic Functions
 
-In CLOS, instead of focusing on classes and methods, we instead write _generic functions_[^juliachap] that are implemented as collections of _methods_. In this model, methods don't _belong_ to classes, they _specialize on_ types. The `start` method we just wrote is a unary method where the argument `port` is _specialized on_ the type `integer`. This means that we could have several implementations of `start` where `port` varies in type, and the runtime will select which implementation to use depending on the type of `port` when `start` is called.
+In CLOS, instead of focusing on classes and methods, we instead write [_generic functions_](http://www.gigamonkeys.com/book/object-reorientation-generic-functions.html) that are implemented as collections of _methods_. In this model, methods don't _belong_ to classes, they _specialize on_ types[^juliachap]. The `start` method we just wrote is a unary method where the argument `port` is _specialized on_ the type `integer`. This means that we could have several implementations of `start` where `port` varies in type, and the runtime will select which implementation to use depending on the type of `port` when `start` is called.
 
-[^juliachap]: The Julia programming language takes a similar approach to object-oriented programming; you can learn more about it in FIXME.
+[^juliachap]: The Julia programming language takes a similar approach to object-oriented programming; you can learn more about it in \aosachapref{s:static-analysis}.
 
 More generally, methods can specialize on more than one argument. When a `method` is called, the runtime:
 
@@ -129,7 +130,7 @@ If a `stream-server-socket` is `ready`, that means there's a new client socket w
   (setf (gethash (socket-accept ready :element-type 'octet) conns) nil))
 ```
 
-When a `stream-usocket` is `ready`, that means that it has some bytes ready for us to read. _(It's also possible that the other party has terminated the connection)_.
+When a `stream-usocket` is `ready`, that means that it has some bytes ready for us to read. (It's also possible that the other party has terminated the connection.)
 
 ```lisp
 (defmethod process-ready ((ready stream-usocket) (conns hash-table))
@@ -177,7 +178,7 @@ This is more involved than the first case. We:
 3. If that read got us an `:eof`, it means the other side hung up, so we discard the socket _and_ its buffer;
 4. Otherwise, we check if the buffer is one of `complete?`, `too-big?`, `too-old?` or `too-needy?`. If it's any of them, we remove it from the connections table and return the appropriate HTTP response.
 
-This is the first time we're seeing I/O in our event loop. In our discussion in FIXME SECTIONREF, we mentioned that we have to be very careful about I/O in an event-driven system, because we could accidentally block our single thread. So, what do we do here to ensure that this doesn't happen? We have to explore our implementation of `buffer!` to find out exactly how this works.
+This is the first time we're seeing I/O in our event loop. In our discussion in \aosasecref{sec.eventsweb.serverarch}, we mentioned that we have to be very careful about I/O in an event-driven system, because we could accidentally block our single thread. So, what do we do here to ensure that this doesn't happen? We have to explore our implementation of `buffer!` to find out exactly how this works.
 
 ### Processing Connections Without Blocking
 
@@ -209,11 +210,9 @@ When `buffer!` is called on a `buffer`, it:
 - It also tracks any `\r\n\r\n` sequences so that we can later detect complete requests.
 - Finally, any error results it returns an `:eof` to signal that `process-ready` should discard this particular connection.
 
-The `buffer` type is a CLOS _class_. Classes in CLOS let us define a type with fields called `slots`. We don't see the behaviours associated with `buffer` on the class definition, because (as we've already learned), we do that using generic functions like `buffer!`.
+The `buffer` type is a CLOS [_class_](http://www.gigamonkeys.com/book/object-reorientation-classes.html). Classes in CLOS let us define a type with fields called `slots`. We don't see the behaviours associated with `buffer` on the class definition, because (as we've already learned), we do that using generic functions like `buffer!`.
 
 `defclass` does allow us to specify getters/setters (`reader`s/`accessor`s), and slot initializers; `:initform` specifies a default value, while `:initarg` identifies a hook that the caller of `make-instance` can use to provide a default value.
-
-NOTE: Generic functions can specialize on types that aren't classes, right? The example of `port` from the first method definition didn't seem like it was a class. I get the impression that classes are just giving us some syntactic sugar over common operations on structs.
 
 ```lisp
 (defclass buffer ()
@@ -226,28 +225,18 @@ NOTE: Generic functions can specialize on types that aren't classes, right? The 
    (expecting :accessor expecting :initform 0)))
 ```
 
-Our `buffer` class has six slots:
+Our `buffer` class has seven slots:
 
--------------------------------------------------------------------------------------------------------------------------------
-Slot Name			| Description
--------------------------------------------------------------------------------------------------------------------------------
-`tries`				| which keeps count of how many times we've tried reading into this buffer
--------------------------------------------------------------------------------------------------------------------------------
-`contents`			| which contains what we've read so far
--------------------------------------------------------------------------------------------------------------------------------
-`bi-stream`			| which a hack around some of those Common Lisp-specific, non-blocking-IO annoyances I mentioned earlier
--------------------------------------------------------------------------------------------------------------------------------
-`total-buffered`	| which is a count of chars we've read so far
--------------------------------------------------------------------------------------------------------------------------------
-`started`			| which is a timestamp that tells us when we created this buffer
--------------------------------------------------------------------------------------------------------------------------------
-`request`			| which will eventually contain the request we construct from buffered data
--------------------------------------------------------------------------------------------------------------------------------
-`expecting`			| which will signal how many more chars we're expecting (if any) after we buffer the request headers
--------------------------------------------------------------------------------------------------------------------------------
+- `tries`, which keeps count of how many times we've tried reading into this buffer
+- `contents`, which contains what we've read so far
+- `bi-stream`, which a hack around some of those Common Lisp-specific, non-blocking-IO annoyances I mentioned earlier
+- `total-buffered`, which is a count of chars we've read so far
+- `started`, which is a timestamp that tells us when we created this buffer
+- `request`, which will eventually contain the request we construct from buffered data
+- `expecting`, which will signal how many more chars we're expecting (if any) after we buffer the request headers
 
 ### Interpreting Requests
-
+\label{sec.eventsweb.handlerfunc}
 Now that we've seen how we incrementally assemble full requests from bits of data that are pooled into our buffers, what happens when we have a full request ready for handling? This happens in the method `handle-request`.
 
 ```lisp
@@ -363,7 +352,7 @@ A simple solution is to register _channels_[^defparameter], to which we'll subsc
   nil)
 ```
 
-[^defparameter]: We're incidentally introducing some new syntax here. For the Javascripters reading, you can pronounce "`defparameter`" as "`var`" and you'll be fairly close. This is our way of introducing a name in the variable namespace. It has the form `(defparameter <name> <value> <optional docstring>)`.
+[^defparameter]: We're incidentally introducing some new syntax here. This is our way of declaring a mutable variable. It has the form `(defparameter <name> <value> <optional docstring>)`.
 
 We can then `publish!` notifications to said channels as soon as they become available.
 
@@ -406,7 +395,11 @@ In `publish!`, we call `write!` to actually write an `sse` to a socket. We'll al
       (values))))
 ```
 
-This version of `write!` takes a `response` and a `usocket` named `sock`, and writes content to a stream provided by `sock`. We locally define the function `write-ln` which takes some number of sequences, and writes them out to the stream followed by a `crlf`. This is for readability; we could instead have called `write-sequence`/`crlf` directly. Note that we're doing the "Must. Not. BLOCK." thing again. If the write takes more than `.2` seconds, we just move on rather than waiting on the write to complete.
+This version of `write!` takes a `response` and a `usocket` named `sock`, and writes content to a stream provided by `sock`. We locally define the function `write-ln` which takes some number of sequences, and writes them out to the stream followed by a `crlf`. This is for readability; we could instead have called `write-sequence`/`crlf` directly. 
+
+Note that we're doing the "Must. Not. BLOCK." thing again. While writes are likely to be buffered and are at lower risk of blocking than reads, we still don't want our server to grind to a halt if something goes wrong here. If the write takes more than `.2` seconds[^timeout], we just move on (throwing out the current socket) rather than waiting any longer.
+
+[^timeout]: `with-timeout` has different implementations on different Lisps. In some environments, it may create another thread or process to monitor the one that invoked it. While we'd only be creating at most one of these at a time, it is a relatively heavyweight operation to be performing per-write. We'd potentially want to consider an alternative approach in those environments.
 
 Writing an `SSE` out is conceptually similar to, but mechanically different from writing out a `response`:
 
@@ -483,7 +476,7 @@ And with that, we have an event-driven web server that can respond to HTTP reque
 
 ## Extending the Server Into a Web Framework
 
-We have now built a reasonably functional web server that will move requests, responses, and messages to and from clients. The actual work of any web application hosted by this server is done by delegating to handler functions, which were introduced in FIXME but left underspecified there.
+We have now built a reasonably functional web server that will move requests, responses, and messages to and from clients. The actual work of any web application hosted by this server is done by delegating to handler functions, which were introduced in \aosasecref{sec.eventsweb.handlerfunc} but left underspecified there.
 
 The interface between our server and the hosted application is an important one, because it dictates how easily application programmers can work with our infrastructure. Ideally, our handler interface would map parameters from a request to a function that does the real work:
 
@@ -671,7 +664,7 @@ So making a closing-handler involves making a `lambda`, which is just what you c
      finally (return res)))
 ```
 
-Welcome to the hard part. `arguments` turns the validators we registered with our handler into a tree of parse attempts and assertions. `type-expression`, `arg-exp`, and `type-assertion` are used to implement and enforce a "type system" for the kinds of data we're expecting in our responses; we'll discuss them in SECTION FIXME. Using this together with `make-closing-handler`, this would the validation rules we wrote here:
+Welcome to the hard part. `arguments` turns the validators we registered with our handler into a tree of parse attempts and assertions. `type-expression`, `arg-exp`, and `type-assertion` are used to implement and enforce a "type system" for the kinds of data we're expecting in our responses; we'll discuss them in \aosasecref{sec.eventsweb.types}. Using this together with `make-closing-handler` would implement the validation rules we wrote here:
 
 ```lisp
 (define-handler (send-message)
@@ -758,6 +751,7 @@ This gets us the validation we need for full HTTP request/response cycles. What 
 ```
 
 ### HTTP "Types"
+\label{sec.eventsweb.types}
 
 In the previous section, we briefly touched on three expressions that we're using to implement our HTTP type validation system: `arg-exp`, `type-expression` and `type-assertion`. Once you understand those, there will be no magic left in our framework. We'll start with the easy one first.
 
@@ -792,7 +786,7 @@ Recall that Lisp code is itself represented as a tree. That's what the parenthes
 
 That is, we've built a small system that takes a Lisp expression as input, produces a different Lisp expression as output. Possibly the simplest way of conceptualizing this is as a simple Common Lisp to Common Lisp compiler that is specialized to the problem at hand.
 
-A widely used classification of such compilers are called _anaphoric macros_ [^anaphors]. This term comes from the linguistic concept of an _anaphor_, which is the use of one word as a substitute for a group of words that preceded it. `aif` and `awhen` are anaphoric macros, and they're the only ones that I tend to often use. There are many more availabile in the [`anaphora` package](http://www.cliki.net/Anaphora).
+A widely used classification of such compilers are called _anaphoric macros_. This term comes from the linguistic concept of an _anaphor_, which is the use of one word as a substitute for a group of words that preceded it. `aif` and `awhen` are anaphoric macros, and they're the only ones that I tend to often use. There are many more availabile in the [`anaphora` package](http://www.cliki.net/Anaphora).
 
 As far as I know, anaphoric macros were first defined by Paul Graham in an [OnLisp chapter](http://dunsmor.com/lisp/onlisp/onlisp_18.html). The use case he gives is a situation where you want to do some sort of expensive or semi-expensive check, then do something conditionally on the result. In the above context, we're using `aif` to do a check the result of an `alist` traversal.
 
@@ -948,4 +942,4 @@ Now we can describe our application like this:
 (start 4242)
 ```
 
-Once we write `interface.js` to provide the client-side interactivity, this will start an HTTP chat server on port `4242` and listen for incoming connections. <some inspiring sentence>
+Once we write `interface.js` to provide the client-side interactivity, this will start an HTTP chat server on port `4242` and listen for incoming connections.
