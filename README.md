@@ -328,3 +328,103 @@ Contributors
     <td></td>
   </tr>
 </table>
+
+
+Technical Reviewers
+-------------------
+<table>
+  <tr>
+    <td>Amber Yust</td>
+    <td>Andrew Gwozdziewycz</td>
+    <td>Andrew Kuchling</td>
+  </tr>
+  <tr>
+    <td>Andrew Svetlov</td>
+    <td>Andy Shen</td>
+    <td>Anton Beloglazov</td>
+  </tr>
+  <tr>
+    <td>Ben Trofatter</td>
+    <td>Borys Pierov</td>
+    <td>Carise Fernandez</td>
+  </tr>
+  <tr>
+    <td>Charles Stanhope</td>
+    <td>Chris Atlee</td>
+    <td>Chris Seaton</td>
+  </tr>
+  <tr>
+    <td>Cyryl Płotnicki-Chudyk</td>
+    <td>Dan Langer</td>
+    <td>Dan Shapiro</td>
+  </tr>
+  <tr>
+    <td>David Pokorny</td>
+    <td>Eric Bouwers</td>
+    <td>Frederic De Groef</td>
+  </tr>
+  <tr>
+    <td>Graham Lee</td>
+    <td>Gregory Eric Sanderson</td>
+    <td>James O'Beirne</td>
+  </tr>
+  <tr>
+    <td>Jan de Baat</td>
+    <td>Jana Beck</td>
+    <td>Jessica McKellar</td>
+  </tr>
+  <tr>
+    <td>Jo Van Eyck</td>
+    <td>Joel Crocker</td>
+    <td>Johan Thelin</td>
+  </tr>
+  <tr>
+    <td>Johannes Fürmann</td>
+    <td>John Morrissey</td>
+    <td>Joseph Kaptur</td>
+  </tr>
+  <tr>
+    <td>Josh Crompton</td>
+    <td>Joshua T. Corbin</td>
+    <td>Kevin Huang</td>
+  </tr>
+  <tr>
+    <td>Maggie Zhou</td>
+    <td>Marc Towler</td>
+    <td>Marcin Milewski</td>
+  </tr>
+  <tr>
+    <td>Marco Lancini</td>
+    <td>Mark Reid</td>
+    <td>Matthias Bussonnier</td>
+  </tr>
+  <tr>
+    <td>Max Mautner</td>
+    <td>Meggin Kearney</td>
+    <td>Mike Aquino</td>
+  </tr>
+  <tr>
+    <td>Natalie Black</td>
+    <td>Nick Presta</td>
+    <td>Nikhil Almeida</td>
+  </tr>
+  <tr>
+    <td>Nolan Prescott</td>
+    <td>Paul Martin</td>
+    <td>Piotr Banaszkiewicz</td>
+  </tr>
+  <tr>
+    <td>Preston Holmes</td>
+    <td>Pulkit Sethi</td>
+    <td>Rail Aliiev</td>
+  </tr>
+  <tr>
+    <td>Ronin Narkis</td>
+    <td>Rose Ames</td>
+    <td>Sina Jahan</td>
+  </tr>
+  <tr>
+    <td>Stefan Turalski</td>
+    <td>William Lachance</td>
+  </tr>
+</table>
