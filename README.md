@@ -59,11 +59,10 @@ Contributors
     <th>Project</th>
     <th>Online</th>
     <th>GitHub</th>
-    <th>Email (if you choose)</th>
   </tr>
   <tr>
     <td>Mike DiBernardo</td>
-    <td>freelance</td>
+    <td>Wave</td>
     <td>editorial</td>
     <td>
         <ul>
@@ -72,7 +71,6 @@ Contributors
         </ul>
     </td>
     <td><a href="https://github.com/MichaelDiBernardo">MichaelDiBernardo</a></td>
-    <td>mikedebo@gmail.com</td>
   </tr>
    <tr>
     <td>Amy Brown</td>
@@ -81,15 +79,13 @@ Contributors
     <td><ul><li><a href="http://www.amyrbrown.ca/">amyrbrown.ca</a></li>
         <li><a href="http://www.twitter.com/amyrbrown">@amyrbrown</a></li></ul></td>
     <td><a href="https://github.com/amyrbrown">amyrbrown</a></td>
-    <td>amy@amyrbrown.ca</td>
   </tr>
   <tr>
-    <td>Dustin Mitchell</td>
-    <td>Mozilla</td>
-    <td>cluster</td>
-    <td>&nbsp;</td>
-    <td><a href="https://github.com/djmitche">djmitche</a></td>
-    <td>dustin@mozila.com</td>
+    <td>Allison Kaptur</td>
+    <td>Dropbox</td>
+    <td>byterun</td>
+    <td><ul><li><a href="https://twitter.com/akaptur">@akaptur</a></li></ul></td>
+    <td><a href="https://github.com/akaptur">akaptur</a></td>
   </tr>
   <tr>
     <td>Audrey Tang</td>
@@ -101,155 +97,13 @@ Contributors
         </ul>
     </td>
     <td><a href="https://github.com/audreyt">audreyt</a></td>
-    <td>audreyt@audreyt.org</td>
   </tr>
   <tr>
-    <td>Greg Wilson</td>
-    <td>Mozilla</td>
-    <td>web-server</td>
-    <td>
-        <ul>
-            <li><a href="https://twitter.com/gvwilson">@gvwilson</a></li>
-        </ul>
-    </td>
-    <td><a href="https://github.com/gvwilson">gvwilson</a></td>
-    <td>gvwilson@third-bit.com</td>
-  </tr>
-  <tr>
-    <td>Taavi Burns</td>
-    <td>Previously at Points, now at PagerDuty</td>
-    <td>data-store</td>
-    <td>
-        <ul>
-            <li><a href="https://twitter.com/jaaaarel">@jaaaarel</a></li>
-        </ul>
-    </td>
-    <td><a href="https://github.com/taavi">taavi</a></td>
-    <td>taavi.burns@gmail.com</td>
-  </tr>
-  <tr>
-    <td>Guido van Rossum</td>
+    <td>Brandon Rhodes</td>
     <td>Dropbox</td>
-    <td>crawler</td>
-    <td>
-        <ul>
-            <li><a href="https://twitter.com/gvanrossum">@gvanrossum</a></li>
-        </ul>
-    </td>
-    <td><a href="https://github.com/gvanrossum">gvanrossum</a></td>
-    <td>guido@python.org</td>
-  </tr>
-  <tr>
-    <td>A. Jesse Jiryu Davis</td>
-    <td>MongoDB</td>
-    <td>crawler</td>
-    <td>
-        <ul>
-            <li><a href="https://twitter.com/jessejiryudavis">@jessejiryudavis</a></li>
-        </ul>
-    </td>
-    <td><a href="https://github.com/ajdavis">ajdavis</a></td>
-    <td>jesse@emptysquare.net</td>
-  </tr>
-  <tr>
-    <td>Erick Dransch</td>
-    <td>Upverter</td>
-    <td>Modeller</td>
-    <td>
-        <ul>
-            <li><a href="https://twitter.com/ErickDransch">@ErickDransch</a></li>
-        </ul>
-    </td>
-    <td><a href="https://github.com/EkkiD">EkkiD</a></td>
-    <td>erick.dransch@upverter.com</td>
-  </tr>
-  <tr>
-    <td>Ned Batchelder</td>
-    <td>edX</td>
-    <td>templating engine</td>
-    <td>
-        <ul>
-            <li><a href="http://nedbatchelder.com">nedbatchelder.com</a></li>
-            <li><a href="https://twitter.com/nedbat">@nedbat</a></li>
-        </ul>
-    </td>
-    <td><a href="https://github.com/nedbat">nedbat</a></td>
-    <td>ned@nedbatchelder.com</td>
-  </tr>
-  <tr>
-    <td>Leah Hanson</td>
-    <td>Google</td>
-    <td>static analysis</td>
-    <td>
-        <ul>
-            <li><a href="https://twitter.com/astrieanna">@astrieanna</a></li>
-        </ul>
-    </td>
-    <td><a href="https://github.com/astrieanna">astrieanna</a></td>
-    <td>leah.a.hanson@gmail.com</td>
-  </tr>
-  <tr>
-    <td>Christian Muise</td>
-    <td>University of Melbourne</td>
-    <td>flow-shop</td>
-    <td>
-        <ul>
-            <li><a href="https://twitter.com/cjmuise">@cjmuise</a></li>
-        </ul>
-    </td>
-    <td><a href="https://github.com/haz">haz</a></td>
-    <td>christian.muise@gmail.com</td>
-  </tr>
-  <tr>
-    <td>Marina Samuel</td>
-    <td>Mozilla</td>
-    <td>ocr</td>
-    <td>
-        <ul>
-            <li><a href="http://marinasamuel.com">www.marinasamuel.com</a></li>
-            <li><a href="https://twitter.com/emtwos">@emtwos</a></li>
-        </ul>
-    </td>
-    <td><a href="https://github.com/emtwo">emtwo</a></td>
-    <td>msamuel@mozilla.com</td>
-  </tr>
-  <tr>
-    <td>Cate Huston</td>
-    <td></td>
-    <td>Image Filter app</td>
-    <td>
-        <ul>
-            <li><a href="http://www.accidentallyincode.com/">www.accidentallyincode.com/</a></li>
-            <li><a href="https://twitter.com/catehstn">@catehstn</a></li>
-        </ul>
-    </td>
-    <td><a href="https://github.com/catehstn">catehstn</a></td>
-    <td>catehuston@gmail.com</td>
-  </tr>
-  <tr>
-    <td>Yoav Rubin</td>
-    <td>Microsoft</td>
-    <td>In-memory functional database</td>
-    <td>
-        <ul>
-            <li><a href="https://twitter.com/yoavrubin">@yoavrubin</a></li>
-        </ul>
-    </td>
-    <td><a href="https://github.com/yoavrubin">yoavrubin</a></td>
-    <td></td>
-  </tr>
-  <tr>
-    <td>Dessy Daskalov</td>
-    <td>Nudge Rewards</td>
-    <td>Pedometer</td>
-    <td>
-        <ul>
-            <li><a href="http://www.dessydaskalov.com/">www.dessydaskalov.com</a></li>
-            <li><a href="https://twitter.com/dess_e">@dess_e</a></li>
-        </ul>
-    </td>
-    <td><a href="https://github.com/dessy">dessy</a></td>
-    <td>dessy.daskalov@gmail.com</td>
+    <td>contingent</td>
+    <td><ul><li><a href="https://twitter.com/brandon_rhodes">@brandon_rhodes</a></li></ul></td>
+    <td><a href="https://github.com/brandon-rhodes">brandon-rhodes</a></td>
   </tr>
   <tr>
     <td>Carl Friedrich Bolz</td>
@@ -262,44 +116,43 @@ Contributors
         </ul>
     </td>
     <td><a href="https://github.com/cfbolz">cfbolz</a></td>
-    <td>cfbolz@gmx.de</td>
   </tr>
   <tr>
-    <td>Jessica Hamrick</td>
-    <td>University of California, Berkeley</td>
-    <td>sampler</td>
+    <td>Cate Huston</td>
+    <td>&nbsp;</td>
+    <td>Image Filter app</td>
     <td>
         <ul>
-            <li><a href="http://www.jesshamrick.com">www.jesshamrick.com</a></li>
-            <li><a href="https://twitter.com/jhamrick">@jhamrick</a></li>
+            <li><a href="http://www.accidentallyincode.com/">www.accidentallyincode.com/</a></li>
+            <li><a href="https://twitter.com/catehstn">@catehstn</a></li>
         </ul>
     </td>
-    <td><a href="https://github.com/jhamrick">jhamrick</a></td>
-    <td>jhamrick@berkeley.edu</td>
+    <td><a href="https://github.com/catehstn">catehstn</a></td>
   </tr>
   <tr>
-    <td>Allison Kaptur</td>
-    <td>Hacker School</td>
-    <td>byterun</td>
-    <td>@akaptur</td>
-    <td>@akaptur</td>
-    <td>allison.kaptur@gmail.com</td>
+    <td>Christian Muise</td>
+    <td>University of Melbourne</td>
+    <td>flow-shop</td>
+    <td>
+        <ul>
+            <li><a href="https://twitter.com/cjmuise">@cjmuise</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/haz">haz</a></td>
+  </tr>
+  <tr>
+    <td>Daniel Jackson</td>
+    <td>&nbsp;</td>
+    <td>same-origin-policy</td>
+    <td>&nbsp;</td>
+    <td>&nbsp;</td>
   </tr>
   <tr>
     <td>Daniel Rocco</td>
     <td>BrightLink Technology</td>
     <td>contingent</td>
-    <td>@drocco007</td>
-    <td>drocco007</td>
-    <td>drocco@gmail.com</td>
-  </tr>
-  <tr>
-    <td>Brandon Rhodes</td>
-    <td>Dropbox</td>
-    <td>contingent</td>
-    <td>@brandon_rhodes</td>
-    <td>brandon-rhodes</td>
-    <td>brandon@rhodesmill.org</td>
+    <td><ul><li><a href="https://twitter.com/drocco007">@drocco007</a></li></ul></td>
+    <td><a href="https://github.com/drocco007">drocco007</a></td>
   </tr>
   <tr>
     <td>Dann Toliver</td>
@@ -312,7 +165,113 @@ Contributors
         </ul>
     </td>
     <td><a href="https://github.com/dxnn">dxnn</a></td>
-    <td>aosa@mrmuster.com</td>
+  </tr>
+  <tr>
+    <td>Dessy Daskalov</td>
+    <td>Nudge Rewards</td>
+    <td>Pedometer</td>
+    <td>
+        <ul>
+            <li><a href="http://www.dessydaskalov.com/">www.dessydaskalov.com</a></li>
+            <li><a href="https://twitter.com/dess_e">@dess_e</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/dessy">dessy</a></td>
+  </tr>
+  <tr>
+    <td>Dethe Elza</td>
+    <td>&nbsp;</td>
+    <td>blockcode</td>
+    <td>&nbsp;</td>
+    <td><a href="https://github.com/dethe">dethe</a></td>
+  </tr>
+  <tr>
+    <td>Dustin Mitchell</td>
+    <td>Mozilla</td>
+    <td>cluster</td>
+    <td>&nbsp;</td>
+    <td><a href="https://github.com/djmitche">djmitche</a></td>
+  </tr>
+  <tr>
+    <td>Erick Dransch</td>
+    <td>&nbsp;</td>
+    <td>Modeller</td>
+    <td>
+        <ul>
+            <li><a href="https://twitter.com/ErickDransch">@ErickDransch</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/EkkiD">EkkiD</a></td>
+  </tr>
+  <tr>
+    <td>Eunsuk Kang</td>
+    <td>&nbsp;</td>
+    <td>same-origin-policy</td>
+    <td>&nbsp;</td>
+    <td>&nbsp;</td>
+  </tr>
+  <tr>
+    <td>Greg Wilson</td>
+    <td>&nbsp;</td>
+    <td>web-server</td>
+    <td>
+        <ul>
+            <li><a href="https://twitter.com/gvwilson">@gvwilson</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/gvwilson">gvwilson</a></td>
+  </tr>
+  <tr>
+    <td>Guido van Rossum</td>
+    <td>Dropbox</td>
+    <td>crawler</td>
+    <td>
+        <ul>
+            <li><a href="https://twitter.com/gvanrossum">@gvanrossum</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/gvanrossum">gvanrossum</a></td>
+  </tr>
+  <tr>
+    <td>A. Jesse Jiryu Davis</td>
+    <td>MongoDB</td>
+    <td>crawler</td>
+    <td>
+        <ul>
+            <li><a href="https://twitter.com/jessejiryudavis">@jessejiryudavis</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/ajdavis">ajdavis</a></td>
+  </tr>
+  <tr>
+    <td>Jessica Hamrick</td>
+    <td>University of California, Berkeley</td>
+    <td>sampler</td>
+    <td>
+        <ul>
+            <li><a href="http://www.jesshamrick.com">www.jesshamrick.com</a></li>
+            <li><a href="https://twitter.com/jhamrick">@jhamrick</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/jhamrick">jhamrick</a></td>
+  </tr>
+  <tr>
+    <td>Leah Hanson</td>
+    <td>Google</td>
+    <td>static analysis</td>
+    <td>
+        <ul>
+            <li><a href="https://twitter.com/astrieanna">@astrieanna</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/astrieanna">astrieanna</a></td>
+  </tr>
+  <tr>
+    <td>Leo Zovic</td>
+    <td>&nbsp;</td>
+    <td>event-web-framework</td>
+    <td>&nbsp;</td>
+    <td>&nbsp;</td>
   </tr>
   <tr>
     <td>Malini Das</td>
@@ -325,13 +284,66 @@ Contributors
         </ul>
     </td>
     <td><a href="https://github.com/malini">malini</a></td>
-    <td></td>
+  </tr>
+  <tr>
+    <td>Marina Samuel</td>
+    <td>Mozilla</td>
+    <td>ocr</td>
+    <td>
+        <ul>
+            <li><a href="http://marinasamuel.com">www.marinasamuel.com</a></li>
+            <li><a href="https://twitter.com/emtwos">@emtwos</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/emtwo">emtwo</a></td>
+  </tr>
+  <tr>
+    <td>Ned Batchelder</td>
+    <td>edX</td>
+    <td>templating engine</td>
+    <td>
+        <ul>
+            <li><a href="http://nedbatchelder.com">nedbatchelder.com</a></li>
+            <li><a href="https://twitter.com/nedbat">@nedbat</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/nedbat">nedbat</a></td>
+  </tr>
+  <tr>
+    <td>Santiago Perez De Rosso</td>
+    <td>&nbsp;</td>
+    <td>same-origin-policy</td>
+    <td>&nbsp;</td>
+    <td>&nbsp;</td>
+  </tr>
+  <tr>
+    <td>Taavi Burns</td>
+    <td>Previously at Points, now at PagerDuty</td>
+    <td>data-store</td>
+    <td>
+        <ul>
+            <li><a href="https://twitter.com/jaaaarel">@jaaaarel</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/taavi">taavi</a></td>
+  </tr>
+  <tr>
+    <td>Yoav Rubin</td>
+    <td>Microsoft</td>
+    <td>In-memory functional database</td>
+    <td>
+        <ul>
+            <li><a href="https://twitter.com/yoavrubin">@yoavrubin</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/yoavrubin">yoavrubin</a></td>
   </tr>
 </table>
 
 
 Technical Reviewers
 -------------------
+
 <table>
   <tr>
     <td>Amber Yust</td>
