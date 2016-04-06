@@ -35,6 +35,7 @@ def main(chapters=[], epub=False, pdf=False, html=False, mobi=False, pandoc_epub
         'ci',
         'crawler',
         'modeller',
+        'event-web-framework',
     ]
     if len(chapters) > 0:
         chapter_dirs = [
