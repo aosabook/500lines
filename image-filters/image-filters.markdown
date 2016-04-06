@@ -1,11 +1,11 @@
 title: Making Your Own Image Filters
 author: Cate Huston
 
-_Cate Huston is a developer and entrepreneur focused on mobile. She’s lived and worked in the UK, Australia, Canada, China and the United States, as an engineer at Google, an Extreme Blue intern at IBM, and a ski instructor. Cate speaks internationally on mobile development and her writing has been published on sites as varied as Lifehacker, The Daily Beast, The Eloquent Woman and Model View Culture. She co-curates Technically Speaking, blogs at Accidentally in Code and is [\@catehstn](https://twitter.com/catehstn) on Twitter._
+_Cate left the tech industry and spent a year finding her way back whilst building her passion project Show & Hide. She is Director of Mobile Engineering at Ride, speaks internationally on mobile development and engineering culture, co-curates Technically Speaking and is an advisor at Glowforge. Cate doesn’t exactly live in Colombia but she spends a lot of time there, and has lived and worked in the UK, Australia, Canada, China the United States, previously as an engineer at Google, an Extreme Blue intern at IBM, and a ski instructor. Cate blogs at [Accidentally in Code](http://www.catehuston.com/blog/) and is [\@catehstn](https://twitter.com/catehstn) on Twitter._
 
 ## A Brilliant Idea (That Wasn’t All That Brilliant)
 
-Imagine a series of four paintings showing the same
+When I was traveling in China I often saw series of four paintings showing the same
 place in different seasons. Color — the cool whites of winter, pale hues of
 spring, lush greens of summer, and reds and yellows of fall — is what
 visually 
@@ -28,7 +28,7 @@ And that is when I discovered that this idea wasn’t, in fact, brilliant.
 The progression wasn’t as clear as I hoped, the dominant color
 extracted wasn’t generally the most appealing shade, the creation took a long
 time (a couple of seconds per image), and it took hundreds of images to make
-something cool \aosafigref{500.imagefilters.sunflower}.
+something cool (\aosafigref{500l.imagefilters.sunflower}).
 
 \aosafigure[240pt]{image-filters-images/sunflower.jpg}{Sunflower layout}{500l.imagefilters.sunflower}
 
@@ -202,14 +202,13 @@ If you are familiar with Eclipse and Java already you may not need them.
 ### Size and Color
 
 We don’t want our app to be a tiny grey window, so the two essential methods
-that we will start by overriding (implementing in our own class, instead of
-using the default implementation in the superclass, in this case `PApplet`) are
+that we will start by overriding are
 [`setup()`](http://processing.org/reference/setup_.html), and
-[`draw()`](http://processing.org/reference/draw_.html). The `setup()` method is only
-called when the app starts, and is where we do things like set the size of 
-the app window.  The `draw()` method is called for every animation, or after some action can be triggered
-by calling `redraw()`. (As covered in the Processing Documentation, `draw()`
-should not be called explicitly.) 
+[`draw()`](http://processing.org/reference/draw_.html). The `setup()` method is
+only called when the app starts, and is where we do things like set the size of
+the app window.  The `draw()` method is called for every animation, or after
+some action can be triggered by calling `redraw()`. (As covered in the
+Processing Documentation, `draw()` should not be called explicitly.) 
 
 Processing is designed to work nicely to create animated sketches, but in this
 case we don’t want animation[^noanim], we want to respond to key presses. To prevent
@@ -589,8 +588,7 @@ opacity, where 0 is transparent and 100% is opaque.
 #### HSB or HSV colors
 This color space is not quite as well known as RGB. The first number represents
 the hue, the second number the saturation (how intense the color is), and the third
-number the brightness. The image at the top was created by manipulating in this
-color space. The HSB color space can be represented by a cone: The hue
+number the brightness. The HSB color space can be represented by a cone: The hue
 is the position around the cone, saturation the distance from the centre, and
 brightness the height (0 brightness is black).
 
@@ -628,12 +626,7 @@ degree range, it’s unlikely that we will be able to tell the difference betwee
 a hue of 224 and a hue of 225, as the difference is very small. If we make the
 range one-third of that instead, 120, both these hues become 75 after rounding.
 
-We can change the range of hues using `colorMode`. If we call:
-
-```java
-  colorMode(HSB, 120);
-```
-
+We can change the range of hues using `colorMode`. If we call `colorMode(HSB, 120)`
 we have just made our hue detection a bit less than half as exact as if we used
 the 255 range. We also know that our hues will fall into 120 "buckets", so we
 can simply go through our image, get the hue for a pixel, and add one to the
@@ -1549,7 +1542,7 @@ Notice that:
 
 ## The Value of Prototyping
 In real world programming, we spend a lot of time on productionisation work.
-Making things look just so. Making them failover. Maintaining that 99.9%
+Making things look just so. Maintaining that 99.9%
 uptime. We spend more time hunting down corner cases than refining algorithms.
 
 These constraints and requirements are important for our users. However there’s
