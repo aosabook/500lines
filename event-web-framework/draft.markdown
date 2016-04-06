@@ -395,7 +395,11 @@ In `publish!`, we call `write!` to actually write an `sse` to a socket. We'll al
       (values))))
 ```
 
-This version of `write!` takes a `response` and a `usocket` named `sock`, and writes content to a stream provided by `sock`. We locally define the function `write-ln` which takes some number of sequences, and writes them out to the stream followed by a `crlf`. This is for readability; we could instead have called `write-sequence`/`crlf` directly. Note that we're doing the "Must. Not. BLOCK." thing again. If the write takes more than `.2` seconds, we just move on rather than waiting on the write to complete.
+This version of `write!` takes a `response` and a `usocket` named `sock`, and writes content to a stream provided by `sock`. We locally define the function `write-ln` which takes some number of sequences, and writes them out to the stream followed by a `crlf`. This is for readability; we could instead have called `write-sequence`/`crlf` directly. 
+
+Note that we're doing the "Must. Not. BLOCK." thing again. While writes are likely to be buffered and are at lower risk of blocking than reads, we still don't want our server to grind to a halt if something goes wrong here. If the write takes more than `.2` seconds[^timeout], we just move on (throwing out the current socket) rather than waiting any longer.
+
+[^timeout]: `with-timeout` has different implementations on different Lisps. In some environments, it may create another thread or process to monitor the one that invoked it. While we'd only be creating at most one of these at a time, it is a relatively heavyweight operation to be performing per-write. We'd potentially want to consider an alternative approach in those environments.
 
 Writing an `SSE` out is conceptually similar to, but mechanically different from writing out a `response`:
 
