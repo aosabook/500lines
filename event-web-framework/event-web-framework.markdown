@@ -1,4 +1,4 @@
-title: An Event-driven Web Framework
+title: An Event-Driven Web Framework
 author: Leo Zovic
 
 In 2013, I decided to write a [web-based game prototyping tool](https://github.com/Inaimathi/deal) for card and board games called _House_. In these types of games, it is common for one player to wait for another player to make a move; however, when the other player finally does take action, we would like for the waiting player to be notified of the move quickly thereafter.
@@ -7,29 +7,31 @@ This is a problem that turns out to be more complicated than it first seems. In 
 
 ## The Basics of HTTP Servers
 
-At the simplest level, an HTTP exchange is a single request followed by a single response. A _client_ sends a request, which includes a resource identifier, an HTTP version tag, some headers and some parameters. The _server_ parses that request, figures out what to do about it, and sends a response which includes the same HTTP version tag, a response code, some headers and a request body. (For more on this, see \aosachapref{s:web-server}.)
+At the simplest level, an HTTP exchange is a single request followed by a single response. A _client_ sends a request, which includes a resource identifier, an HTTP version tag, some headers and some parameters. The _server_ parses that request, figures out what to do about it, and sends a response which includes the same HTTP version tag, a response code, some headers and a response body. (For more on this, see \aosachapref{s:web-server}.)
 
-Notice that, in this description, the server responds to a request from a specific client. In our case, we want each player to be updated about _any_ moves as soon as they happen, rather than only getting notifications when their own move is made. This means we need the server to _push_ messages to clients without first receiving a request for the information [^polling].
+Notice that, in this description, the server responds to a request from a specific client. In our case, we want each player to be updated about _any_ moves as soon as they happen, rather than only getting notifications when their own move is made. This means we need the server to _push_ messages to clients without first receiving a request for the information[^polling].
 
 [^polling]: One solution to this problem is to force the clients to _poll_ the server. That is, each client would periodically send the server a request asking if anything has changed. This can work for simple applications, but in this chapter we're going to focus on the solutions available to you when this model stops working.
 
 There are several standard approaches to enabling server push over HTTP.
 
-### Comet/Longpoll
+### Comet/Long Poll
 
-The "longpoll" technique has the client send the server a new request as soon as it receives a response. Instead of fulfilling that request right away, the server waits on a subsequent event to respond. This is a bit of a semantic distinction, since the client is still taking action on the users' behalf on every update.
+The "long poll" technique has the client send the server a new request as soon as it receives a response. Instead of fulfilling that request right away, the server waits on a subsequent event to respond. This is a bit of a semantic distinction, since the client is still taking action on the users' behalf on every update.
 
-### Server-sent Events (SSE)
+### Server-Sent Events (SSE)
 
-Server-sent events require that the client initiates a connection and then keeps it open. The server periodically writes new data to the connection without closing it, and the client interprets incoming new messages as they arrive rather than waiting for the response connection to terminate. This is a bit more efficient than the Comet/Longpoll approach because each message doesn't have to incur the overhead of new HTTP headers.
+Server-sent events require that the client initiates a connection and then keeps it open. The server periodically writes new data to the connection without closing it, and the client interprets incoming new messages as they arrive rather than waiting for the response connection to terminate. This is a bit more efficient than the Comet/long poll approach because each message doesn't have to incur the overhead of new HTTP headers.
 
-### Websockets
+STOPPED HERE
 
-Websockets are a communication protocol built on top of HTTP. The server and client open up an HTTP conversation, then perform a handshake and protocol escalation. The end result is that they're still communicating over TCP/IP, but they're not using HTTP to do it at all. The advantage this has over SSEs is that you can customize the protocol for efficiency.
+### WebSockets
+
+WebSockets are a communication protocol built on top of HTTP. The server and client open up an HTTP conversation, then perform a handshake and protocol escalation. The end result is that they're still communicating over TCP/IP, but they're not using HTTP to do it at all. The advantage this has over SSEs is that you can customize the protocol for efficiency.
 
 ### Long-Lived Connections
 
-These three approaches are quite different from one another, but they all share an important characteristic: They all depend on long-lived connections. Longpolling depends on the server keeping requests around until new data is available, SSEs keep an open stream between client and server to which data is periodically written, and Websockets change the protocol a particular connection is speaking, but leave it open.
+These three approaches are quite different from one another, but they all share an important characteristic: They all depend on long-lived connections. Long polling depends on the server keeping requests around until new data is available, SSEs keep an open stream between client and server to which data is periodically written, and WebSockets change the protocol a particular connection is speaking, but leave it open.
 
 To see why this might cause problems for your average HTTP server, let's consider how the underlying implementation might work.
 
