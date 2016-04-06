@@ -1,30 +1,5 @@
 \begin{aosachapter}{The Same-Origin Policy}{s:same-origin-policy}{Eunsuk Kang, Santiago Perez De Rosso, and Daniel Jackson}
 
-\emph{Eunsuk Kang is a PhD candidate and a member of the Software Design
-Group at MIT. He received his SM (Master of Science) in Computer Science
-from MIT (2010), and a Bachelor of Software Engineering from the
-University of Waterloo (2007). His research projects have focused on
-developing tools and techniques for software modeling and verification,
-with applications to security and safety-critical systems.}
-
-\emph{Santiago Perez De Rosso is a PhD student in the Software Design
-Group at MIT. He received his SM in Computer Science from MIT (2015),
-and an undergraduate degree from ITBA (2011). He used to work at Google,
-developing frameworks and tools to make engineers more productive
-(2012). He currently spends most of his time thinking about design and
-version control.}
-
-\emph{Daniel Jackson is a professor in the Department of Electrical
-Engineering and Computer Science at MIT, and leads the Software Design
-Group in the Computer Science and Artificial Intelligence Laboratory. He
-received an MA from Oxford University (1984) in Physics, and his SM
-(1988) and PhD (1992) in Computer Science from MIT. He was a software
-engineer for Logica UK Ltd. (1984-1986), Assistant Professor of Computer
-Science at Carnegie Mellon University (1992-1997), and has been at MIT
-since 1997. He has broad interests in software engineering, especially
-in development methods, design and specification, formal methods, and
-safety critical systems.}
-
 \aosasecti{Introduction}\label{introduction}
 
 The same-origin policy (SOP) is an important part of the security
@@ -159,11 +134,11 @@ objects. Let's start with resources:
 sig Resource {}
 \end{verbatim}
 
-The keyword ``sig'' identifies this as an Alloy signature declaration.
-This introduces a set of resource objects; think of these, just like the
-objects of a class with no instance variables, as blobs that have
-identity but no content. When the analysis runs, this set will be
-determined, just as a class in an object-oriented language comes to
+The keyword \texttt{sig} identifies this as an Alloy \emph{signature}
+declaration. This introduces a set of resource objects; think of these,
+just like the objects of a class with no instance variables, as blobs
+that have identity but no content. When the analysis runs, this set will
+be determined, just as a class in an object-oriented language comes to
 denote a set of objects when the program executes.
 
 Resources are named by URLs (\emph{uniform resource locators}):
@@ -175,27 +150,28 @@ sig Url {
   port: lone Port,
   path: Path
 }
-sig Protocol, Domain, Port, Path {}
+sig Protocol, Port, Path {}
+sig Domain { subsumes: set Domain }
 \end{verbatim}
 
 Here we have five signature declarations, introducing a set of URLs and
 four additional sets for each of the basic kinds of objects they
-comprise. Within the URL declaration, we have four fields. Fields are
-like instance variables in a class; if \texttt{u} is a URL, for example,
-then \texttt{u.protocol} would represent the protocol of that URL (just
-like dot in Java). But in fact, as we'll see later, these fields are
-relations. You can think of each one as if it were a two-column database
-table. Thus \texttt{protocol} is a table with the first column
-containing URLs and the second column containing protocols. And the
-innocuous looking dot operator is in fact a rather general kind of
-relational join, so that you could also write \texttt{protocol.p} for
+comprise. Within the URL declaration, we have four \emph{fields}. Fields
+are like instance variables in a class; if \texttt{u} is a URL, for
+example, then \texttt{u.protocol} would represent the protocol of that
+URL (just like dot in Java). But in fact, as we'll see later, these
+fields are relations. You can think of each one as if it were a
+two-column database table. Thus \texttt{protocol} is a table with the
+first column containing URLs and the second column containing protocols.
+And the innocuous looking dot operator is in fact a rather general kind
+of relational join, so that you could also write \texttt{protocol.p} for
 all the URLs with a protocol \texttt{p} --- but more on that later.
 
-Note that domains and paths, unlike URLs, are treated as if they have no
-structure --- a simplification. The keyword \texttt{lone} (which can be
-read ``less than or equal to one'') says that each URL has at most one
-port. The path is the string that follows the host name in the URL, and
-which (for a simple static server) corresponds to the file path of the
+Note that paths, unlike URLs, are treated as if they have no structure
+--- a simplification. The keyword \texttt{lone} (which can be read
+``less than or equal to one'') says that each URL has at most one port.
+The path is the string that follows the host name in the URL, and which
+(for a simple static server) corresponds to the file path of the
 resource; we're assuming that it's always present, but can be an empty
 path.
 
@@ -286,7 +262,7 @@ open call[Endpoint]
 
 It's a polymorphic module, so it's instantiated with \texttt{Endpoint},
 the set of things calls are from and to. (The module appears in full in
-the Appendix.)
+\aosasecref{500l.sop.appendix}.)
 
 Following the field declarations in \texttt{HttpRequest} is a collection
 of constraints. Each of these constraints applies to all members of the
@@ -304,7 +280,7 @@ run {} for 3    -- generate an instance with up to 3 objects of every signature 
 \end{verbatim}
 
 As soon as the analyzer finds a possible instance of the system, it
-displays it graphically, like in
+automatically produces a diagram of the instance, like in
 \aosafigref{500l.same-origin-policy.fig-http-1}.
 
 \aosafigure[240pt]{same-origin-policy-images/fig-http-1.png}{A possible instance}{500l.same-origin-policy.fig-http-1}
@@ -364,7 +340,7 @@ objects, not to types.)
 Note that while the DNS maps \texttt{Domain} to both \texttt{Server0}
 and \texttt{Server1} (in reality, this is a common practice for load
 balancing), only \texttt{Server1} maps \texttt{Path} to a resource
-object, causing \texttt{HttpRequest1} to result in empty response:
+object, causing \texttt{HttpRequest1} to result in an empty response:
 another error in our model. To fix this, we add an Alloy \emph{fact}
 recording the assumption that any two servers to which DNS maps a single
 host provide the same set of resources:
@@ -381,12 +357,18 @@ analyzer no longer reports any counterexamples for the property. This
 doesn't mean the property has been proven to be true, since there might
 be a counterexample in a larger scope. But it is unlikely that the
 property is false, since the analyzer has tested all possible instances
-involving 3 objects of each type. In this scope, the \texttt{map} field
-alone (representing the DNS mapping) has 512 possible values.
+involving 3 objects of each type.
+
+If desired, however, we can re-run the analysis with a larger scope for
+increased confidence. For example, running the above check with the
+scope of 10 still does not produce any counterexample, suggesting that
+the property is likely to be valid. However, keep in mind that given a
+larger scope, the analyzer needs to test a greater number of instances,
+and so it will likely take longer to complete.
 
 \aosasectii{Browser}\label{browser}
 
-Let's introduce browsers:
+Let's now introduce browsers into our model:
 
 \begin{verbatim}
 sig Browser extends Client {
@@ -404,7 +386,7 @@ final column for every time-varying field. For example, the expression
 browser \texttt{b} at a particular time \texttt{t}. Likewise, the
 \texttt{documents} field associates a set of documents with each browser
 at a given time. (For more details about how we model the dynamic
-behavior, see the Appendix.)
+behavior, see \aosasecref{500l.sop.appendix}.)
 
 Documents are created from a response to an HTTP request. They can also
 be destroyed if, for example, the user closes a tab or the browser, but
@@ -474,16 +456,16 @@ this constraint says that after the call, the mapping is the same,
 except for a new entry in the table mapping \texttt{from} to
 \texttt{doc}.
 
-Some constraints use the \texttt{++} relational override operator:
-\texttt{e1 ++ e2} contains all tuples of \texttt{e2}, and additionally,
-any tuples of \texttt{e1} whose first element is not the first element
-of a tuple in \texttt{e2}. For example, the constraint
+Some constraints use the \texttt{++} relational \emph{override}
+operator: \texttt{e1 ++ e2} contains all tuples of \texttt{e2}, and
+additionally, any tuples of \texttt{e1} whose first element is not the
+first element of a tuple in \texttt{e2}. For example, the constraint
 \texttt{content.end = content.start ++ doc -\textgreater{} response}
 says that after the call, the \texttt{content} mapping will be updated
-to map \texttt{doc} to \texttt{response} (clobbering any previous
+to map \texttt{doc} to \texttt{response} (overriding any previous
 mapping of \texttt{doc}). If we were to use the union operator
 \texttt{+} instead, then the same document might (incorrectly) be mapped
-in the after state to multiple resources.
+to multiple resources in the after state.
 
 \aosasectii{Script}\label{script}
 
@@ -792,7 +774,7 @@ assert Confidentiality {
 }
 \end{verbatim}
 
-The integrity property is the double of confidentiality:
+The integrity property is the dual of confidentiality:
 
 \begin{verbatim}
 // No malicious data should ever flow into a trusted module
@@ -849,7 +831,7 @@ in \aosafigref{500l.same-origin-policy.fig-attack-1a} and
 \aosafigure[240pt]{same-origin-policy-images/fig-attack-1b.png}{Confidentiality counterexample at time 1}{500l.same-origin-policy.fig-attack-1b}
 
 This counterexample involves two steps. In the first step
-(\aosafigref{500l.same-origin-policy-fig-attack-1a}),
+(\aosafigref{500l.same-origin-policy.fig-attack-1a}),
 \texttt{EvilScript}, executing inside \texttt{AdBanner} from
 \texttt{EvilDomain}, reads the content of \texttt{InboxPage}, which
 originates from \texttt{EmailDomain}. In the next step
@@ -888,8 +870,8 @@ could be malicious. This is exactly where the SOP comes in.
 \aosasecti{Same-Origin Policy}\label{same-origin-policy}
 
 Before we can state the SOP, the first thing we should do is to
-introduce the notion of an origin, which is composed of a protocol,
-host, and optional port:
+introduce the notion of an \emph{origin}, which is composed of a
+protocol, host, and optional port:
 
 \begin{verbatim}
 sig Origin {
@@ -899,8 +881,8 @@ sig Origin {
 }
 \end{verbatim}
 
-We define a function that, given a URL, returns the corresponding
-origin:
+For convenience, let us define a function that, given a URL, returns the
+corresponding origin:
 
 \begin{verbatim}
 fun origin[u: Url] : Origin {
@@ -914,15 +896,16 @@ policy states that a script can only read from and write to a document
 that comes from the same origin as the script:
 
 \begin{verbatim}
-pred domSop {
+fact domSop {
   all o: ReadDom + WriteDom |  let target = o.doc, caller = o.from.context |
     origin[target] = origin[caller] 
 }
 \end{verbatim}
 
-An instance such as the first script scenario is not possible under
-\texttt{domSop}, since \texttt{Script} is not allowed to invoke
-\texttt{ReadDom} on a document from a different origin.
+An instance such as the first script scenario (from the previous
+section) is not possible under \texttt{domSop}, since \texttt{Script} is
+not allowed to invoke \texttt{ReadDom} on a document from a different
+origin.
 
 The second part of the policy says that a script cannot send an HTTP
 request to a server unless its context has the same origin as the target
@@ -930,7 +913,7 @@ URL --- effectively preventing instances such as the second script
 scenario.
 
 \begin{verbatim}
-pred xmlHttpReqSop { 
+fact xmlHttpReqSop { 
   all x: XmlHttpRequest | origin[x.url] = origin[x.from.context.src] 
 }
 \end{verbatim}
@@ -962,8 +945,8 @@ The SOP is a classic example of the tension between functionality and
 security; we want to make sure our sites are robust and functional, but
 the mechanism for securing it can sometimes get in the way. Indeed, when
 the SOP was initially introduced, developers ran into trouble building
-sites that made legitimate uses of cross-domain communication --- for
-example, for mashups.
+sites that made legitimate uses of cross-domain communication (e.g.,
+mashups).
 
 In this section, we will discuss four techniques that have been devised
 and frequently used by web developers to bypass the restrictions imposed
@@ -1043,7 +1026,7 @@ two scripts can interact with each other (that is, read and write each
 other's DOM).
 
 \begin{verbatim}
-pred domSop {
+fact domSop {
   -- For every successful read/write DOM operation,
   all o: ReadDom + WriteDom |  let target = o.doc, caller = o.from.context |
     -- (1) target and caller documents are from the same origin, or
@@ -1128,14 +1111,14 @@ blog page (\texttt{BlogPage}). In the next step
 executes the \texttt{SetDomain} operation to modify the domain property
 of \texttt{BlogPage} to \texttt{ExampleDomain}.
 
-\aosafigure[240pt]{same-origin-policy-images/fig-setdomain-2a.png}{Cross-origin counterexample at time 4}{500l.same-origin-policy.fig-setdomain-2a}
+\aosafigure[240pt]{same-origin-policy-images/fig-setdomain-2a.png}{Cross-origin counterexample at time 3}{500l.same-origin-policy.fig-setdomain-2a}
 
 Now that \texttt{BlogPage} has the same domain property as the other two
 documents, it can successfully execute the \texttt{ReadDOM} operation to
 access their content
 (\aosafigref{500l.same-origin-policy.fig-setdomain-2b}.)
 
-\aosafigure[240pt]{same-origin-policy-images/fig-setdomain-2b.png}{Cross-origin counterexample at time 5}{500l.same-origin-policy.fig-setdomain-2b}
+\aosafigure[240pt]{same-origin-policy-images/fig-setdomain-2b.png}{Cross-origin counterexample at time 4}{500l.same-origin-policy.fig-setdomain-2b}
 
 This attack points out one crucial weakness of the domain property
 method for cross-origin communication: The security of an application
@@ -1224,6 +1207,11 @@ sig JsonpCallback extends EventHandler {
     payload = resp.@payload
 }
 \end{verbatim}
+
+(\texttt{EventHandler} is a special type of call that must take place
+sometime after another call, which is denoted by \texttt{causedBy}; we
+will use event handlers to model actions that are performed by scripts
+in response to browser events.)
 
 Note that the callback function executed is the same as the one that's
 included in the response (\texttt{cb = resp.@cb}), but \emph{not}
@@ -1359,8 +1347,10 @@ default, and it is the responsibility of the receiving document to
 \emph{additionally} check the \texttt{srcOrigin} parameter to ensure
 that the message is coming from a trustworthy document. Unfortunately,
 in practice, many sites omit this check, enabling a malicious document
-to inject bad content as part of a \texttt{PostMessage} {[}cite
-PostMessage study{]}.
+to inject bad content as part of a \texttt{PostMessage} \footnote{Sooel
+  Son and Vitaly Shmatikov. \emph{The Postman Always Rings Twice:
+  Attacking and Defending postMessage in HTML5 Websites}. Network and
+  Distributed System Security Symposium (NDSS), 2013.}.
 
 However, the omission of the origin check may not simply be the result
 of programmer ignorance. Implementing an appropriate check on an
@@ -1446,7 +1436,9 @@ resource on the server. This access pattern is appropriate if the
 resource is considered public and accessible to anyone. However, it
 turns out that many sites use ``*'' as the default value even for
 private resources, inadvertently allowing malicious scripts to access
-them through CORS requests {[}cite CORS study{]}.
+them through CORS requests \footnote{Sebastian Lekies, Martin Johns, and
+  Walter Tighzert. \emph{The State of the Cross-Domain Nation}. Web 2.0
+  Security and Privacy (W2SP), 2011.}.
 
 Why would a developer ever use the wildcard? It turns out that
 specifying the allowed origins can be tricky, since it may not be clear
@@ -1484,14 +1476,15 @@ their favorite system!
 \aosasecti{Appendix: Reusing Modules in
 Alloy}\label{appendix-reusing-modules-in-alloy}
 
-As mentioned earlier in this chapter, Alloy makes no assumptions about
-the behavior of the system being modeled. The lack of a built-in
-paradigm allows the user to encode a wide range of modeling idioms using
-a small core of the basic language constructs. We could, for example,
-specify a system as a state machine, a data model with complex
-invariants, a distributed event model with a global clock, or whatever
-idiom is most suitable for the problem at hand. Commonly used idioms can
-be captured as a generic module and reused across multiple systems.
+\label{500l.sop.appendix} As mentioned earlier in this chapter, Alloy
+makes no assumptions about the behavior of the system being modeled. The
+lack of a built-in paradigm allows the user to encode a wide range of
+modeling idioms using a small core of the basic language constructs. We
+could, for example, specify a system as a state machine, a data model
+with complex invariants, a distributed event model with a global clock,
+or whatever idiom is most suitable for the problem at hand. Commonly
+used idioms can be captured as a generic module and reused across
+multiple systems.
 
 In our model of the SOP, we model the system as a set of endpoints that
 communicate with each other by making one or more \emph{calls}. Since

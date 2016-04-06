@@ -140,10 +140,6 @@ def main(chapters=[], epub=False, pdf=False, html=False, mobi=False, pandoc_epub
 def build_pdf():
     os.chdir('tex')
     run('pdflatex -interaction nonstopmode 500L')
-    run('bibtex 500L')
-    run('pdflatex -interaction nonstopmode 500L')
-    run('pdflatex -interaction nonstopmode 500L')
-    run('pdflatex -interaction nonstopmode 500L')
     os.chdir('..')
     run('mv tex/500L.pdf output/')
 

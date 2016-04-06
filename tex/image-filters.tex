@@ -1,168 +1,164 @@
 \begin{aosachapter}{Making Your Own Image Filters}{s:image-filters}{Cate Huston}
 
-\emph{Cate Huston is a developer and entrepreneur focused on mobile.
-She's lived and worked in the UK, Australia, Canada, China and the
-United States, as an engineer at Google, an Extreme Blue intern at IBM,
-and a ski instructor. Cate speaks internationally on mobile development
-and her writing has been published on sites as varied as Lifehacker, The
-Daily Beast, The Eloquent Woman and Model View Culture. She co-curates
-Technically Speaking, blogs at Accidentally in Code and is
+\emph{Cate left the tech industry and spent a year finding her way back
+whilst building her passion project Show \& Hide. She is Director of
+Mobile Engineering at Ride, speaks internationally on mobile development
+and engineering culture, co-curates Technically Speaking and is an
+advisor at Glowforge. Cate doesn't exactly live in Colombia but she
+spends a lot of time there, and has lived and worked in the UK,
+Australia, Canada, China the United States, previously as an engineer at
+Google, an Extreme Blue intern at IBM, and a ski instructor. Cate blogs
+at \href{http://www.catehuston.com/blog/}{Accidentally in Code} and is
 \href{https://twitter.com/catehstn}{@catehstn} on Twitter.}
 
-\aosasecti{A Story of a Brilliant Idea That Wasn't All That
-Brilliant}\label{a-story-of-a-brilliant-idea-that-wasnt-all-that-brilliant}
+\aosasecti{A Brilliant Idea (That Wasn't All That
+Brilliant)}\label{a-brilliant-idea-that-wasnt-all-that-brilliant}
 
-In Chinese art, there is often a series of four paintings showing the
-same place in different seasons. Color - the cool whites of winter, pale
-hues of spring, lush greens of summer, and red and yellows of fall is
-the differentiation. Sometime around 2011, I had what I thought was a
-brilliant idea. I wanted to be able to visualize a photo series, as a
-series of colors. I thought it would show travel, and progression
-through the seasons.
+When I was traveling in China I often saw series of four paintings
+showing the same place in different seasons. Color --- the cool whites
+of winter, pale hues of spring, lush greens of summer, and reds and
+yellows of fall --- is what visually differentiates the seasons. Around
+2011, I had what I thought was a brilliant idea: I wanted to be able to
+visualize a photo series as a series of colors. I thought it would show
+travel, and progression through the seasons.
 
-I didn't know how to calculate the dominant color from an image, and I
+But I didn't know how to calculate the dominant color from an image. I
 thought about scaling the image down to a 1x1 square and seeing what was
-left, but that seemed like cheating. I knew how I wanted to display it
-though, in a layout called the
+left, but that seemed like cheating. I knew how I wanted to display the
+images, though: in a layout called the
 \href{http://www.catehuston.com/applets/Sunflower/index.html}{Sunflower
-layout}. It's the most efficient way to layout circles.
+layout}. It's the most efficient way to lay out circles.
 
 I left this project for years, distracted by work, life, travel, talks.
-Eventually I returned to it, and figured out how to calculate the
-dominant color and finally
+Eventually I returned to it, figured out how to calculate the dominant
+color, and finally
 \href{http://www.catehuston.com/blog/2013/09/02/visualising-a-photo-series/}{finished
 my visualization}. And that is when I discovered that this idea wasn't,
-in fact, brilliant. Because the progression wasn't as clear as I hoped,
-the dominant color extracted wasn't generally the most appealing shade,
-the creation took a long time (a couple of seconds per image), and
-required hundreds of images to make something cool
-\aosafigref{500.imagefilters.sunflower}.
+in fact, brilliant. The progression wasn't as clear as I hoped, the
+dominant color extracted wasn't generally the most appealing shade, the
+creation took a long time (a couple of seconds per image), and it took
+hundreds of images to make something cool
+(\aosafigref{500l.imagefilters.sunflower}).
 
 \aosafigure[240pt]{image-filters-images/sunflower.jpg}{Sunflower layout}{500l.imagefilters.sunflower}
 
-You might think this would be discouraging, but by the time I had got to
-this point I had learned so many things that hadn't come my way before -
-about color spaces, pixel manipulation, and I had started making these
-cool partially colored images, of the kind you find on postcards of
-London - the red bus, or phone booth, but everything else is in
-gray-scale.
+You might think this would be discouraging, but by the time I got to
+this point I had learned many things that hadn't come my way before ---
+about color spaces and pixel manipulation --- and I had started making
+those cool partially colored images, the kind you find on postcards of
+London with a red bus or phone booth and everything else in grayscale.
 
 I used a framework called \href{https://processing.org/}{Processing}
 because I was familiar with it from developing programming curricula,
-and because I knew it made it really easy to create visual applications.
-It's a tool originally designed for artists, so it abstracts away much
-of the boilerplate. It allowed me to play, and to experiment.
+and because I knew it made it easy to create visual applications. It's a
+tool originally designed for artists, so it abstracts away much of the
+boilerplate. It allowed me to play and experiment.
 
-University, and later work, had filled up my time with other people's
-ideas and priorities. Part of ``finishing'' this project was learning
-how to carve out time to make progress on my own ideas in the time that
-was left to me. I calculated this to be about 4 hours of good mental
-time a week. A tool that allowed me to move faster was therefore really
-helpful, even necessary. Although it came with it's own set of problems,
-especially around writing tests. I felt thorough tests were especially
-important for validating how it was working, and for making it easier to
-pick up and resume a project that was often on ice for weeks, even
-months at a time. Tests (and blogposts!) formed the documentation for
-this project. I could leave failing tests to document what should happen
-that I hadn't quite figured out yet, make changes with more confidence
-that if I changed something that I had forgotten was critical, the tests
-would remind me.
+University, and later work, filled up my time with other people's ideas
+and priorities. Part of finishing this project was learning how to carve
+out time to make progress on my own ideas; I required about four hours
+of good mental time a week. A tool that allowed me to move faster was
+therefore really helpful, even necessary --- although it came with its
+own set of problems, especially around writing tests.
 
-This chapter will cover some details about Processing, talk you through
-color spaces, decomposing an image into pixels and manipulating them,
-and unit testing something that wasn't designed with testing in mind.
-But I hope it will also prompt you to go and make some progress on
-whatever idea you haven't made time for lately, because even if your
-idea turns out to be as terrible as mine was, you may make something
-cool, and learn something fascinating in the process.
+I felt that thorough tests were especially important for validating how
+the project was working, and for making it easier to pick up and resume
+a project that was often on ice for weeks, even months at a time. Tests
+(and blogposts!) formed the documentation for this project. I could
+leave failing tests to document what should happen that I hadn't figured
+out yet, and make changes with confidence that if I changed something
+that I had forgotten was critical, the tests would remind me.
+
+This chapter will cover some details about Processing and talk you
+through color spaces, decomposing an image into pixels and manipulating
+them, and unit testing something that wasn't designed with testing in
+mind. But I hope it will also prompt you to make some progress on
+whatever idea you haven't made time for lately; even if your idea turns
+out to be as terrible as mine was, you may make something cool and learn
+something fascinating in the process.
 
 \aosasecti{The App}\label{the-app}
 
-This chapter will show you how to create your own image filter
-application using Processing (a programming language and development
-environment built on Java, used as a tool for artists to create with),
-where you can load in your digital images and manipulate them yourself
-using filters that you create. We'll cover aspects of color, setting up
-the application in Processing, some of the features of Processing, how
-to create color filters (mimicking what used to be used in old-fashioned
-photography) and also a special kind of filter that can only be done
-digitally - extracting the dominant hue from an image, and showing or
-hiding it, to create eerie partially colored images.
+This chapter will show you how to create an image filter application
+that you can use to manipulate your digital images using filters that
+you create. We'll use Processing, a programming language and development
+environment built in Java. We'll cover setting up the application in
+Processing, some of the features of Processing, aspects of color
+representation, and how to create color filters (mimicking what was used
+in old-fashioned photography). We'll also create a special kind of
+filter that can only be done digitally: determining the dominant hue of
+an image and showing or hiding it, to create eerie partially colored
+images.
 
-We'll also be adding a thorough test suite, and covering how to handle
-some of the limitations of Processing when it comes to testability.
+Finally, we'll add a thorough test suite, and cover how to handle some
+of the limitations of Processing when it comes to testability.
 
 \aosasecti{Background}\label{background}
 
 Today we can take a photo, manipulate it, and share it with all our
 friends in a matter of seconds. However, a long long time ago (in
-digital terms anyway), it used to be a process that would take weeks.
+digital terms), it was a process that took weeks.
 
-We would take the picture, then when we had used a whole roll of film,
-we would take it in to be developed (often at the pharmacy), pick it up
-some days later, and then discover that there was something wrong with
-many of the pictures - hand not steady enough? Random person/thing that
-we didn't remember seeing at the time. Of course by then it was too late
-to remedy it.
+In the old days, we would take the picture, then when we had used a
+whole roll of film, we would take it in to be developed (often at the
+pharmacy). We'd pick up the developed pictures some days later --- and
+discover that there was something wrong with many of them. Hand not
+steady enough? Random person or thing that we didn't notice at the time?
+Overexposed? Underexposed? Of course by then it was too late to remedy
+the problem.
 
-Then next time we had friends over, we could show them our carefully
-curated album of that trip we took, or alternatively, just tip the
-pictures out of the shoebox we were keeping them in, onto the coffee
-table.
+The process that turned the film into pictures was one that most people
+didn't understand. Light was a problem, so you had to be careful with
+the film. There was a process, involving darkened rooms and chemicals,
+that they sometimes showed in films or on TV.
 
-The process that would turn the film into the picture was one that most
-people didn't understand. Light was a problem, so you had to be careful
-with the film. There was some process featuring darkened rooms and
-chemicals that they sometimes showed bits of in films or on TV.
-
-Which actually sounds familiar. Few people understand how we get from
-the point and click on our smartphone camera to an image on instagram.
-But actually there are many similarities.
+But probably even fewer people understand how we get from the
+point-and-click on our smartphone camera to an image on Instagram. There
+are actually many similarities.
 
 \aosasectii{Photographs, the Old Way}\label{photographs-the-old-way}
 
-Photographs are created by the effect of light on a light sensitive
-surface. Photographic film is covered in silver halide crystals (extra
-layers are used to create color photographs - for simplicity let's just
-stick to black-and-white photography here.)
+Photographs are created by the effect of light on a light-sensitive
+surface. Photographic film is covered in silver halide crystals. (Extra
+layers are used to create color photographs --- for simplicity let's
+just stick to black-and-white photography here.)
 
-When talking an old fashioned style photograph - with film - the light
+When talking an old-fashioned photograph --- with film --- the light
 hits the film according to what you're pointing at, and the crystals at
-those points are changed in varying degrees - according to the amount of
+those points are changed in varying degrees, according to the amount of
 light. Then, the
 \href{http://photography.tutsplus.com/tutorials/step-by-step-guide-to-developing-black-and-white-t-max-film-{}-photo-2580}{development
 process} converts the silver salts to metallic silver, creating the
-negative. The negative has light and dark areas of the image inverted to
-their opposite. Once the negatives have been developed, there is another
-series of steps that reverse the image back and print it.
+negative. The negative has the light and dark areas of the image
+inverted. Once the negatives have been developed, there is another
+series of steps to reverse the image and print it.
 
 \aosasectii{Photographs, the Digital
 Way}\label{photographs-the-digital-way}
 
 When taking pictures using our smartphones or digital cameras, there is
-no film. There is something called an Active Pixel Sensor which
+no film. There is something called an \emph{active-pixel sensor} which
 functions in a similar way. Where we used to have silver crystals, now
-we have pixels - tiny squares (in fact, pixel is short for ``picture
-element''). Digital images are made up of pixels, and the higher the
+we have pixels --- tiny squares. (In fact, pixel is short for ``picture
+element''.) Digital images are made up of pixels, and the higher the
 resolution the more pixels there are. This is why low-resolution images
-are described as ``pixelated'' - you can start to see the squares. These
-pixels are just stored in an array, which the number in each array
+are described as ``pixelated'' --- you can start to see the squares.
+These pixels are stored in an array, with the number in each array
 ``box'' containing the color.
 
-In \aosafigref{500l.imagefilters.animals}, we see some blow up animals
-taken at MoMA in NYC at high resolution.
-\aosafigref{500l.imagefilters.pixelanimals} is the same image blown-up,
+In \aosafigref{500l.imagefilters.animals}, we see a high-resolution
+picture of some blow-up animals taken at MoMA in NYC.
+\aosafigref{500l.imagefilters.pixelanimals} is the same image blown up,
 but with just 24 x 32 pixels.
 
 \aosafigure[240pt]{image-filters-images/animals.jpg}{Blow-up animals at MoMA NY}{500l.imagefilters.animals}
 
-\aosafigure[240pt]{image-filters-images/pixelanimals.jpg}{Blow-up animals, blown-up}{500l.imagefilters.pixelanimals}
+\aosafigure[240pt]{image-filters-images/pixelanimals.jpg}{Blow-up animals, blown up}{500l.imagefilters.pixelanimals}
 
-See how it is so blurry? The lines of the animals aren't as smooth? We
-call that \emph{pixelation}, which means the image is too big for the
-number of pixels it contains, and the squares become visible. Here we
-can use it to get a better sense of an image made up of squares of
-color.
+See how it's so blurry? We call that \emph{pixelation}, which means the
+image is too big for the number of pixels it contains and the squares
+become visible. Here we can use it to get a better sense of an image
+being made up of squares of color.
 
 What do these pixels look like? If we print out the colors of some of
 the pixels in the middle (10,10 to 10,14) using the handy
@@ -176,7 +172,7 @@ FFFCC2
 FFF5B7
 \end{verbatim}
 
-Hex colors are 6 characters long. The first two are the red value, the
+Hex colors are six characters long. The first two are the red value, the
 second two the green value, and the third two the blue value. Sometimes
 there are an extra two characters which are the alpha value. In this
 case \texttt{FFFAC4} means:
@@ -191,12 +187,12 @@ case \texttt{FFFAC4} means:
   blue = C4 (hex) = 196 (base 10)
 \end{aosaitemize}
 
-\aosasecti{Running The App}\label{running-the-app}
+\aosasecti{Running the App}\label{running-the-app}
 
 In \aosafigref{500l.imagefilters.app}, we have a picture of our app
 running. It's very much developer-designed, I know, but we only have 500
-lines of Java here so something had to suffer! You can see the list of
-commands on the right. Some things we can do:
+lines of Java to work with so something had to suffer! You can see the
+list of commands on the right. Some things we can do:
 
 \begin{aosaitemize}
 
@@ -217,21 +213,17 @@ commands on the right. Some things we can do:
 
 \aosafigure[240pt]{image-filters-images/app.jpg}{The App}{500l.imagefilters.app}
 
-We're using Processing, as it makes it really simple to create a little
-application, and do image manipulation. Processing is an IDE (Integrated
-Development Environment) and a set of libraries to make visual
-applications. It was originally created as a way for designers and
-artists to create digital apps, so it has a very visual focus.
+Processing makes it simple to create a little application and do image
+manipulation; it has a very visual focus. We'll work with the Java-based
+version, although Processing has now been ported to other languages
+(including Javascript which is awesome if you want to upload your apps
+to the Internet).
 
-We'll focus on the Java-based version although Processing has now been
-ported to other languages, including Javascript, which is awesome if you
-want to upload your apps to the internet.
-
-For this tutorial, I use it in Eclipse by adding \texttt{core.jar} to my
-build path. If you want, you can use the Processing IDE, which removes
-the need for a lot of boilerplate Java code. If you later want to port
-it over to Processing.js and upload it online, you need to replace the
-file chooser with something else.
+For this tutorial, I use Processing in Eclipse by adding
+\texttt{core.jar} to my build path. If you want, you can use the
+Processing IDE, which removes the need for a lot of boilerplate Java
+code. If you later want to port it over to Processing.js and upload it
+online, you need to replace the file chooser with something else.
 
 There are detailed instructions with screenshots in the project's
 \href{https://github.com/aosabook/500lines/blob/master/image-filters/SETUP.MD}{repository}.
@@ -242,24 +234,23 @@ If you are familiar with Eclipse and Java already you may not need them.
 \aosasectii{Size and Color}\label{size-and-color}
 
 We don't want our app to be a tiny grey window, so the two essential
-methods that we will start by overriding (implementing in our own class,
-instead of using the default implementation in the superclass, in this
-case \texttt{PApplet}) are
+methods that we will start by overriding are
 \href{http://processing.org/reference/setup_.html}{\texttt{setup()}},
 and \href{http://processing.org/reference/draw_.html}{\texttt{draw()}}.
-\texttt{setup()} is only called when the app starts, and is where we do
-things like set the size. \texttt{draw()} is called for every animation,
-or after some action can be triggered by calling \texttt{redraw()} (as
-covered in the Processing Documentation, \texttt{draw()} should not be
-called explicitly).
+The \texttt{setup()} method is only called when the app starts, and is
+where we do things like set the size of the app window. The
+\texttt{draw()} method is called for every animation, or after some
+action can be triggered by calling \texttt{redraw()}. (As covered in the
+Processing Documentation, \texttt{draw()} should not be called
+explicitly.)
 
 Processing is designed to work nicely to create animated sketches, but
 in this case we don't want animation\footnote{If we wanted to create an
   animated sketch we would not call \texttt{noLoop()} (or, if we wanted
   to start animating later, we would call \texttt{loop()}). The
   frequency of the animation is determined by \texttt{frameRate()}.}, we
-want to respond to key presses. To prevent animation (this would be a
-drag on performance) we will want to call
+want to respond to key presses. To prevent animation (which would be a
+drag on performance) we will call
 \href{http://www.processing.org/reference/noLoop_.html}{\texttt{noLoop()}}
 from setup. This means that \texttt{draw()} will only be called
 immediately after \texttt{setup()}, and whenever we call
@@ -282,12 +273,13 @@ public void draw() {
 }
 \end{verbatim}
 
-These don't really do much yet, but run the app again adjusting the
-constants in \texttt{WIDTH} and \texttt{HEIGHT} to see different sizes.
+These don't really do much yet, but try running the app again, adjusting
+the constants in \texttt{WIDTH} and \texttt{HEIGHT}, to see different
+sizes.
 
 \texttt{background(0)} specifies a black background. Try changing the
-number passed into \texttt{background()} and see what happens - it's the
-alpha value, and so if you only pass one number in, it is always
+number passed into \texttt{background()} and see what happens --- it's
+the alpha value, and so if you only pass one number in, it is always
 greyscale. Alternatively, you can call
 \texttt{background(int r, int g, int b)}.
 
@@ -337,24 +329,25 @@ save & Saves the image to a TIFF, TARGA, PNG, or JPEG file \\
 
 \aosasectii{File Chooser}\label{file-chooser}
 
-Processing handles most of this, we just need to call
+Processing handles most of the file choosing process; we just need to
+call
 \href{http://www.processing.org/reference/selectInput_.html}{\texttt{selectInput()}},
 and implement a callback (which must be public).
 
-To people familiar with Java this might seem odd, a listener or a lambda
-expression might make more sense. However as Processing was developed as
-a tool for artists, for the most part the necessity for these things has
-been abstracted away by the language to keep it unintimidating. This is
-a choice the designers made - to prioritize simplicity and being
-unintimidating over power and flexibility. If you use the stripped down
-Processing editor, rather than Processing as a library in Eclipse you
-don't even need to define class names!
+To people familiar with Java this might seem odd; a listener or a lambda
+expression might make more sense. However, as Processing was developed
+as a tool for artists, for the most part these things have been
+abstracted away by the language to keep it unintimidating. This is a
+choice the designers made: to prioritize simplicity and approachability
+over power and flexibility. If you use the stripped-down Processing
+editor, rather than Processing as a library in Eclipse, you don't even
+need to define class names.
 
 Other language designers with different target audiences make different
-choices, as they should. For example if we consider Haskell, a purely
-functional language, that purity of functional language paradigms is
-prioritised over everything else. This makes it a better tool for
-mathematical problems than anything requiring IO.
+choices, as they should. For example, in Haskell, a purely functional
+language, purity of functional language paradigms is prioritised over
+everything else. This makes it a better tool for mathematical problems
+than for anything requiring IO.
 
 \begin{verbatim}
 // Called on key press.
@@ -373,11 +366,11 @@ public void fileSelected(File file) {
 }
 \end{verbatim}
 
-\aosasectii{Responding To Key Presses}\label{responding-to-key-presses}
+\aosasectii{Responding to Key Presses}\label{responding-to-key-presses}
 
-Normally in Java doing this requires adding listeners and implementing
-anonymous functions. However like the file chooser, Processing handles a
-lot of this for us. We just need to implement
+Normally in Java, responding to key presses requires adding listeners
+and implementing anonymous functions. However, as with the file chooser,
+Processing handles a lot of this for us. We just need to implement
 \href{https://www.processing.org/reference/keyPressed_.html}{\texttt{keyPressed()}}.
 
 \begin{verbatim}
@@ -388,52 +381,51 @@ public void keyPressed() {
 
 If you run the app again, every time you press a key it will output it
 to the console. Later, you'll want to do different things depending on
-what key was pressed, and to do this you just switch on the key value
-(this exists in the \texttt{PApplet} superclass, and contains the last
-key pressed).
+what key was pressed, and to do this you just switch on the key value.
+(This exists in the \texttt{PApplet} superclass, and contains the last
+key pressed.)
 
 \aosasecti{Writing Tests}\label{writing-tests}
 
 This app doesn't do a lot yet, but we can already see number of places
-where things can go wrong, for example triggering the wrong action with
+where things can go wrong; for example, triggering the wrong action with
 key presses. As we add complexity, we add more potential problems, such
-as updating the image state incorrectly, or miscalculations of the pixel
-colors after applying a filter. I also just (some think weirdly) enjoy
-writing unit tests. Whilst some people seem to think of testing as a
-thing that delays checking code in, I see tests as my \#1 debugging
-tool, and an opportunity to deeply understand what is going on in my
-code.
+as updating the image state incorrectly, or miscalculating pixel colors
+after applying a filter. I also just enjoy (some think weirdly) writing
+unit tests. Whilst some people seem to think of testing as a thing that
+delays checking code in, I see tests as my \#1 debugging tool, and as an
+opportunity to deeply understand what is going on in my code.
 
-I adore Processing, but as covered above it's designed as a tool for
-artists to create visual applications, and in this maybe unit testing
-isn't a huge concern. It's clear it isn't written for testability, in
-fact it's written in such a way that makes it untestable, as is. Part of
-this is because it hides complexity, some of that hidden complexity is
-really useful in writing unit tests. The use of static and final methods
-make it much harder to use mocks (objects that record interaction and
-allow you to fake part of your system to verify another part is behaving
-correctly), which rely on the ability to subclass.
+I adore Processing, but it's designed to create visual applications, and
+in this area maybe unit testing isn't a huge concern. It's clear it
+isn't written for testability; in fact it's written in such a way that
+makes it untestable, as is. Part of this is because it hides complexity,
+and some of that hidden complexity is really useful in writing unit
+tests. The use of static and final methods make it much harder to use
+mocks (objects that record interaction and allow you to fake part of
+your system to verify another part is behaving correctly), which rely on
+the ability to subclass.
 
 We might start a greenfield project with great intentions to do Test
 Driven Development (TDD) and achieve perfect test coverage, but in
 reality we are usually looking at a mass of code written by various and
 assorted people and trying to figure out what it is supposed to be
 doing, and how and why it is going wrong. Then maybe we don't write
-perfect tests, but writing tests at all will help us navigate this
+perfect tests, but writing tests at all will help us navigate the
 situation, document what is happening and move forward.
 
-To do that we create ``seams'' that will allow us to break something up
-from it's amorphous mass of tangled pieces and verify. To do this, we
-will sometimes create wrapper classes that can be mocked. These do
-nothing more than hold a collection of similar methods, or forward calls
-on to another object that can not be mocked (due to final or static
+We create ``seams'' that allow us to break something up from its
+amorphous mass of tangled pieces and verify it in parts. To do this, we
+will sometimes create wrapper classes that can be mocked. These classes
+do nothing more than hold a collection of similar methods, or forward
+calls on to another object that cannot be mocked (due to final or static
 methods), and as such they are very dull to write, but key to creating
 seams and making the code testable.
 
-For tests, as I was working in Java with Processing as a library, I used
-JUnit. For mocking, I used Mockito. You can download
-\href{https://code.google.com/p/mockito/downloads/list}{mockito} and add
-the jar to your buildpath in the same way you added \texttt{core.jar}. I
+I used JUnit for tests, as I was working in Java with Processing as a
+library. For mocking I used Mockito. You can download
+\href{https://code.google.com/p/mockito/downloads/list}{Mockito} and add
+the JAR to your buildpath in the same way you added \texttt{core.jar}. I
 created two helper classes that make it possible to mock and test the
 app (otherwise we can't test behavior involving \texttt{PImage} or
 \texttt{PApplet} methods).
@@ -441,42 +433,42 @@ app (otherwise we can't test behavior involving \texttt{PImage} or
 \texttt{IFAImage} is a thin wrapper around PImage.
 \texttt{PixelColorHelper} is a wrapper around applet pixel color
 methods. These wrappers call the final, and static methods, but the
-caller methods are neither final nor static themselves - this allows
+caller methods are neither final nor static themselves --- this allows
 them to be mocked. These are deliberately lightweight, and we could have
-gone further, however this was sufficient to address the major problem
-of testability when using Processing - static, and final methods. The
-goal here was to make an app after all - not a unit testing framework
-for Processing!
+gone further, but this was sufficient to address the major problem of
+testability when using Processing --- static, and final methods. The
+goal was to make an app, after all --- not a unit testing framework for
+Processing!
 
 A class called \texttt{ImageState} forms the ``model'' of this
 application, removing as much logic from the class extending
 \texttt{PApplet} as possible, for better testability. It also makes for
-a cleaner design and separation of concerns - the \texttt{App} controls
+a cleaner design and separation of concerns: the \texttt{App} controls
 the interactions and the UI, not the details of the image manipulation.
 
-\aosasecti{Do It Yourself Filters}\label{do-it-yourself-filters}
+\aosasecti{Do-It-Yourself Filters}\label{do-it-yourself-filters}
 
 \aosasectii{RGB Filters}\label{rgb-filters}
 
 Before we start writing more complicated pixel processing, we can start
 with a short exercise that will get us comfortable doing pixel
-manipulation . We'll create standard (red, green, blue) color filters
-that will allow us to create the same effect as a colored plate over the
-lens of a camera, only letting through light with enough red (or green,
-or blue).
+manipulation. We'll create standard (red, green, blue) color filters
+that will allow us to create the same effect as placing a colored plate
+over the lens of a camera, only letting through light with enough red
+(or green, or blue).
 
 By applying different RGB filters to an image we can make it almost seem
-like the seasons are different (remember the Chinese four seasons
-paintings mentioned earlier?), depending on which colors are filtered
-out and which are emphasized.
+like the seasons are different depending which colors are filtered out
+and which are emphasized. (Remember the four-seasons paintings we
+imagined earlier?)
 
 How do we do it?
 
 \begin{aosaitemize}
 \item
-  Set the filter (you can combine red, green and blue filters as in the
-  image earlier, I haven't in these examples so that the effect is
-  clearer).
+  Set the filter. (You can combine red, green and blue filters as in the
+  image earlier; I haven't in these examples so that the effect is
+  clearer.)
 \item
   For each pixel in the image, check its RGB value.
 \item
@@ -490,9 +482,9 @@ How do we do it?
 \end{aosaitemize}
 
 Although our image is 2-dimensional, the pixels live in a 1-dimensional
-array starting top left moving
+array starting top-left and moving
 \href{https://processing.org/tutorials/pixels/}{left to right, top to
-bottom}. The array indices for a 4x4 image are shown in .
+bottom}. The array indices for a 4x4 image are shown here:
 
 \begin{table}
 \centering
@@ -539,10 +531,9 @@ representation of colors in a program is very important to understanding
 how our filters work. To prepare ourselves for working on our next
 filter, let's explore the concept of color a bit more.
 
-You may not have known it at the time, but we were unwittingly using a
-concept in the previous section called a ``color space'', which is way
-of representing color digitally. Kids mixing paints learn that all
-colors can be made from other colors, but things work slightly
+We were using a concept in the previous section called ``color space'',
+which is way of representing color digitally. Kids mixing paints learn
+that colors can be made from other colors; things work slightly
 differently in digital (less risk of being covered in paint!) but
 similar. Processing makes it really easy to work with whatever color
 space you want, but you need to know which one to pick, so it's
@@ -550,75 +541,69 @@ important to understand how they work.
 
 \aosasectiii{RGB colors}\label{rgb-colors}
 
-The color space that most programmers are familiar with is RGBA - red,
-green, blue and alpha. In hexadecimal (base 16) the first two digits are
-the amount of red the second two blue, the third two green, and the
-final two (if they are there) are the alpha value. These values range
-from 00 in base 16, 0 in base 10, through to FF, the equivalent of 255
-in base 10. The alpha represents the opacity, where 0 is transparent,
-and 100\% opaque.
+The color space that most programmers are familiar with is RGBA: red,
+green, blue and alpha; it's what we were using above. In hexadecimal
+(base 16), the first two digits are the amount of red, the second two
+blue, the third two green, and the final two (if they are there) are the
+alpha value. The values range from 00 in base 16 (0 in base 10) through
+to FF (255 in base 10). The alpha represents opacity, where 0 is
+transparent and 100\% is opaque.
 
 \aosasectiii{HSB or HSV colors}\label{hsb-or-hsv-colors}
 
-This color space is not quite as well known as RGB, the first number
-represents the hue, the second the saturation (how intense the color
-is), and the third number the brightness. The image at the top was
-created by manipulating in this color space. The HSB color space can be
-represented by drawing a cone. The hue is the position around the cone,
+This color space is not quite as well known as RGB. The first number
+represents the hue, the second number the saturation (how intense the
+color is), and the third number the brightness. The HSB color space can
+be represented by a cone: The hue is the position around the cone,
 saturation the distance from the centre, and brightness the height (0
 brightness is black).
 
-\aosasectii{Extracting The Dominant Hue From an
+\aosasectii{Extracting the Dominant Hue from an
 Image}\label{extracting-the-dominant-hue-from-an-image}
 
-Now we're comfortable with pixel manipulation, let's do something that
-we could only do digitally. Digitally, we can manipulate it in a way
-that isn't so uniform.
+Now that we're comfortable with pixel manipulation, let's do something
+that we could only do digitally. Digitally, we can manipulate the image
+in a way that isn't so uniform.
 
-When I look through my stream of pictures, say on Flickr, I can see
-themes emerging. The nighttime series from the boat I took at sunset
-around Hong Kong harbour, the grey of North Korea, the lush greens of
-Bali, the icy whites and pale blues of an Icelandic winter. Can we take
-a picture and pull out that main color that dominates the scene?
+When I look through my stream of pictures I can see themes emerging. The
+nighttime series I took at sunset from a boat on Hong Kong harbour, the
+grey of North Korea, the lush greens of Bali, the icy whites and pale
+blues of an Icelandic winter. Can we take a picture and pull out that
+main color that dominates the scene?
 
-It makes sense to use the HSB color space for this - we are interested
-in the hue, not the saturation or brightness, when figuring out what the
-main color is. It's possible to do this using RGB values, but more
-difficult (we would have to compare all three values) and it would be
-more sensitive to darkness. We can change to this colorspace using
+It makes sense to use the HSB color space for this --- we are interested
+in the hue when figuring out what the main color is. It's possible to do
+this using RGB values, but more difficult (we would have to compare all
+three values) and it would be more sensitive to darkness. We can change
+to the HSB color space using
 \href{http://processing.org/reference/colorMode_.html}{colorMode}.
 
 Having settled on this color space, it's simpler than it would have been
 using RGB. We need to find the hue of each pixel, and figure out which
-is most ``popular''. We probably don't want to be exact, we want to
+is most ``popular''. We probably don't want to be exact --- we want to
 group very similar hues together, and we can handle this using two
 strategies.
 
 Firstly we will round the decimals that come back to whole numbers, as
 this makes it simple to determine which ``bucket'' we put each pixel in.
-Secondly we can change the range of the hues. If we think back up to the
-diagram above, we might think of hues as having 360 degrees (like a
-circle). Processing uses 255 by default, which is the same as is typical
-for RGB (255 is FF in hexadecimal). The higher the range we use, the
-more distinct the hues in the picture will be. Using a smaller range
+Secondly we can change the range of the hues. If we think back to the
+cone representation above, we might think of hues as having 360 degrees
+(like a circle). Processing uses 255 by default, which is the same as is
+typical for RGB (255 is FF in hexadecimal). The higher the range we use,
+the more distinct the hues in the picture will be. Using a smaller range
 will allow us to group together similar hues. Using a 360 degree range,
 it's unlikely that we will be able to tell the difference between a hue
 of 224 and a hue of 225, as the difference is very small. If we make the
 range one-third of that instead, 120, both these hues become 75 after
 rounding.
 
-We can change the range of hues using \texttt{colorMode}. If we call:
-
-\begin{verbatim}
-  colorMode(HSB, 120);
-\end{verbatim}
-
-We have just made our hue detection a bit less than half as exact as if
-we used the 255 range. We also know that our hues will fall into 120
-``buckets'', so we can simply go through our image, get the hue for a
-pixel, and add one to the corresponding count in an array. This will be
-order of $O(n)$, where $n$ is the number of pixels, as it requires
-action on each one.
+We can change the range of hues using \texttt{colorMode}. If we call
+\texttt{colorMode(HSB, 120)} we have just made our hue detection a bit
+less than half as exact as if we used the 255 range. We also know that
+our hues will fall into 120 ``buckets'', so we can simply go through our
+image, get the hue for a pixel, and add one to the corresponding count
+in an array. This will be $O(n)$, where $n$ is the number of pixels, as
+it requires action on each one.
 
 \begin{verbatim}
 for(int px in pixels) {
@@ -633,8 +618,10 @@ the picture.
 Once we've extracted the ``dominant'' hue, we can choose to either show
 or hide it in the image. We can show the dominant hue with varying
 tolerance (ranges around it that we will accept). Pixels that don't fall
-into this range can be changed to grayscale, by setting the value based
-on the brightness. Alternatively, we can hide the dominant hue.
+into this range can be changed to grayscale by setting the value based
+on the brightness. Alternatively, we can hide the dominant hue by
+setting the color for pixels with that hue to greyscale, and leaving
+other pixels as they are.
 
 Each image requires a double pass (looking at each pixel twice), so on
 images with a large number of pixels it can take a noticeable amount of
@@ -700,18 +687,18 @@ public void processImageForHue(PApplet applet, IFAImage image, int hueRange,
 
 With the UI as it is, the user can combine the red, green, and blue
 filters together. If they combine the dominant hue filters with the red,
-green, and blue filters the results can sometimes be a little unexpected
-- because of changing the color spaces.
+green, and blue filters the results can sometimes be a little
+unexpected, because of changing the color spaces.
 
 Processing has some
-\href{https://www.processing.org/reference/filter_.html}{built in
-methods} that support the manipulation of images, for example
+\href{https://www.processing.org/reference/filter_.html}{built-in
+methods} that support the manipulation of images; for example,
 \texttt{invert} and \texttt{blur}.
 
-To achieve effects like sharpening, or blurring, or sepia ourselves we
-apply matrices. For every pixel of the image, take the sum of products
-where each product is the color value of the current pixel or a neighbor
-of it, with the corresponding value of the
+To achieve effects like sharpening, blurring, or sepia we apply
+matrices. For every pixel of the image, take the sum of products where
+each product is the color value of the current pixel or a neighbor of
+it, with the corresponding value of the
 \href{http://lodev.org/cgtutor/filtering.html}{filter matrix}. There are
 some special matrices of specific values that sharpen images.
 
@@ -722,30 +709,30 @@ There are three main components to the app
 
 \aosasectii{The App}\label{the-app-1}
 
-Consists of one file: \texttt{ImageFilterApp.java}. This extends
+The app consists of one file: \texttt{ImageFilterApp.java}. This extends
 \texttt{PApplet} (the Processing app superclass) and handles layout,
-user interaction etc. This class is the hardest to test, so we want to
+user interaction, etc. This class is the hardest to test, so we want to
 keep it as small as possible.
 
 \aosasectii{Model}\label{model}
 
-Consists of three files. \texttt{HSBColor.java} which is a simple
+Model consists of three files: \texttt{HSBColor.java} is a simple
 container for HSB colors (consisting of hue, saturation, and
-brightness). \texttt{IFAImage} which is a wrapper around \texttt{PImage}
-for testability (\texttt{PImage} contains a number of final methods
-which cannot be mocked). Finally \texttt{ImageState.java} is the object
-describing the state of the image - what level of filters should be
-applied, and which, and handles loading the image (note: the image needs
-to be reloaded whenever color filters are adjusted down, and whenever
-the dominant hue is recalculated. For clarity, we just reload each time
-the image is processed).
+brightness). \texttt{IFAImage} is a wrapper around \texttt{PImage} for
+testability. (\texttt{PImage} contains a number of final methods which
+cannot be mocked.) Finally, \texttt{ImageState.java} is the object which
+describes the state of the image --- what level of filters should be
+applied, and which filters --- and handles loading the image. (Note: The
+image needs to be reloaded whenever color filters are adjusted down, and
+whenever the dominant hue is recalculated. For clarity, we just reload
+each time the image is processed.)
 
 \aosasectii{Color}\label{color-1}
 
-Consists of two files: \texttt{ColorHelper.java}, which is where all the
-image processing and filtering takes place. And
-\texttt{PixelColorHelper.java} which abstracts out final
-\texttt{PApplet} methods for pixel colors for testability.
+Color consists of two files: \texttt{ColorHelper.java} is where all the
+image processing and filtering takes place, and
+\texttt{PixelColorHelper.java} abstracts out final \texttt{PApplet}
+methods for pixel colors for testability.
 
 \aosafigure[240pt]{image-filters-images/architecture.jpg}{Architecture diagram}{500l.imagefilters.architecture}
 
@@ -753,13 +740,13 @@ image processing and filtering takes place. And
 
 Briefly mentioned above, there are two wrapper classes
 (\texttt{IFAImage} and \texttt{PixelColorHelper}) that wrap library
-methods for testability. This is because in Java, final methods are
-methods that cannot be overridden or hidden by subclasses, which means
-they cannot be mocked.
+methods for testability. This is because, in Java, the keyword ``final''
+indicates a method that cannot be overridden or hidden by subclasses,
+which means they cannot be mocked.
 
 \texttt{PixelColorHelper} wraps methods on the applet. This means we
-need to pass the applet in to each method call (we could alternatively
-make it a field and set it on initialization).
+need to pass the applet in to each method call. (Alternatively, we could
+make it a field and set it on initialization.)
 
 \begin{verbatim}
 package com.catehuston.imagefilter.color;
@@ -808,9 +795,9 @@ public class PixelColorHelper {
 \end{verbatim}
 
 \texttt{IFAImage} is a wrapper around \texttt{PImage}, so in our app we
-don't initialize a \texttt{PImage}, but rather an \texttt{IFAImage}
-instead. Although we do have to expose the \texttt{PImage} so that it
-can be rendered.
+don't initialize a \texttt{PImage}, but rather an \texttt{IFAImage} ---
+although we do have to expose the \texttt{PImage} so that it can be
+rendered.
 
 \begin{verbatim}
 package com.catehuston.imagefilter.model;
@@ -888,12 +875,12 @@ and in
 \href{https://docs.oracle.com/javase/7/docs/api/java/awt/Color.html}{Java
 itself}. Without going too much into the details of these, both of them
 are more focused on RGB color, and the Java class in particular adds way
-more complexity than we need. We would probably be OK if we did want to
-use Java's awt.Color, however
+more complexity than we need. We would probably be okay if we did want
+to use Java's \texttt{awt.Color}; however
 \href{http://processing.org/reference/javadoc/core/processing/core/PApplet.html}{awt
-GUI components cannot be used in Processing} so for our purposes
-creating this simple container class to just hold these bits of data we
-need is easiest.
+GUI components cannot be used in Processing}, so for our purposes
+creating this simple container class to hold these bits of data we need
+is easiest.
 
 \begin{verbatim}
 package com.catehuston.imagefilter.model;
@@ -917,8 +904,8 @@ Tests}\label{colorhelper-and-associated-tests}
 
 \texttt{ColorHelper} is where all the image manipulation lives. The
 methods in this class could be static if not for needing a
-\texttt{PixelColorHelper}. Although we won't get into the debate as to
-the merits of static methods here!
+\texttt{PixelColorHelper}. (Although we won't get into the debate about
+the merits of static methods here.)
 
 \begin{verbatim}
 package com.catehuston.imagefilter.color;
@@ -1026,10 +1013,12 @@ public class ColorHelper {
 }
 \end{verbatim}
 
-Clearly we can't test this with whole images. Instead we can mock the
-images and make them return an array of pixels - in this case, 5. This
-allows us to verify that the behavior is as expected. Earlier we covered
-the concept of mock objects, and here we see their use. We are using
+We don't want to test this with whole images, because we want images
+that we know the properties of and reason about. We approximate this by
+mocking the images and making them return an array of pixels --- in this
+case, 5. This allows us to verify that the behavior is as expected.
+Earlier we covered the concept of mock objects, and here we see their
+use. We are using
 \href{http://docs.mockito.googlecode.com/hg/org/mockito/Mockito.html}{Mockito}
 as our mock object framework.
 
@@ -1150,27 +1139,27 @@ Notice that:
   We mock \texttt{PApplet}, \texttt{IFAImage} (created for expressly
   this purpose), and \texttt{ImageColorHelper}.
 \item
-  Test methods are annotated with \texttt{@Test} \footnote{Method names
-    in tests need not start with \texttt{test} as of JUnit 4 but habits
-    are hard to break.}. If you want to ignore a test (e.g.~whilst
+  Test methods are annotated with \texttt{@Test}\footnote{Method names
+    in tests need not start with \texttt{test} as of JUnit 4, but habits
+    are hard to break.}. If you want to ignore a test (e.g., whilst
   debugging) you can add the annotation \texttt{@Ignore}.
 \item
   In \texttt{setup()}, we create the pixel array and have the mock image
   always return it.
 \item
-  Helper methods make it easier to set expectations for reoccurring
-  tasks (e.g. \texttt{setHsbValuesForPixel()},
-  \texttt{setRgbValuesForPixel()}.)
+  Helper methods make it easier to set expectations for recurring tasks
+  (e.g., \texttt{setHsbValuesForPixel()},
+  \texttt{setRgbValuesForPixel()}).
 \end{aosaitemize}
 
 \aosasectii{Image State and Associated
 Tests}\label{image-state-and-associated-tests}
 
-\texttt{ImageState} holds the current ``state'' of the image - the image
-itself, and the settings and filters that will be applied. We'll omit
-the full implementation of ImageState here, but we'll show how it can be
-tested. You can the source repository for this project to see the
-implementation details of \texttt{ImageState}.
+\texttt{ImageState} holds the current ``state'' of the image --- the
+image itself, and the settings and filters that will be applied. We'll
+omit the full implementation of \texttt{ImageState} here, but we'll show
+how it can be tested. You can visit the source repository for this
+project to see the full implementation details.
 
 \begin{verbatim}
 package com.catehuston.imagefilter.model;
@@ -1221,7 +1210,7 @@ public class ImageState {
 \end{verbatim}
 
 Here we can test that the appropriate actions happen for the given
-state, that fields are incremented and decremented appropriately.
+state; that fields are incremented and decremented appropriately.
 
 \begin{verbatim}
 package com.catehuston.imagefilter.model;
@@ -1369,16 +1358,16 @@ Notice that:
 
 \item
   We exposed a protected initialization method \texttt{set} for testing
-  that helps us quickly get the system under test into a specific state
+  that helps us quickly get the system under test into a specific state.
 \item
   We mock \texttt{PApplet}, \texttt{ColorHelper}, and \texttt{IFAImage}
   (created expressly for this purpose).
 \item
-  This time we use a helper method (\texttt{assertState()} to simplify
+  This time we use a helper method (\texttt{assertState()}) to simplify
   asserting the state of the image.
 \end{aosaitemize}
 
-\aosasectiii{Measuring Test Coverage}\label{measuring-test-coverage}
+\aosasectiii{Measuring test coverage}\label{measuring-test-coverage}
 
 I use
 \href{http://www.eclemma.org/installation.html\#marketplace}{EclEmma} to
@@ -1392,14 +1381,14 @@ Overall for the app we have 81\% test coverage, with none of
 \aosasectii{ImageFilterApp}\label{imagefilterapp}
 
 This is where everything is tied together, but we want as little as
-possible there. The App is hard to unit test (much of it is layout), but
+possible here. The App is hard to unit test (much of it is layout), but
 because we've pushed so much of the app's functionality into our own
 tested classes, we're able to assure ourselves that the important parts
 are working as intended.
 
-We set the size of the app, and do the layout (these things are verified
-by running the app and making sure it looks OK - no matter how good test
-coverage this step should not be skipped!)
+We set the size of the app, and do the layout. (These things are
+verified by running the app and making sure it looks okay --- no matter
+how good the test coverage, this step should not be skipped!)
 
 \begin{verbatim}
 package com.catehuston.imagefilter.app;
@@ -1555,25 +1544,25 @@ Notice that:
 \aosasecti{The Value of Prototyping}\label{the-value-of-prototyping}
 
 In real world programming, we spend a lot of time on productionisation
-work. Making things look just so. Making them fail over. Maintaining
-that 99.9\% uptime. We spend more time hunting down corner cases than
-refining algorithms.
+work. Making things look just so. Maintaining that 99.9\% uptime. We
+spend more time hunting down corner cases than refining algorithms.
 
 These constraints and requirements are important for our users. However
-there's also a space for freeing ourselves from them to play, and
-explore.
+there's also space for freeing ourselves from them to play and explore.
 
 Eventually, I decided to port this to a native mobile app. Processing
 has an Android library, but as many mobile developers do, I opted to go
 iOS first. I had years of iOS experience, although I'd done little with
 CoreGraphics, but I don't think even if I had had this idea initially, I
 would have been able to build it straight away on iOS. The platform
-forced me to operate in the RGB colorspace, and made it hard to extract
+forced me to operate in the RGB color space, and made it hard to extract
 the pixels from the image (hello, C). Memory and waiting was a major
-risk factor. There were exhilarating moments, when it worked for the
-first time. When it first ran on my device\ldots{} without crashing.
-When I optimized memory usage by 66\% and cut seconds off the runtime.
-And there were large periods of time locked away in a dark room, cursing
+risk factor.
+
+There were exhilarating moments, when it worked for the first time. When
+it first ran on my device\ldots{} without crashing. When I optimized
+memory usage by 66\% and cut seconds off the runtime. And there were
+large periods of time locked away in a dark room, cursing
 intermittently.
 
 Because I had my prototype, I could explain to my business partner and
