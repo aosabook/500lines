@@ -431,7 +431,7 @@ Technical Reviewers
     <td>Rail Aliiev</td>
   </tr>
   <tr>
-    <td>Ronin Narkis</td>
+    <td>Ronen Narkis</td>
     <td>Rose Ames</td>
     <td>Sina Jahan</td>
   </tr>
