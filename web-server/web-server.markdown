@@ -1,8 +1,8 @@
 title: A Simple Web Server
 author: Greg Wilson
-
+<markdown>
 _[Greg Wilson](https://twitter.com/gvwilson) is the founder of Software Carpentry, a crash course in computing skills for scientists and engineers.  He has worked for 30 years in both industry and academia, and is the author or editor of several books on computing, including the 2008 Jolt Award winner *Beautiful Code* and the first two volumes of *The Architecture of Open Source Applications*. Greg received a PhD in Computer Science from the University of Edinburgh in 1993._
-
+</markdown>
 ## Introduction
 
 The web has changed society in countless ways over the last two decades,
@@ -52,7 +52,7 @@ The data may be copied from a file on disk,
 generated dynamically by a program,
 or some mix of the two.
 
-\aosafigure{web-server-images/http-cycle.png}{The HTTP Cycle}{500l.web-server.cycle}
+\aosafigure[240pt]{web-server-images/http-cycle.png}{The HTTP Cycle}{500l.web-server.cycle}
 
 The most important thing about an HTTP request is that it's just text:
 any program that wants to can create one or parse one.
@@ -60,7 +60,7 @@ In order to be understood,
 though,
 that text must have the parts shown in \aosafigref{500l.web-server.request}.
 
-\aosafigure{web-server-images/http-request.png}{An HTTP Request}{500l.web-server.request}
+\aosafigure[240pt]{web-server-images/http-request.png}{An HTTP Request}{500l.web-server.request}
 
 The HTTP method is almost always either "GET" (to fetch information)
 or "POST" (to submit form data or upload files).
@@ -100,7 +100,7 @@ tells the server how many bytes to expect to read in the body of the request.
 
 HTTP responses are formatted like HTTP requests (\aosafigref{500l.web-server.response}):
 
-\aosafigure{web-server-images/http-response.png}{An HTTP Response}{500l.web-server.response}
+\aosafigure[240pt]{web-server-images/http-response.png}{An HTTP Response}{500l.web-server.response}
 
 The version, headers, and body have the same form and meaning.
 The status code is a number indicating what happened when the request was processed:
@@ -267,7 +267,7 @@ we still need the last three lines to actually start a server running.
 The first of these lines defines the server's address as a tuple:
 the empty string means "run on the current machine",
 and 8080 is the port.
-We then create an instance of `BaseHTTPServer.HTTPServer`
+We then create an instance of \newline `BaseHTTPServer.HTTPServer`
 with that address and the name of our request handler class as parameters,
 then ask it to run forever
 (which in practice means until we kill it with Control-C).
@@ -458,7 +458,7 @@ and uses our existing `send_content` to send it back to the client:
             self.handle_error(msg)
 ```
 
-Note that we open the file in binary mode --- the 'b' in 'rb' --- so that
+Note that we open the file in binary mode&mdash;the 'b' in 'rb'&mdash;so that
 Python won't try to "help" us by altering byte sequences that look like a Windows line ending.
 Note also that reading the whole file into memory when serving it is a bad idea in real life,
 where the file might be several gigabytes of video data.
@@ -656,8 +656,7 @@ putting it in the case handler prevents clutter in the main `RequestHandler`.
 `test` checks whether the path is a directory containing an `index.html` page,
 and `act` just asks the main request handler to serve that page.
 
-The only change needed to `RequestHandler` to include this logic
-is to add a `case_directory_index_file` object to our `Cases` list:
+The only change needed to `RequestHandler` is to add a `case_directory_index_file` object to our `Cases` list:
 
 ```python 
     Cases = [case_no_file(),
@@ -725,7 +724,8 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def list_dir(self, full_path):
         try:
             entries = os.listdir(full_path)
-            bullets = ['<li>{0}</li>'.format(e) for e in entries if not e.startswith('.')]
+            bullets = ['<li>{0}</li>'.format(e) 
+                for e in entries if not e.startswith('.')]
             page = self.Listing_Page.format('\n'.join(bullets))
             self.send_content(page)
         except OSError as msg:
@@ -775,9 +775,8 @@ class case_cgi_file(object):
 ```
 
 The test is simple:
-does the file path end with `.py`?
-The action is equally simple:
-tell `RequestHandler` to run this program.
+does the file path end with `.py`? 
+If so, we tell `RequestHandler` to run this program.
 
 ```python 
     def run_cgi(self, full_path):
@@ -805,9 +804,9 @@ the core idea is simple:
 2.  Capture whatever that subprocess sends to standard output.
 3.  Send that back to the client that made the request.
 
-The full CGI protocol is much richer than this---in particular,
+The full CGI protocol is much richer than this&mdash;in particular,
 it allows for parameters in the URL,
-which the server passes into the program being run---but
+which the server passes into the program being run&mdash;but
 those details don't affect the overall architecture of the system...
 
 ...which is once again becoming rather tangled.

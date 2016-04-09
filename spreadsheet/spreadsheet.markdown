@@ -1,14 +1,14 @@
 title: Web Spreadsheet
 author: Audrey Tang
-
+<markdown>
 _A self-educated programmer and translator, Audrey works with Apple as an independent contractor on cloud service localization and natural language technologies. Audrey has previously designed and led the first working Perl 6 implementation, and served in computer language design committees for Haskell, Perl 5, and Perl 6. Currently Audrey is a full-time g0v contributor and leads Taiwan’s first e-Rulemaking project._
-
-This chapter introduces a [web spreadsheet](http://audreyt.github.io/500lines/spreadsheet/) written in [99 lines](https://github.com/audreyt/500lines/tree/master/spreadsheet/code) of the three languages natively supported by web browsers: HTML, JavaScript, and CSS.
+</markdown>
+This chapter introduces a web spreadsheet written in 99 lines of the three languages natively supported by web browsers: HTML, JavaScript, and CSS.
 
 The ES5 version of this project is available as a [jsFiddle](http://jsfiddle.net/audreyt/LtDyP/).
 
 <markdown>
-_(This chapter is also available in [Traditional Chinese](https://github.com/audreyt/500lines/blob/master/spreadsheet/chapter.zh-tw.md))_. 
+_(This chapter is also available in [Traditional Chinese](https://github.com/aosabook/500lines/blob/master/spreadsheet/spreadsheet.zh-tw.markdown))_. 
 </markdown>
 
 ## Introduction
@@ -31,28 +31,28 @@ The [spreadsheet](https://github.com/audreyt/500lines/tree/master/spreadsheet/co
 
 Now let’s open [our spreadsheet](http://audreyt.github.io/500lines/spreadsheet/) in a browser (\aosafigref{500l.spreadsheet.initial}):
 
-\aosafigure{spreadsheet-images/01-initial.png}{Initial Screen}{500l.spreadsheet.initial}
+\aosafigure[240pt]{spreadsheet-images/01-initial.png}{Initial Screen}{500l.spreadsheet.initial}
 
 ### Basic Concepts
 
 The spreadsheet spans two dimensions, with _columns_ starting from **A**, and _rows_ starting from **1**. Each _cell_ has a unique _coordinate_ (such as **A1**) and _content_ (such as "1874"), which belongs to one of four _types_:
 
-* Text: "+" in **B1** and "⇒" in **D1**, aligned to the left.
+* Text: "+" in **B1** and "->" in **D1**, aligned to the left.
 * Number: "1874" in **A1** and "2046" in **C1**, aligned to the right.
 * Formula:  `=A1+C1` in **E1**, which _calculates_ to the _value_ "3920", displayed with a light blue background.
 * Empty: All cells in row **2** are currently empty.
 
-Click "3920" to set _focus_ on **E1**, revealing its formula in an _input box_ (\aosafigref{500l.spreadsheet.inputbox}):
+Click "3920" to set _focus_ on **E1**, revealing its formula in an _input box_ (\aosafigref{500l.spreadsheet.inputbox}).
 
-\aosafigure{spreadsheet-images/02-input.png}{Input Box}{500l.spreadsheet.input}
+\aosafigure[240pt]{spreadsheet-images/02-input.png}{Input Box}{500l.spreadsheet.inputbox}
 
-Now let’s set focus on **A1** and _change_ its content to "1", causing **E1** to _recalculate_ its value to "2047" (\aosafigref{500l.spreadsheet.changed}):
+Now let’s set focus on **A1** and _change_ its content to "1", causing **E1** to _recalculate_ its value to "2047" (\aosafigref{500l.spreadsheet.changed}).
 
-\aosafigure{spreadsheet-images/03-changed.png}{Changed Content}{500l.spreadsheet.changed}
+\aosafigure[240pt]{spreadsheet-images/03-changed.png}{Changed Content}{500l.spreadsheet.changed}
 
-Press **ENTER** to set focus to **A2** and change its content to `=Date()`, then press **TAB**, change the content of **B2** to `=alert()`, then press **TAB** again to set focus to `C2` (\aosafigref{500l.spreadsheet.error}):
+Press **ENTER** to set focus to **A2** and change its content to `=Date()`, then press **TAB**, change the content of **B2** to `=alert()`, then press **TAB** again to set focus to `C2` (\aosafigref{500l.spreadsheet.error}).
 
-\aosafigure{spreadsheet-images/04-error.png}{Formula Error}{500l.spreadsheet.error}
+\aosafigure[240pt]{spreadsheet-images/04-error.png}{Formula Error}{500l.spreadsheet.error}
 
 This shows that a formula may calculate to a number ("2047" in **E1**), a text (the current time in **A2**, aligned to the left), or an _error_ (red letters in **B2**, aligned to the center).
 
@@ -62,14 +62,14 @@ Now reload the page in the browser with **Ctrl-R** or **Cmd-R** to verify that t
 
 ### Progressive Enhancement
 
-Before we dive into the 99 lines of code, it’s worthwhile to disable JS in the browser, reload the page, and note the differences (\aosafigref{500l.spreadsheet.nojs}):
+Before we dive into the 99 lines of code, it’s worthwhile to disable JS in the browser, reload the page, and note the differences (\aosafigref{500l.spreadsheet.nojs}).
 
 * Instead of a large grid, only a 2x2 table remains onscreen, with a single content cell.
 * Row and column labels are replaced by `{{ row }}` and `{{ col }}`.
 * Pressing the reset button produces no effect.
 * Pressing **TAB** or clicking into the first line of content still reveals an editable input box.
 
-\aosafigure{spreadsheet-images/05-nojs.png}{With JavaScript Disabled}{500l.spreadsheet.nojs}
+\aosafigure[240pt]{spreadsheet-images/05-nojs.png}{With JavaScript Disabled}{500l.spreadsheet.nojs}
 
 When we disable the dynamic interactions (JS), the content structure (HTML) and the presentational styles (CSS) remain in effect. If a website is useful with both JS and CSS disabled, we say it adheres to the _progressive enhancement_ principle, making its content accessible to the largest audience possible.
 
@@ -85,11 +85,10 @@ As shown in \aosafigref{500l.spreadsheet.nocss}, if we enable JS in the browser 
 
 ## Code Walkthrough
 
-\aosafigref{500l.spreadsheet.architecture} shows the links between HTML and JS components:
+\aosafigref{500l.spreadsheet.architecture} shows the links between HTML and JS components.  In order to make sense of the diagram, let’s go through the four source code files, in the same sequence as the browser loads them.
 
-\aosafigure{spreadsheet-images/00-architecture.png}{Architecture Diagram}{500l.spreadsheet.architecture}
+\aosafigure[240pt]{spreadsheet-images/00-architecture.png}{Architecture Diagram}{500l.spreadsheet.architecture}
 
-In order to make sense of the diagram, let’s go through the four source code files, in the same sequence as the browser loads them:
 
 * **index.html**: 19 lines
 * **main.js**: 38 lines (excluding comments and blank lines)
@@ -104,17 +103,20 @@ The first line in `index.html` declares that it’s written in HTML5 (`<!DOCTYPE
 <!DOCTYPE html><html><head><meta charset="UTF-8">
 ```
 
-Without the `charset` declaration, the browser may display the reset button’s Unicode symbol `↻` as `â†»`, an example of _mojibake_: garbled text caused by decoding issues.
+Without the `charset` declaration, the browser may display the reset button’s Unicode symbol as `â†»`, an example of _mojibake_: garbled text caused by decoding issues.
 
 The next three lines are JS declarations, placed within the `head` section as usual:
 
 ```html
   <script src="lib/angular.js"></script>
   <script src="main.js"></script>
-  <script>try{ angular.module('500lines') }catch(e){ location="es5/index.html" }</script>
+  <script>
+      try { angular.module('500lines') }
+      catch(e){ location="es5/index.html" }
+  </script>
 ```
 
-The `<script src="…">` tags load JS resources from the same path as the HTML page. For example,  if the current URL is `http://audreyt.github.io/500lines/spreadsheet/index.html`, then `lib/angular.js` refers to `http://audreyt.github.io/500lines/spreadsheet/lib/angular.js`.
+The `<script src="…">` tags load JS resources from the same path as the HTML page. For example, if the current URL is `http://abc.com/x/index.html`, then `lib/angular.js` refers to `http://abc.com/x/lib/angular.js`.
 
 The `try{ angular.module('500lines') }` line tests if `main.js` is loaded correctly; if not, it tells the browser to navigate to `es5/index.html` instead. This _redirect-based graceful degradation_ technique ensures that for pre-2015 browsers with no ES6 support, we can use the translated-to-ES5 versions of JS programs as a fallback.
 
@@ -206,7 +208,7 @@ As the bridge between the HTML view and the background worker, it has four tasks
 
 The flowchart in \aosafigref{500l.spreadsheet.flowchart} shows the controller-worker interaction in more detail:
 
-\aosafigure{spreadsheet-images/00-flowchart.png}{Controller-Worker Flowchart}{500l.spreadsheet.flowchart}
+\aosafigure[240pt]{spreadsheet-images/00-flowchart.png}{Controller-Worker Flowchart}{500l.spreadsheet.flowchart}
 
 Now let's walk through the code. In the first line, we request the JS model `$scope` object from AngularJS:
 
@@ -274,11 +276,12 @@ Next up, we retrieve the target element using the ID selector syntax (e.g. `"#A3
 
 We put an extra check on the result of `querySelector` because moving upward from **A1** will produce the selector `#A0`, which has no corresponding element, and so will not trigger a focus change — the same goes for pressing **DOWN** at the bottom row.
 
-Next, we define the `reset()` function so the `↻` button can restore the initial contents of the `sheet`:
+Next, we define the `reset()` function so the reset button can restore the initial contents of the `sheet`:
 
 ```javascript
   // Default sheet content, with some data cells and one formula cell.
-  $scope.reset = ()=>{ $scope.sheet = { A1: 1874, B1: '+', C1: 2046, D1: '⇒', E1: '=A1+C1' }; }
+  $scope.reset = ()=>{ 
+    $scope.sheet = { A1: 1874, B1: '+', C1: 2046, D1: '->', E1: '=A1+C1' }; }
 ```
 
 The `init()` function tries restoring the `sheet` content from its previous state from the [localStorage](https://developer.mozilla.org/en-US/docs/Web/Guide/API/DOM/Storage#localStorage), and defaults to the initial content if it’s our first time running the application:
@@ -456,7 +459,7 @@ In that case, we set the missing cell’s default value to "0", clear `vals[coor
           }
 ```
 
- If the user gives the missing cell a content later on in `sheet[coord]`, then `Object.defineProperty` would take over and override the temporary value.
+ If the user gives the missing cell a content later on in `sheet[coord]`, then the temporary value would be overridden by `Object.defineProperty`.
 
 Other kinds of errors are stored in `errs[coord]`:
 
@@ -472,7 +475,9 @@ Finally, the `get` accessor returns the calculated value stored in `vals[coord]`
 
 ```javascript
         // Turn vals[coord] into a string if it's not a number or Boolean
-        switch (typeof vals[coord]) { case 'function': case 'object': vals[coord]+=''; }
+        switch (typeof vals[coord]) { 
+            case 'function': case 'object': vals[coord]+=''; 
+        }
         return vals[coord];
       } } );
     }));

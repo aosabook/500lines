@@ -212,7 +212,7 @@ When `buffer!` is called on a `buffer`, it:
 
 The `buffer` type is a CLOS [_class_](http://www.gigamonkeys.com/book/object-reorientation-classes.html). Classes in CLOS let us define a type with fields called `slots`. We don't see the behaviours associated with `buffer` on the class definition, because (as we've already learned), we do that using generic functions like `buffer!`.
 
-`defclass` does allow us to specify getters/setters (`reader`s/`accessor`s), and slot initializers; `:initform` specifies a default value, while `:initarg` identifies a hook that the caller of `make-instance` can use to provide a default value.
+`defclass` does allow us to specify getters/setters (`reader`s/`accessor`s), and slot initializers; `:initform` specifies a default value, while `:initarg` identifies a hook that the caller of \newline `make-instance` can use to provide a default value.
 
 ```lisp
 (defclass buffer ()
@@ -571,7 +571,7 @@ Here's our `define-handler` macro[^indentation]:
 	,name (make-stream-handler ,args ,@body))))
 ```
 
-It delegates to three other macros (`bind-handler`, `make-closing-handler`, `make-stream-handler`) that we will define later. `make-closing-handler` will create a handler for a full HTTP request/response cycle; `make-stream-handler` will instead handle an SSE message. The predicate `is-stream?` distinguishes between these cases for us. The backtick and comma are macro-specific operators that we can use to "cut holes" in our code that will be filled out by values specified in our Lisp code when we actually use `define-handler`.
+It delegates to three other macros (`bind-handler`, `make-closing-handler`, \newline `make-stream-handler`) that we will define later. `make-closing-handler` will create a handler for a full HTTP request/response cycle; `make-stream-handler` will instead handle an SSE message. The predicate `is-stream?` distinguishes between these cases for us. The backtick and comma are macro-specific operators that we can use to "cut holes" in our code that will be filled out by values specified in our Lisp code when we actually use `define-handler`.
 
 Notice how closely our macro conforms to our specification of what we wanted `define-handler` to do: If we were to write a series of Lisp functions to do all of these things, the intent of the code would be much more difficult to discern by inspection.
 
@@ -835,7 +835,7 @@ This is a generic function that generates new tree structures (coincidentally Li
     :type-assertion `(numberp ,parameter))
 ```
 
-An `:integer` is something we're making from a `parameter` by using `(parse-integer parameter :junk-allowed t)`. `junk-allowed` tells `parse-integer` that we're not confident the data we're giving it is actually parseable, so we need to make sure that the returned result is an integer. If it isn't, we get this behaviour:
+An `:integer` is something we're making from a `parameter` by using `parse-integer`. The `junk-allowed` parameter tells `parse-integer` that we're not confident the data we're giving it is actually parseable, so we need to make sure that the returned result is an integer. If it isn't, we get this behaviour:
 
 ```
 HOUSE> (type-expression 'blah :integer)

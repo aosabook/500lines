@@ -1,8 +1,8 @@
 title: A 3D Modeller
 author: Erick Dransch
-
+<markdown>
 _Erick is a software developer and 2D and 3D computer graphics enthusiast. He has worked on video games, 3D special effects software, and computer aided design tools. If it involves simulating reality, chances are he'd like to learn more about it. You can find him online at [erickdransch.com](http://erickdransch.com)._
-
+</markdown>
 ## Introduction
 Humans are innately creative. We continuously design and build novel, useful, and interesting things. In modern times, we write software to assist in the design and creation process. 
 Computer-aided design (CAD) software allows creators to design buildings, bridges, video game art, 
@@ -204,7 +204,8 @@ Finally, `glFlush` signals to the graphics driver that we are ready for the buff
         self.modelView = numpy.transpose(currentModelView)
         self.inverseModelView = inv(numpy.transpose(currentModelView))
 
-        # render the scene. This will call the render function for each object in the scene
+        # render the scene. This will call the render function for each object
+        # in the scene
         self.scene.render()
 
         # draw the grid
@@ -257,7 +258,7 @@ class Scene(object):
         self.node_list.append(node)
 
     def render(self):
-        """ Render the scene. This function simply calls the render function for each node. """
+        """ Render the scene. """
         for node in self.node_list:
             node.render()
 ```
@@ -304,7 +305,8 @@ class Node(object):
         glPopMatrix()
 
     def render_self(self):
-        raise NotImplementedError("The Abstract Node Class doesn't define 'render_self'")
+        raise NotImplementedError(
+            "The Abstract Node Class doesn't define 'render_self'")
 
 class Primitive(Node):
     def __init__(self):
@@ -925,7 +927,9 @@ translation matrix for use during rendering.
 ```python
     # class Node
     def translate(self, x, y, z):
-        self.translation_matrix = numpy.dot(self.translation_matrix, translation([x, y, z]))
+        self.translation_matrix = numpy.dot(
+            self.translation_matrix, 
+            translation([x, y, z]))
 ```
 
 The `translation` function returns a translation matrix given a list representing the $x$, $y$, and $z$ translation distances.

@@ -1,12 +1,12 @@
 title: Clustering by Consensus
 author: Dustin J. Mitchell
-
+<markdown>
 _Dustin is an open source software developer and release engineer at Mozilla.
 He has worked on projects as varied as a host configuration system in Puppet, a
 Flask-based web framework, unit tests for firewall configurations, and a
 continuous integration framework in Twisted Python. Find him as [\@djmitche](http://github.com/djmitche) on
 GitHub or at [dustin@mozilla.com](mailto:dustin@mozilla.com)._
-
+</markdown>
 ## Introduction
 
 In this chapter, we'll explore implementation of a network protocol designed to support reliable distributed computation.
@@ -97,8 +97,7 @@ The protocol operates in a series of ballots, each led by a single member of the
 Each ballot has a unique ballot number based on an integer and the proposer's identity.
 The proposer's goal is to get a majority of cluster members, acting as acceptors, to accept its value, but only if another value has not already been decided.
 
-
-\aosafigure{cluster-images/ballot.png}{A Ballot}{500l.cluster.ballot}
+\aosafigure[240pt]{cluster-images/ballot.png}{A Ballot}{500l.cluster.ballot}
 
 A ballot begins with the proposer sending a ``Prepare`` message with the ballot number *N* to the acceptors and waiting to hear from a majority (\aosafigref{500l.cluster.ballot}.)
 
@@ -114,7 +113,11 @@ Otherwise, it sends the value from the highest-numbered promise.
 Unless it would violate a promise, each acceptor records the value from the ``Accept`` message as accepted and replies with an ``Accepted`` message.
 The ballot is complete and the value decided when the proposer has heard its ballot number from a majority of acceptors.
 
-Returning to the example, initially no other value has been accepted, so the acceptors all send back a ``Promise`` with no value, and the proposer sends an ``Accept`` containing its value, say ``operation(name='deposit', amount=100.00, destination_account='Mike DiBernardo')``.
+Returning to the example, initially no other value has been accepted, so the acceptors all send back a ``Promise`` with no value, and the proposer sends an ``Accept`` containing its value, say:
+
+```python
+    operation(name='deposit', amount=100.00, destination_account='Mike DiBernardo')
+```
 
 If another proposer later initiates a ballot with a lower ballot number and a different operation (say, a transfer to acount ``'Dustin J. Mitchell'``), the acceptors will simply not accept it.
 If that ballot has a larger ballot number, then the ``Promise`` from the acceptors will inform the proposer about Michael's $100.00 deposit operation, and the proposer will send that value in the ``Accept`` message instead of the transfer to Dustin.
@@ -128,7 +131,7 @@ Both proposers then re-propose, and hopefully one wins, but the deadlock can con
 Consider the following sequence of events:
 
 * Proposer A performs the ``Prepare``/``Promise`` phase for ballot number 1.
-* Before Proposer A manages to get its proposal accepted, Proposer B performs a ``Prepare``/``Promise`` phase for ballot number 2.
+* Before Proposer A manages to get its proposal accepted, Proposer B performs a \newline ``Prepare``/``Promise`` phase for ballot number 2.
 * When Proposer A finally sends its ``Accept`` with ballot number 1, the acceptors reject it because they have already promised ballot number 2.
 * Proposer A reacts by immediately sending a ``Prepare`` with a higher ballot number (3), before Proposer B can send its ``Accept`` message.
 * Proposer B's subsequent ``Accept`` is rejected, and the process repeats.
@@ -420,7 +423,7 @@ The ``Replica`` class is the most complicated role class, as it has a few closel
 The replica creates new proposals in response to ``Invoke`` messages from clients, selecting what it believes to be an unused slot and sending a ``Propose`` message to the current leader (\aosafigref{500l.cluster.replica}.)
 Furthermore, if the consensus for the selected slot is for a different proposal, the replica must re-propose with a new slot.
 
-\aosafigure{cluster-images/replica.png}{Replica Role Control Flow}{500l.cluster.replica}
+\aosafigure[240pt]{cluster-images/replica.png}{Replica Role Control Flow}{500l.cluster.replica}
 
 ``Decision`` messages represent slots on which the cluster has come to consensus.
 Here, replicas store the new decision, then run the state machine until it reaches an undecided slot.
@@ -450,14 +453,14 @@ When the acceptor role sends a ``Promise`` to a new leader, it sends an ``Accept
 
 The active leader sends ``Active`` messages as a heartbeat (\aosafigref{500l.cluster.active}.) If no such message arrives before the ``LEADER_TIMEOUT`` expires, the replica assumes the leader is dead and moves on to the next leader.  In this case, it's important that all replicas choose the *same* new leader, which we accomplish by sorting the members and selecting the next one in the list.
 
-\aosafigure{cluster-images/active.png}{Active}{500l.cluster.active}
+\aosafigure[240pt]{cluster-images/active.png}{Active}{500l.cluster.active}
 
 Finally, when a node joins the network, the bootstrap role sends a ``Join``
 message (\aosafigref{500l.cluster.bootstrap}.) The replica responds with a
 ``Welcome`` message containing its most recent state, allowing the new node to
 come up to speed quickly.
 
-\aosafigure{cluster-images/bootstrap.png}{Bootstrap}{500l.cluster.bootstrap}
+\aosafigure[240pt]{cluster-images/bootstrap.png}{Bootstrap}{500l.cluster.bootstrap}
 
 ```python
 
@@ -468,7 +471,7 @@ class Replica(Role):
         self.execute_fn = execute_fn
         self.state = state
         self.slot = slot
-        self.decisions = decisions.copy()
+        self.decisions = decisions
         self.peers = peers
         self.proposals = {}
         # next slot num for a proposal (may lead slot)
@@ -492,7 +495,8 @@ class Replica(Role):
         # find a leader we think is working - either the latest we know of, or
         # ourselves (which may trigger a scout to make us the leader)
         leader = self.latest_leader or self.node.address
-        self.logger.info("proposing %s at slot %d to leader %s" % (proposal, slot, leader))
+        self.logger.info(
+            "proposing %s at slot %d to leader %s" % (proposal, slot, leader))
         self.node.send([leader], Propose(slot=slot, proposal=proposal))
 
     # handling decided proposals
@@ -509,7 +513,8 @@ class Replica(Role):
 
         # re-propose our proposal in a new slot if it lost its slot and wasn't a no-op
         our_proposal = self.proposals.get(slot)
-        if our_proposal is not None and our_proposal != proposal and our_proposal.caller:
+        if (our_proposal is not None and 
+            our_proposal != proposal and our_proposal.caller):
             self.propose(our_proposal)
 
         # execute any pending, decided proposals
@@ -623,7 +628,8 @@ class Leader(Role):
             self.scouting = False
         self.logger.info("leader preempted by %s", preempted_by.leader)
         self.active = False
-        self.ballot_num = Ballot((preempted_by or self.ballot_num).n + 1, self.ballot_num.leader)
+        self.ballot_num = Ballot((preempted_by or self.ballot_num).n + 1, 
+                                 self.ballot_num.leader)
 
     def do_Propose(self, sender, slot, proposal):
         if slot not in self.proposals:
@@ -646,7 +652,7 @@ The leader creates a scout role when it wants to become active, in response to r
 The scout sends (and re-sends, if necessary) a ``Prepare`` message, and collects ``Promise`` responses until it has heard from a majority of its peers or until it has been preempted.
 It communicates the result back to the leader with an ``Adopted`` or ``Preempted`` message, respectively.
 
-\aosafigure{cluster-images/leaderscout.png}{Scout}{500l.cluster.leaderscout}
+\aosafigure[240pt]{cluster-images/leaderscout.png}{Scout}{500l.cluster.leaderscout}
 
 ```python
 
@@ -689,7 +695,8 @@ class Scout(Role):
                 # leader is active.  # Any such conflicts will be handled by the
                 # commanders.
                 self.node.send([self.node.address],
-                    Adopted(ballot_num=ballot_num, accepted_proposals=accepted_proposals))
+                    Adopted(ballot_num=ballot_num, 
+                            accepted_proposals=accepted_proposals))
                 self.stop()
         else:
             # this acceptor has promised another leader a higher ballot number,
@@ -705,7 +712,7 @@ Like a scout, a commander sends and re-sends ``Accept`` messages and waits for a
 When a proposal is accepted, the commander broadcasts a ``Decision`` message to all nodes.
 It responds to the leader with either ``Decided`` or ``Preempted``.
 
-\aosafigure{cluster-images/leadercommander.png}{Commander}{500l.cluster.leadercommander}
+\aosafigure[240pt]{cluster-images/leadercommander.png}{Commander}{500l.cluster.leadercommander}
 
 ```python
 
@@ -828,7 +835,8 @@ Seed emulates the ``Join``/``Welcome`` part of the bootstrap/replica interaction
 
 class Seed(Role):
 
-    def __init__(self, node, initial_state, execute_fn, peers, bootstrap_cls=Bootstrap):
+    def __init__(self, node, initial_state, execute_fn, peers, 
+                 bootstrap_cls=Bootstrap):
         super(Seed, self).__init__(node)
         self.initial_state = initial_state
         self.execute_fn = execute_fn
@@ -854,7 +862,8 @@ class Seed(Role):
 
     def finish(self):
         # bootstrap this node into the cluster we just seeded
-        bs = self.bootstrap_cls(self.node, peers=self.peers, execute_fn=self.execute_fn)
+        bs = self.bootstrap_cls(self.node, 
+                                peers=self.peers, execute_fn=self.execute_fn)
         bs.start()
         self.stop()
     
@@ -983,7 +992,9 @@ class Network(object):
 
     def send(self, sender, destinations, message):
         sender.logger.debug("sending %s to %s", message, destinations)
-        for dest in (d for d in destinations if d in self.nodes):
+        # avoid aliasing by making a closure containing distinct deep copy of
+        # message for each dest
+        def sendto(dest, message):
             if dest == sender.address:
                 # reliably deliver local messages with no delay
                 self.set_timer(sender.address, 0,  
@@ -994,6 +1005,8 @@ class Network(object):
                 self.set_timer(dest, delay, 
                                functools.partial(self.nodes[dest].receive, 
                                                  sender.address, message))
+        for dest in (d for d in destinations if d in self.nodes):
+            sendto(dest, copy.deepcopy(message))
     
 ```
 
@@ -1231,7 +1244,7 @@ Lamport addresses this challenge in the final paragraph of "Paxos Made Simple":
 
 > We can allow a leader to get $\alpha$ commands ahead by letting the set of servers that execute instance $i+\alpha$ of the consensus algorithm be specified by the state after execution of the $i$th state machine command.  (Lamport, 2001)
 
-The idea is that each instance of Paxos (slot) uses the view from α slots earlier.
+The idea is that each instance of Paxos (slot) uses the view from $\alpha$ slots earlier.
 This allows the cluster to work on, at most, $\alpha$ slots at any one time, so a very small value of $\alpha$ limits concurrency, while a very large value of $\alpha$ makes view changes slow to take effect.
 
 In early drafts of this implementation (dutifully preserved in the git history!), I implemented support for view changes (using $\alpha$ in place of 3).

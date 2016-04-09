@@ -1,13 +1,13 @@
 title: Static Analysis
 author: Leah Hanson
-
+<markdown>
 _Leah Hanson is a proud alumni of Hacker School and loves helping people learn about Julia. She blogs at [http://blog.leahhanson.us/](http://blog.leahhanson.us/) and tweets at [\@astrieanna](https://twitter.com/astrieanna)._
-
+</markdown>
 ## Introduction
 
 You may be familiar with a fancy IDE that draws red underlines under parts of your code that don't compile. You may have run a linter on your code to check for formatting or style problems. You might run your compiler in super-picky mode with all the warnings turned on. All of these tools are applications of static analysis.
 
-Static analysis is a way to check for problems in your code without running it. "Static" means at compile time rather than at run time, and "analysis" means we're analyzing the code. When you've used the tools I mentioned above, it may have felt like magic. But those tools are just programs --- they are made of source code that was written by a person, a programmer like you. In this chapter, we're going to talk about how to implement a couple of static analysis checks. In order to do this, we need to know what we want the check to do and how we want to do it.
+Static analysis is a way to check for problems in your code without running it. "Static" means at compile time rather than at run time, and "analysis" means we're analyzing the code. When you've used the tools I mentioned above, it may have felt like magic. But those tools are just programs&mdash;they are made of source code that was written by a person, a programmer like you. In this chapter, we're going to talk about how to implement a couple of static analysis checks. In order to do this, we need to know what we want the check to do and how we want to do it.
 
 We can get more specific about what you need to know by describing the process as having three stages:
 
@@ -196,13 +196,13 @@ We'll need to find out which variables are used inside loops and we'll need to f
 * How do we print the results?
 * How do we tell if the type is unstable?
 
-I'm going to tackle the last question first, since this whole endeavour hinges on it. We've looked at an unstable function and seen, as programmers, how to identify an unstable variable, but we need our program to find them. This sounds like it would require simulating the function to look for variables whose values might change --- which sounds like it would take some work. Luckily for us, Julia's type inference already traces through the function's execution to determine the types.
+I'm going to tackle the last question first, since this whole endeavour hinges on it. We've looked at an unstable function and seen, as programmers, how to identify an unstable variable, but we need our program to find them. This sounds like it would require simulating the function to look for variables whose values might change&mdash;which sounds like it would take some work. Luckily for us, Julia's type inference already traces through the function's execution to determine the types.
 
 The type of `sum` in `unstable` is `Union(Float64,Int64)`. This is a `UnionType`, a special kind of type that indicates that the variable may hold any of a set of types of values. A variable of type `Union(Float64,Int64)` can hold values of type `Int64` or `Float64`; a value can only have one of those types. A `UnionType` joins any number of types (e.g., `UnionType(Float64, Int64, Int32)` joins three types). The specific thing that we're going to look for is `UnionType`d variables inside loops.
 
 Parsing code into a representative structure is a complicated business, and gets more complicated as the language grows. In this chapter, we'll be depending on internal data structures used by the compiler. This means that we don't have to worry about reading files or parsing them, but it does mean we have to work with data structures that are not in our control and that sometimes feel clumsy or ugly.
 
-Besides all the work we'll save by not having to parse the code by ourselves, working with the same data structures that the compiler uses means that our checks will be based on an accurate assessment of the compilers understanding --- which means our check will be consistent with how the code actually runs.
+Besides all the work we'll save by not having to parse the code by ourselves, working with the same data structures that the compiler uses means that our checks will be based on an accurate assessment of the compilers understanding&mdash;which means our check will be consistent with how the code actually runs.
 
 This process of examining Julia code from Julia code is called introspection. When you or I introspect, we're thinking about how and why we think and feel. When code introspects, it examines the representation or execution properties of code in the same language (possibly its own code). When code's introspection extends to modifying the examined code, it's called metaprogramming (programs that write or modify programs).
 
@@ -648,7 +648,7 @@ end
 
 Sometimes, as you're typing in your program, you mistype a variable name. The program can't tell that you meant for this to be the same variable that you spelled correctly before; it sees a variable used only one time, where you might see a variable name misspelled. Languages that require variable declarations naturally catch these misspellings, but many dynamic languages don’t require declarations and thus need an extra layer of analysis to catch them.
 
-We can find misspelled variable names (and other unused variables) by looking for variables that are only used once --- or only used one way.
+We can find misspelled variable names (and other unused variables) by looking for variables that are only used once&mdash;or only used one way.
 
 Here is an example of a little bit of code with one misspelled name.
 
@@ -663,9 +663,9 @@ function foo(variable_name::Int)
 end
 ```
 
-This kind of mistake can cause problems in your code that are only discovered when it's run. Let's assume you misspell each variable name only once. We can separate variable usages into writes and reads. If the misspelling is a write (i.e., `worng = 5`), then no error will be thrown; you'll just be silently putting the value in the wrong variable --- and it could be frustrating to find the bug. If the misspelling is a read (i.e., `right = worng + 2`), then you'll get a runtime error when the code is run; we'd like to have a static warning for this, so that you can find this error sooner, but you will still have to wait until you run the code to see the problem.
+This kind of mistake can cause problems in your code that are only discovered when it's run. Let's assume you misspell each variable name only once. We can separate variable usages into writes and reads. If the misspelling is a write (i.e., `worng = 5`), then no error will be thrown; you'll just be silently putting the value in the wrong variable&mdash;and it could be frustrating to find the bug. If the misspelling is a read (i.e., `right = worng + 2`), then you'll get a runtime error when the code is run; we'd like to have a static warning for this, so that you can find this error sooner, but you will still have to wait until you run the code to see the problem.
 
-As code becomes longer and more complicated, it becomes harder to spot the mistake --- unless you have the help of static analysis.
+As code becomes longer and more complicated, it becomes harder to spot the mistake&mdash;unless you have the help of static analysis.
 
 ### Left-Hand Side and Right-Hand Side
 
@@ -899,7 +899,7 @@ check_locals(e::Expr) = isempty(unused_locals(e))
 ```
 
 ## Conclusion
-We’ve done two static analyses of Julia code --- one based on types and one based on variable usages.
+We’ve done two static analyses of Julia code&mdash;one based on types and one based on variable usages.
 
 Statically-typed languages already do the kind of work our type-based analysis did; additional type-based static analysis is mostly useful in dynamically typed languages. There have been (mostly research) projects to build static type inference systems for languages including Python, Ruby, and Lisp. These systems are usually built around optional type annotations; you can have static types when you want them, and fall back to dynamic typing when you don’t. This is especially helpful for integrating some static typing into existing code bases.
 

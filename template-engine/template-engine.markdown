@@ -1,6 +1,5 @@
 title: A Template Engine
 author: Ned Batchelder
-
 <markdown>
 _Ned Batchelder is a software engineer with a long career, currently working at
 edX to build open source software to educate the world.  He's the maintainer of
@@ -8,7 +7,6 @@ coverage.py, an organizer of Boston Python, and has spoken at many PyCons.  He
 blogs at [http://nedbatchelder.com](http://nedbatchelder.com). He once had
 dinner at the White House._
 </markdown>
-
 ## Introduction
 
 Most programs contain a lot of logic, and a little bit of literal textual data.
@@ -74,7 +72,8 @@ PRODUCT_HTML = "<li>{prodname}: {price}</li>\n"
 def make_page(username, products):
     product_html = ""
     for prodname, price in products:
-        product_html += PRODUCT_HTML.format(prodname=prodname, price=format_price(price))
+        product_html += PRODUCT_HTML.format(
+            prodname=prodname, price=format_price(price))
     html = PAGE_HTML.format(name=username, products=product_html)
     return html
 ```
@@ -224,8 +223,6 @@ so conditionals are available:
 ```html
 {% if user.is_logged_in %}
     <p>Welcome, {{ user.name }}!</p>
-{% else %}
-    <p><a href="/login">Log in </a></p>
 {% endif %}
 ```
 
@@ -253,13 +250,12 @@ brace-hashes:
 
 ## Implementation Approaches
 
-In broad strokes, the template engine will have two main phases:
+In broad strokes, the template engine will have two main phases: _parsing_ the template, and then _rendering_ the template.
 
-* Parse the template
-* Render the template to assemble the text result, which involves:
-    * Managing the dynamic context, the source of the data
-    * Executing the logic elements
-    * Implementing dot access and filter execution
+Rendering the template specifically involves:
+* Managing the dynamic context, the source of the data
+* Executing the logic elements
+* Implementing dot access and filter execution
 
 The question of what to pass from the parsing
 phase to the rendering phase is key.  What does parsing produce that can be rendered?
@@ -616,7 +612,7 @@ template engine only needs to define one function.  But it's better software
 design to keep that implementation detail in the template engine code, and out
 of our CodeBuilder class.
 
-Even as we're actually using it --- to define a single function --- having `get_globals`
+Even as we're actually using it&mdash;to define a single function&mdash;having `get_globals`
 return the dictionary keeps the code more modular because it doesn't need to
 know the name of the function we've defined.  Whatever function name we define
 in our Python source, we can retrieve that name from the dict returned by
@@ -782,7 +778,7 @@ which will mean that our compiled Python function will have this line:
 append_result('hello')
 ```
 
-which will add the string `hello` to the rendered output of the template. We have multiple levels of abstraction here which can be difficult to keep straight. The compiler uses `buffered.append("'hello'")`, which creates `append_result('hello')` in the compiled Python function, which when run, appends `hello` to the template result.
+which will add the string `hello` to the rendered output of the template. We have multiple levels of abstraction here which can be difficult to keep straight. The compiler uses \newline `buffered.append("'hello'")`, which creates `append_result('hello')` in the compiled Python function, which when run, appends `hello` to the template result.
 
 Back to our Templite class. As we parse control structures, we want to check
 that they are properly nested.  The `ops_stack` list is a stack of strings:
@@ -1337,7 +1333,7 @@ here.  To keep this code small, we're leaving out interesting ideas like:
 * Custom tags
 * Automatic escaping
 * Arguments to filters
-* Complex logic like elif and for/else
+* Complex conditional logic like else and elif
 * Loops with more than one loop variable
 * Whitespace control
 

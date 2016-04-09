@@ -6,8 +6,8 @@ _Cate left the tech industry and spent a year finding her way back whilst buildi
 ## A Brilliant Idea (That Wasn’t All That Brilliant)
 
 When I was traveling in China I often saw series of four paintings showing the same
-place in different seasons. Color — the cool whites of winter, pale hues of
-spring, lush greens of summer, and reds and yellows of fall — is what
+place in different seasons. Color&mdash;the cool whites of winter, pale hues of
+spring, lush greens of summer, and reds and yellows of fall&mdash;is what
 visually 
 differentiates the seasons. Around 2011, I had what I thought was a brilliant
 idea: I wanted to be able to visualize a photo series as a series of colors. I
@@ -30,7 +30,7 @@ extracted wasn’t generally the most appealing shade, the creation took a long
 time (a couple of seconds per image), and it took hundreds of images to make
 something cool (\aosafigref{500l.imagefilters.sunflower}).
 
-\aosafigure[240pt]{image-filters-images/sunflower.jpg}{Sunflower layout}{500l.imagefilters.sunflower}
+\aosafigure[180pt]{image-filters-images/sunflower.jpg}{Sunflower layout}{500l.imagefilters.sunflower}
 
 You might think this would be discouraging, but by the time I got to this
 point I had learned many things that hadn’t come my way before — about color
@@ -48,7 +48,7 @@ University, and later work, filled up my time with other people’s ideas and
 priorities. Part of finishing this project was learning how to carve out time
 to make progress on my own ideas; I required 
 about four hours of good mental time a week. A tool that allowed me to
-move faster was therefore really helpful, even necessary --- although it came with
+move faster was therefore really helpful, even necessary&mdash;although it came with
 its own set of problems, especially around writing tests. 
 
 I felt that thorough
@@ -91,8 +91,8 @@ a matter of seconds. However, a long long time ago (in digital terms),
 it was a process that took weeks.
 
 In the old days, we would take the picture, then when we had used a whole roll of film, we would
-take it in to be developed (often at the pharmacy). We'd pick up the developed pictures some days later --- 
-and discover that there was something wrong with many of them.
+take it in to be developed (often at the pharmacy). We'd pick up the developed pictures some days 
+later&mdash;and discover that there was something wrong with many of them.
 Hand not steady enough? Random person or thing that we didn’t notice at
 the time? Overexposed? Underexposed? Of course by then it was too late to remedy the problem.
 
@@ -137,9 +137,9 @@ In \aosafigref{500l.imagefilters.animals}, we see a high-resolution picture of s
 MoMA in NYC. \aosafigref{500l.imagefilters.pixelanimals} is
 the same image blown up, but with just 24 x 32 pixels.
 
-\aosafigure[240pt]{image-filters-images/animals.jpg}{Blow-up animals at MoMA NY}{500l.imagefilters.animals}
+\aosafigure[180pt]{image-filters-images/animals.jpg}{Blow-up animals at MoMA NY}{500l.imagefilters.animals}
 
-\aosafigure[240pt]{image-filters-images/pixelanimals.jpg}{Blow-up animals, blown up}{500l.imagefilters.pixelanimals}
+\aosafigure[180pt]{image-filters-images/pixelanimals.jpg}{Blow-up animals, blown up}{500l.imagefilters.pixelanimals}
 
 See how it's so blurry? We call
 that _pixelation_, which means the image is too big for the number of pixels it
@@ -242,7 +242,7 @@ These don’t really do much yet, but try running the app again, adjusting the c
 in `WIDTH` and `HEIGHT`, to see different sizes.
 
 `background(0)` specifies a black background. Try changing the number passed
-into `background()` and see what happens — it’s the alpha value, and so if you
+to `background()` and see what happens — it’s the alpha value, and so if you
 only pass one number in, it is always greyscale. Alternatively, you can call
 `background(int r, int g, int b)`.
 
@@ -1064,10 +1064,14 @@ objects, and here we see their use. We are using
 [Mockito](http://docs.mockito.googlecode.com/hg/org/mockito/Mockito.html) as
 our mock object framework.
 
-To create a mock we use the `@Mock` annotation on an instance variable, and the
-`MockitoJUnitRunner` will mock it for us at runtime.
+To create a mock we use the `@Mock` annotation on an instance variable, and it will be mocked at runtime by the
+`MockitoJUnitRunner`.
 
-To stub (set the behavior of) a method, we use `when(mock.methodCall()).thenReturn(value)`.
+To stub (set the behavior of) a method, we use: 
+
+```java
+    when(mock.methodCall()).thenReturn(value)
+```
 
 To verify a method was called, we use `verify(mock.methodCall())`.
 
@@ -1173,7 +1177,7 @@ Notice that:
 - We mock `PApplet`, `IFAImage` (created for expressly this purpose), and `ImageColorHelper`.
 - Test methods are annotated with `@Test`[^habits]. If you want to ignore a test (e.g., whilst debugging) you can add the annotation `@Ignore`.
 - In `setup()`, we create the pixel array and have the mock image always return it.
-- Helper methods make it easier to set expectations for recurring tasks (e.g., `setHsbValuesForPixel()`, `setRgbValuesForPixel()`).
+- Helper methods make it easier to set expectations for recurring tasks (e.g., `set*ForPixel()`).
 
 [^habits]: Method names in tests need not start with `test` as of JUnit 4, but habits are hard to break.
 

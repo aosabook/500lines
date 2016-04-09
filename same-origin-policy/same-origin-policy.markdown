@@ -1,13 +1,12 @@
 title: The Same-Origin Policy
 author: Eunsuk Kang, Santiago Perez De Rosso, and Daniel Jackson
-
+<markdown>
 _Eunsuk Kang is a PhD candidate and a member of the Software Design Group at MIT. He received his SM (Master of Science) in Computer Science from MIT (2010), and a Bachelor of Software Engineering from the University of Waterloo (2007). His research projects have focused on developing tools and techniques for software modeling and verification, with applications to security and safety-critical systems._
 
 _Santiago Perez De Rosso is a PhD student in the Software Design Group at MIT. He received his SM in Computer Science from MIT (2015), and an undergraduate degree from ITBA (2011). He used to work at Google, developing frameworks and tools to make engineers more productive (2012). He currently spends most of his time thinking about design and version control._
 
 _Daniel Jackson is a professor in the Department of Electrical Engineering and Computer Science at MIT, and leads the Software Design Group in the Computer Science and Artificial Intelligence Laboratory. He received an MA from Oxford University (1984) in Physics, and his SM (1988) and PhD (1992) in Computer Science from MIT. He was a software engineer for Logica UK Ltd. (1984-1986), Assistant Professor of Computer Science at Carnegie Mellon University (1992-1997), and has been at MIT since 1997. He has broad interests in software engineering, especially in development methods, design and specification, formal methods, and safety critical systems._
-
-
+</markdown>
 ## Introduction
 
 The same-origin policy (SOP) is an important part of the security
@@ -28,7 +27,7 @@ Furthermore, the design of the SOP has evolved organically over the
 years and puzzles many developers.
 
 The goal of this chapter is to capture the essence of
-this important --- yet often misunderstood --- feature. In particular, we
+this important&mdash;yet often misunderstood&mdash;feature. In particular, we
 will attempt to answer the following questions:
 
 * Why is the SOP necessary? What are the types of security violations that it prevents?
@@ -37,7 +36,7 @@ will attempt to answer the following questions:
 * How secure are these mechanisms? What are potential security issues that they introduce?
 
 Covering the SOP in its entirety is a daunting task, given the
-complexity of the parts that are involved --- web servers, browsers,
+complexity of the parts that are involved&mdash;web servers, browsers,
 HTTP, HTML documents, client-side scripts, and so on. We
 would likely get bogged down by the gritty details of all these parts
 (and consume our 500 lines before even reaching SOP). But how can we
@@ -166,10 +165,10 @@ database table. Thus `protocol` is a table with the first column
 containing URLs and the second column containing protocols. And the
 innocuous looking dot operator is in fact a rather general kind of
 relational join, so that you could also write `protocol.p` for all the
-URLs with a protocol `p` --- but more on that later.
+URLs with a protocol `p`&mdash;but more on that later.
 
 Note that paths, unlike URLs, are treated as if they have
-no structure --- a simplification. The keyword `lone` (which can be
+no structure&mdash;a simplification. The keyword `lone` (which can be
 read "less than or equal to one") says that each URL has at most one
 port. The path is the string that follows the host name in the URL,
 and which (for a simple static server) corresponds to the file path of
@@ -315,16 +314,16 @@ check {
 
 Given this `check` command, the analyzer explores every possible behavior of the system (up to the specified bound), and when it finds one that violates the property, displays that instance as a *counterexample*, as shown in \aosafigref{500l.same-origin-policy.fig-http-2a} and \aosafigref{500l.same-origin-policy.fig-http-2b}.
 
-\aosafigure[240pt]{same-origin-policy-images/fig-http-2a.png}{Counterexample at time 0}{500l.same-origin-policy.fig-http-2a}
+\aosafigure[180pt]{same-origin-policy-images/fig-http-2a.png}{Counterexample at time 0}{500l.same-origin-policy.fig-http-2a}
 
-\aosafigure[240pt]{same-origin-policy-images/fig-http-2b.png}{Counterexample at time 1}{500l.same-origin-policy.fig-http-2b}
+\aosafigure[180pt]{same-origin-policy-images/fig-http-2b.png}{Counterexample at time 1}{500l.same-origin-policy.fig-http-2b}
 
 This counterexample again shows an HTTP request being made by a
 client, but with two different servers. (In the Alloy visualizer,
 objects of the same type are distinguished by appending numeric
 suffixes to their names; if there is only one object of a given type,
 no suffix is added. Every name that appears in a snapshot diagram is
-the name of an object. So --- perhaps confusingly at first sight --- the
+the name of an object. So&mdash;perhaps confusingly at first sight&mdash;the
 names `Domain`, `Path`, `Resource`, `Url` all refer to individual
 objects, not to types.)
 
@@ -466,7 +465,7 @@ properties of a document. The flexibility of client-side scripts is
 one of the main catalysts of the rapid development of Web 2.0, but
 is also the reason why the SOP was created in the first place. Without
 the SOP, scripts would be able to send arbitrary requests to servers,
-or freely modify documents inside the browser --- which would be bad
+or freely modify documents inside the browser&mdash;which would be bad
 news if one or more of the scripts turned out to be malicious.
 
 A script can communicate to a server by sending an `XmlHttpRequest`:
@@ -520,7 +519,7 @@ A script can read from and write to various parts of a document
 number of API functions for accessing the DOM (e.g.,
 `document.getElementById`), but enumerating all of them is not
 important for our purpose. Instead, we will simply group them into two
-kinds --- `ReadDom` and `WriteDom` --- and model modifications as
+kinds&mdash;`ReadDom` and `WriteDom`&mdash;and model modifications as
 wholesale replacements of the entire document:
 
 ```alloy
@@ -615,13 +614,12 @@ fact Configuration {
 }
 ```
 
-In addition, let us say that that the email, blog, and calendar
-applications are all developed by a single organization, and thus,
-share the same base domain name. Conceptually, we can think of
-`EmailServer` and `CalendarServer` having domain names
-`email.example.com` and `calendar.example.com`, thus sharing
-`example.com` as the common superdomain. In our model, this can be
-represented by introducing a domain name that _subsumes_ others:
+In addition, let us say that that the email, blog, and calendar applications
+are all developed by a single organization, and thus, share the same base
+domain name. Conceptually, we can think of `EmailServer` and `CalendarServer`
+having subdomains `email` and `calendar`, sharing `example.com` as the common
+superdomain. In our model, this can be represented by introducing a domain name
+that _subsumes_ others:
 
 ```alloy 
 one sig ExampleDomain extends Domain {}{
@@ -645,7 +643,7 @@ is _secure_?
 
 Not surprisingly, this is a tricky question to answer. For our
 purposes, we will turn to two well-studied concepts in information
-security --- _confidentiality_ and _integrity_. Both of these concepts
+security&mdash;_confidentiality_ and _integrity_. Both of these concepts
 talk about how information should be allowed to pass through the
 various parts of the system. Roughly, _confidentiality_ means that a
 critical piece of data should only be accessible to parts that are
@@ -680,9 +678,8 @@ sig DataflowCall in Call {
 ```
 
 For example, during each call of type `HttpRequest`, the client
-transfers two arguments (`sentCookies` and `body`) to the server, and
-in turn, receives two addition sets of data (`receivedCookies` and
-`response`) as return values. 
+transfers `sentCookies` and `body` to the server, and
+receives `receivedCookies` and `response` as return values. 
 
 More generally, arguments flow from the sender of the call to the
 receiver, and return values flow from the receiver to the sender. This
@@ -799,14 +796,14 @@ confidentiality property, the analyzer generates the scenario seen in
 \aosafigref{500l.same-origin-policy.fig-attack-1b}, which shows how
 `EvilScript` may access a piece of critical data (`MyInboxInfo`).
 
-\aosafigure[240pt]{same-origin-policy-images/fig-attack-1a.png}{Confidentiality counterexample at time 0}{500l.same-origin-policy.fig-attack-1a}
-\aosafigure[240pt]{same-origin-policy-images/fig-attack-1b.png}{Confidentiality counterexample at time 1}{500l.same-origin-policy.fig-attack-1b}
+\aosafigure[180pt]{same-origin-policy-images/fig-attack-1a.png}{Confidentiality counterexample at time 0}{500l.same-origin-policy.fig-attack-1a}
+\aosafigure[180pt]{same-origin-policy-images/fig-attack-1b.png}{Confidentiality counterexample at time 1}{500l.same-origin-policy.fig-attack-1b}
 
-This counterexample involves two steps. In the first step (\aosafigref{500l.same-origin-policy.fig-attack-1a}), `EvilScript`, executing inside `AdBanner` from `EvilDomain`, reads the content of `InboxPage`, which originates from `EmailDomain`. In the next step (\aosafigref{500l.same-origin-policy-fig-attack-1b}), `EvilScript` sends the same content (`MyInboxInfo`) to `EvilServer` by making an `XmlHtttpRequest` call. The core of the problem here is that a script executing under one domain is able to read the content of a document from another domain; as we will see in the next section, this is exactly one of the scenarios that the SOP is designed to prevent.
+This counterexample involves two steps. In the first step (\aosafigref{500l.same-origin-policy.fig-attack-1a}), `EvilScript`, executing inside `AdBanner` from `EvilDomain`, reads the content of `InboxPage`, which originates from `EmailDomain`. In the next step (\aosafigref{500l.same-origin-policy.fig-attack-1b}), `EvilScript` sends the same content (`MyInboxInfo`) to `EvilServer` by making an `XmlHtttpRequest` call. The core of the problem here is that a script executing under one domain is able to read the content of a document from another domain; as we will see in the next section, this is exactly one of the scenarios that the SOP is designed to prevent.
 
 There may be multiple counterexamples to a single assertion. Consider \aosafigref{500l.same-origin-policy.fig-attack-2}, which shows a different way in which the system may violate the confidentiality property.
 
-\aosafigure[240pt]{same-origin-policy-images/fig-attack-2.png}{Another confidentiality violation}{500l.same-origin-policy.fig-attack-2}
+\aosafigure[180pt]{same-origin-policy-images/fig-attack-2.png}{Another confidentiality violation}{500l.same-origin-policy.fig-attack-2}
 
 In this scenario, instead of reading the content of the inbox page,
 `EvilScript` directly makes a `GetInboxInfo` request to `EmailServer`.
@@ -817,7 +814,7 @@ identity (e.g., a session cookie), `EvilScript` can effectively
 pretend to be the user and trick the server into responding with the
 user's private data (`MyInboxInfo`). Here, the problem is again
 related to the liberal ways in which a script may be used to access
-information across different domains --- namely, that a script executing
+information across different domains&mdash;namely, that a script executing
 under one domain is able to make an HTTP request to a server with a
 different domain.
 
@@ -854,7 +851,7 @@ fact domSop {
 ```
 An instance such as the first script scenario (from the previous section) is not possible under `domSop`, since `Script` is not allowed to invoke `ReadDom` on a document from a different origin.
 
-The second part of the policy says that a script cannot send an HTTP request to a server unless its context has the same origin as the target URL --- effectively preventing instances such as the second script scenario.
+The second part of the policy says that a script cannot send an HTTP request to a server unless its context has the same origin as the target URL&mdash;effectively preventing instances such as the second script scenario.
 ```alloy
 fact xmlHttpReqSop { 
   all x: XmlHttpRequest | origin[x.url] = origin[x.from.context.src] 
@@ -888,7 +885,7 @@ communication (e.g., mashups).
 
 In this section, we will discuss four techniques that have been
 devised and frequently used by web developers to bypass the
-restrictions imposed by the SOP: (1) The "document.domain" property
+restrictions imposed by the SOP: (1) The `document.domain` property
 relaxation; (2) JSONP; (3) PostMessage; and (4) CORS. These are valuable
 tools, but if used without caution, may render a web application
 vulnerable to exactly the kinds of attacks that the SOP was designed
@@ -914,9 +911,9 @@ without falling into security pitfalls.
 ### Domain Property
 
 As the first technique on our list, we will look at the use of the
-"document.domain" property as a way of bypassing the SOP. The idea
+`document.domain` property as a way of bypassing the SOP. The idea
 behind this technique is to allow two documents from different origins
-to access each other's DOM simply by setting the "document.domain"
+to access each other's DOM simply by setting the `document.domain`
 property to the same value. So, for example, a script from
 `email.example.com` could read or write the DOM of a document from
 `calendar.example.com` if the scripts in both documents set the
@@ -976,7 +973,7 @@ fact domSop {
 }
 ```
 
-Here, `currOrigin[d, t]` is a function that returns the origin of document `d` with the `document.domain` property at time `t` as its hostname.
+Here, `currOrigin[d, t]` is a function that returns the origin of document `d` with the property `document.domain` at time `t` as its hostname.
 
 It is worth pointing out that the `document.domain` properties for
 _both_ documents must be _explictly_ set sometime after they
@@ -1006,7 +1003,7 @@ generates a counterexample scenario to the confidentiality property:
 check Confidentiality for 5
 ```
 
-This scenario consists of five steps; the first three steps show a typical use case of the `document.domain` property, where two documents from distinct origins, `CalendarPage` and `InboxPage`, communicate by setting their domain properties to a common value (`ExampleDomain`). The last two steps introduce another document, `BlogPage`, that has been compromised with a malicious script that attempts to access the content of the other two documents.
+This scenario consists of five steps; the first three steps show a typical use of `document.domain`, where two documents from distinct origins, `CalendarPage` and `InboxPage`, communicate by setting their domain properties to a common value (`ExampleDomain`). The last two steps introduce another document, `BlogPage`, that has been compromised with a malicious script that attempts to access the content of the other two documents.
 
 At the beginning of the scenario
 (\aosafigref{500l.same-origin-policy.fig-setdomain-1a} and
@@ -1018,27 +1015,27 @@ accessing each other's DOM.  The scripts running inside the documents
 modify their domain properties to `ExampleDomain` (which is allowed because
 `ExampleDomain` is a superdomain of the original domain).
 
-\aosafigure[240pt]{same-origin-policy-images/fig-setdomain-1a.png}{Cross-origin counterexample at time 0}{500l.same-origin-policy.fig-setdomain-1a}
-\aosafigure[240pt]{same-origin-policy-images/fig-setdomain-1b.png}{Cross-origin counterexample at time 1}{500l.same-origin-policy.fig-setdomain-1b}
+\aosafigure[180pt]{same-origin-policy-images/fig-setdomain-1a.png}{Cross-origin counterexample at time 0}{500l.same-origin-policy.fig-setdomain-1a}
+\aosafigure[180pt]{same-origin-policy-images/fig-setdomain-1b.png}{Cross-origin counterexample at time 1}{500l.same-origin-policy.fig-setdomain-1b}
 
 Having done this, they can now access each other's DOM by
 executing `ReadDom` or `WriteDom` operations, as in \aosafigref{500l.same-origin-policy.fig-setdomain-1c}.
 
-\aosafigure[240pt]{same-origin-policy-images/fig-setdomain-1c.png}{Cross-origin counterexample at time 2}{500l.same-origin-policy.fig-setdomain-1c}
+\aosafigure[180pt]{same-origin-policy-images/fig-setdomain-1c.png}{Cross-origin counterexample at time 2}{500l.same-origin-policy.fig-setdomain-1c}
 
-Note that when you set the domain property of both "email.example.com"
-and "calendar.example.com" to "example.com", you are allowing not only
+Note that when you set the domain of `email.example.com`
+and `calendar.example.com` to `example.com`, you are allowing not only
 these two pages to communicate between each other, but also _any_
-other page that has "example.com" as a superdomain
-(e.g., "blog.example.com"). An attacker also realizes this, and
+other page that has `example.com` as a superdomain
+(e.g., `blog.example.com`). An attacker also realizes this, and
 constructs a special script (`EvilScript`) that runs inside the
 attacker's blog page (`BlogPage`). In the next step (\aosafigref{500l.same-origin-policy.fig-setdomain-2a}), the script executes the `SetDomain` operation to modify the domain property of `BlogPage` to `ExampleDomain`.
 
-\aosafigure[240pt]{same-origin-policy-images/fig-setdomain-2a.png}{Cross-origin counterexample at time 3}{500l.same-origin-policy.fig-setdomain-2a}
+\aosafigure[180pt]{same-origin-policy-images/fig-setdomain-2a.png}{Cross-origin counterexample at time 3}{500l.same-origin-policy.fig-setdomain-2a}
 
 Now that `BlogPage` has the same domain property as the other two documents, it can successfully execute the `ReadDOM` operation to access their content (\aosafigref{500l.same-origin-policy.fig-setdomain-2b}.)
 
-\aosafigure[240pt]{same-origin-policy-images/fig-setdomain-2b.png}{Cross-origin counterexample at time 4}{500l.same-origin-policy.fig-setdomain-2b}
+\aosafigure[180pt]{same-origin-policy-images/fig-setdomain-2b.png}{Cross-origin counterexample at time 4}{500l.same-origin-policy.fig-setdomain-2b}
 
 This attack points out one crucial weakness of the domain property
 method for cross-origin communication: The security of an application
@@ -1158,9 +1155,9 @@ resource (`MySchedule`) wrapped inside the padding `Leak` (\aosafigref{500l.same
 
 \aosafigure[240pt]{same-origin-policy-images/fig-jsonp-1.png}{JSONP counterexample at time 0}{500l.same-origin-policy.fig-jsonp-1}
 
-In the next step (\aosafigref{500l.same-origin-policy.fig-jsonp-2}), the browser interprets the JSONP response as a call to `Leak(MySchedule)`. The rest of the attack is simple; `Leak` can simply be programmed to forward the input argument to `EvilServer`, allowing the attacker to access the victim's sensitive information.
+In the next step, the browser interprets the JSONP response as a call to `Leak(MySchedule)` (\aosafigref{500l.same-origin-policy.fig-jsonp-2}). The rest of the attack is simple; `Leak` can simply be programmed to forward the input argument to `EvilServer`, allowing the attacker to access the victim's sensitive information.
 
-\aosafigure[240pt]{same-origin-policy-images/fig-jsonp-2.png}{JSONP counterexample at time 1}{500l.same-origin-policy.fig-jsonp-2}
+\aosafigure[180pt]{same-origin-policy-images/fig-jsonp-2.png}{JSONP counterexample at time 1}{500l.same-origin-policy.fig-jsonp-2}
 
 This attack, an example of _cross-site request forgery_ (CSRF), shows an inherent weakness of JSOPN; _any_ site on the web can make a JSONP request simply by including a `<script>` tag and access the payload inside the padding. The risk can be mitigated in two ways: (1) ensure that a JSONP request never returns sensitive data, or (2) use another mechanism in place of cookies (e.g., secret tokens) to authorize the request.
 
@@ -1332,7 +1329,7 @@ modeling would potentially be even more beneficial if it is done
 during the early stage of system design.
 
 Besides the SOP, Alloy has been used to model and reason about a
-variety of systems across different domains --- ranging from network
+variety of systems across different domains&mdash;ranging from network
 protocols, semantic web, bytecode security to electronic voting and
 medical systems. For many of these systems, Alloy's analysis led to
 discovery of design flaws and bugs that had eluded the developers, in
@@ -1392,7 +1389,7 @@ execution; for example, `cookies` in the `Browser` signature. In this
 sense, `Time` objects are nothing but helper objects used as a kind of
 index.
 
-Each call occurs between two points in time --- its `start` and `end`
+Each call occurs between two points in time&mdash;its `start` and `end`
 times, and is associated with a sender (represented by `from`) and a
 receiver (`to`):
 

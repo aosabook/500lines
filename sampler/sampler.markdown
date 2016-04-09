@@ -1,8 +1,8 @@
 title: A Rejection Sampler
 author: Jessica B. Hamrick
-
+<markdown>
 _Jess is a Ph.D. student at UC Berkeley where she studies human cognition by combining probabilistic models from machine learning with behavioral experiments from cognitive science. In her spare time, Jess is a core contributor to IPython and Jupyter. She also holds a B.S. and M.Eng. in Computer Science from MIT._
-
+</markdown>
 ## Introduction
 
 Frequently, in computer science and engineering, we run into problems
@@ -361,7 +361,7 @@ but I do want to have the *option* of using it (which, if I were to
 just use the `np.random` module, I would not be able to do).
 
 So, if the `rso` variable is not given, then the constructor defaults
-to using `np.random.multinomial`. Otherwise, it uses the multinomial
+to `np.random.multinomial`. Otherwise, it uses the multinomial
 sampler from the `RandomState` object itself[^rng].
 
 [^rng]: The functions in `np.random` actually do rely on a random
@@ -556,7 +556,7 @@ underflow:
 Still, doing all our computations with logs can save a lot of
 headache. We might be forced to lose that precision if we need to go
 back to the original numbers, but we at least maintain *some* information about
-the probabilities---enough to compare them, for example---that would
+the probabilities&mdash;enough to compare them, for example&mdash;that would
 otherwise be lost.
 
 #### Writing the PMF Code
@@ -792,9 +792,9 @@ def _sample_stats(self):
     return stats
 ```
 
-We *could* have made these a single method---especially since
+We *could* have made these a single method&mdash;especially since
 `_sample_stats` is the only function that depends on
-`_sample_bonus`---but I have chosen to keep them separate, both
+`_sample_bonus`&mdash;but I have chosen to keep them separate, both
 because it makes the sampling routine easier to understand, and
 because breaking it up into smaller pieces makes the code easier to
 test.
@@ -822,8 +822,8 @@ def sample(self):
 The `sample` function does essentially the same thing as
 `_sample_stats`, except that it returns a dictionary with the stats'
 names as keys. This provides a clean and understandable interface for
-sampling items---it is obvious which stats have how many bonus
-points---but it also keeps open the option of using just
+sampling items&mdash;it is obvious which stats have how many bonus
+points&mdash;but it also keeps open the option of using just
 `_sample_stats` if one needs to take many samples and efficiency is
 required.
 
@@ -1140,7 +1140,7 @@ Now we can draw a bunch of samples, and compute the 50th percentile
 If we were to plot a histogram of how many samples we got for each
 amount of damage, it would look something like \aosafigref{500l.sampler.damage}.
 
-\aosafigure[144pt]{sampler-images/damage_distribution.png}{Damage Distribution}{500l.sampler.damage}
+\aosafigure[180pt]{sampler-images/damage_distribution.png}{Damage Distribution}{500l.sampler.damage}
 
 There is a pretty wide range of damage that the player could
 potentially inflict, but it has a long tail: the 50th percentile is at
@@ -1175,5 +1175,5 @@ know (e.g., discovering how much damage a player with two items is
 likely to deal). Almost every type of sampling you might encounter
 falls under one of these two categories; the differences only have to
 do with what distributions you are sampling from. The general
-structure of the code---independent of those distributions---remains
+structure of the code&mdash;independent of those distributions&mdash;remains
 the same.

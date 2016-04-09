@@ -14,28 +14,28 @@ def main(chapters=[], epub=False, pdf=False, html=False, mobi=False, pandoc_epub
             run('rm {}'.format(f))
 
     chapter_dirs = [
-        'image-filters',
-        'dagoba',
-        'ocr',
-        'contingent',
-        'same-origin-policy',
         'blockcode',
-        'interpreter',
-        'web-server',
-        'static-analysis',
-        'functionalDB',
+        'ci',
+        'cluster',
+        'contingent',
+        'crawler',
+        'dagoba',
+        'data-store',
+        'event-web-framework',
         'flow-shop',
-        'template-engine',
+        'functionalDB',
+        'image-filters',
+        'interpreter',
+        'modeller',
+        'objmodel',
+        'ocr',
         'pedometer',
+        'same-origin-policy',
         'sampler',
         'spreadsheet',
-        'cluster',
-        'data-store',
-        'objmodel',
-        'ci',
-        'crawler',
-        'modeller',
-        'event-web-framework',
+        'static-analysis',
+        'template-engine',
+        'web-server',
     ]
     if len(chapters) > 0:
         chapter_dirs = [
@@ -71,24 +71,24 @@ def main(chapters=[], epub=False, pdf=False, html=False, mobi=False, pandoc_epub
     ]
 
     image_paths = [
-        './image-filters/image-filters-images',
-        './ocr/ocr-images',
-        './contingent/contingent-images',
-        './same-origin-policy/same-origin-policy-images',
         './blockcode/blockcode-images',
-        './interpreter/interpreter-images',
-        './web-server/web-server-images',
-        './functionalDB/functionalDB-images',
+        './ci/ci-images',
+        './cluster/cluster-images',
+        './contingent/contingent-images',
+        './crawler/crawler-images',
+        './data-store/data-store-images',
         './flow-shop/flow-shop-images',
+        './functionalDB/functionalDB-images',
+        './image-filters/image-filters-images',
+        './interpreter/interpreter-images',
+        './modeller/modeller-images',
+        './objmodel/objmodel-images',
+        './ocr/ocr-images',
         './pedometer/pedometer-images',
+        './same-origin-policy/same-origin-policy-images',
         './sampler/sampler-images',
         './spreadsheet/spreadsheet-images',
-        './cluster/cluster-images',
-        './data-store/data-store-images',
-        './objmodel/objmodel-images',
-        './ci/ci-images',
-        './crawler/crawler-images',
-        './modeller/modeller-images',
+        './web-server/web-server-images',
         ]
 
     run('cp -r minutiae/ tex')
@@ -139,10 +139,6 @@ def main(chapters=[], epub=False, pdf=False, html=False, mobi=False, pandoc_epub
 
 def build_pdf():
     os.chdir('tex')
-    run('pdflatex -interaction nonstopmode 500L')
-    run('bibtex 500L')
-    run('pdflatex -interaction nonstopmode 500L')
-    run('pdflatex -interaction nonstopmode 500L')
     run('pdflatex -interaction nonstopmode 500L')
     os.chdir('..')
     run('mv tex/500L.pdf output/')
@@ -197,8 +193,8 @@ def build_mobi():
 
 def build_html(chapter_markdowns):
     run('mkdir -p html/content/pages')
-    temp = 'python _build/preprocessor.py --chapter {chap} --html-refs --html-paths --output={md}.1 --latex {md}'
-    temp2 = 'pandoc --csl=minutiae/ieee.csl --mathjax --bibliography=tex/500L.bib -t html -f markdown+citations -o html/content/pages/{basename}.md {md}.1'
+    temp = 'python _build/preprocessor.py --chapter {chap} --html-refs --output={md}.1 --latex {md}'
+    temp2 = 'pandoc --csl=minutiae/ieee.csl --mathjax -t html -f markdown+citations -o html/content/pages/{basename}.md {md}.1'
     temp3 = './_build/fix_html_title.sh html/content/pages/{basename}.md'
     for i, markdown in enumerate(chapter_markdowns):
         basename = os.path.splitext(os.path.split(markdown)[1])[0]
