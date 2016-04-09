@@ -42,15 +42,15 @@ The spreadsheet spans two dimensions, with _columns_ starting from **A**, and _r
 * Formula:  `=A1+C1` in **E1**, which _calculates_ to the _value_ "3920", displayed with a light blue background.
 * Empty: All cells in row **2** are currently empty.
 
-Click "3920" to set _focus_ on **E1**, revealing its formula in an _input box_ (\aosafigref{500l.spreadsheet.inputbox}):
+Click "3920" to set _focus_ on **E1**, revealing its formula in an _input box_ (\aosafigref{500l.spreadsheet.inputbox}).
 
-\aosafigure[240pt]{spreadsheet-images/02-input.png}{Input Box}{500l.spreadsheet.input}
+\aosafigure[240pt]{spreadsheet-images/02-input.png}{Input Box}{500l.spreadsheet.inputbox}
 
-Now let’s set focus on **A1** and _change_ its content to "1", causing **E1** to _recalculate_ its value to "2047" (\aosafigref{500l.spreadsheet.changed}):
+Now let’s set focus on **A1** and _change_ its content to "1", causing **E1** to _recalculate_ its value to "2047" (\aosafigref{500l.spreadsheet.changed}).
 
 \aosafigure[240pt]{spreadsheet-images/03-changed.png}{Changed Content}{500l.spreadsheet.changed}
 
-Press **ENTER** to set focus to **A2** and change its content to `=Date()`, then press **TAB**, change the content of **B2** to `=alert()`, then press **TAB** again to set focus to `C2` (\aosafigref{500l.spreadsheet.error}):
+Press **ENTER** to set focus to **A2** and change its content to `=Date()`, then press **TAB**, change the content of **B2** to `=alert()`, then press **TAB** again to set focus to `C2` (\aosafigref{500l.spreadsheet.error}).
 
 \aosafigure[240pt]{spreadsheet-images/04-error.png}{Formula Error}{500l.spreadsheet.error}
 
@@ -62,7 +62,7 @@ Now reload the page in the browser with **Ctrl-R** or **Cmd-R** to verify that t
 
 ### Progressive Enhancement
 
-Before we dive into the 99 lines of code, it’s worthwhile to disable JS in the browser, reload the page, and note the differences (\aosafigref{500l.spreadsheet.nojs}):
+Before we dive into the 99 lines of code, it’s worthwhile to disable JS in the browser, reload the page, and note the differences (\aosafigref{500l.spreadsheet.nojs}).
 
 * Instead of a large grid, only a 2x2 table remains onscreen, with a single content cell.
 * Row and column labels are replaced by `{{ row }}` and `{{ col }}`.
@@ -85,11 +85,10 @@ As shown in \aosafigref{500l.spreadsheet.nocss}, if we enable JS in the browser 
 
 ## Code Walkthrough
 
-\aosafigref{500l.spreadsheet.architecture} shows the links between HTML and JS components:
+\aosafigref{500l.spreadsheet.architecture} shows the links between HTML and JS components.  In order to make sense of the diagram, let’s go through the four source code files, in the same sequence as the browser loads them.
 
 \aosafigure[240pt]{spreadsheet-images/00-architecture.png}{Architecture Diagram}{500l.spreadsheet.architecture}
 
-In order to make sense of the diagram, let’s go through the four source code files, in the same sequence as the browser loads them:
 
 * **index.html**: 19 lines
 * **main.js**: 38 lines (excluding comments and blank lines)

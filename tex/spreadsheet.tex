@@ -85,20 +85,20 @@ has a unique \emph{coordinate} (such as \textbf{A1}) and \emph{content}
 \end{aosaitemize}
 
 Click ``3920'' to set \emph{focus} on \textbf{E1}, revealing its formula
-in an \emph{input box} (\aosafigref{500l.spreadsheet.inputbox}):
+in an \emph{input box} (\aosafigref{500l.spreadsheet.inputbox}).
 
-\aosafigure[240pt]{spreadsheet-images/02-input.png}{Input Box}{500l.spreadsheet.input}
+\aosafigure[240pt]{spreadsheet-images/02-input.png}{Input Box}{500l.spreadsheet.inputbox}
 
 Now let's set focus on \textbf{A1} and \emph{change} its content to
 ``1'', causing \textbf{E1} to \emph{recalculate} its value to ``2047''
-(\aosafigref{500l.spreadsheet.changed}):
+(\aosafigref{500l.spreadsheet.changed}).
 
 \aosafigure[240pt]{spreadsheet-images/03-changed.png}{Changed Content}{500l.spreadsheet.changed}
 
 Press \textbf{ENTER} to set focus to \textbf{A2} and change its content
 to \texttt{=Date()}, then press \textbf{TAB}, change the content of
 \textbf{B2} to \texttt{=alert()}, then press \textbf{TAB} again to set
-focus to \texttt{C2} (\aosafigref{500l.spreadsheet.error}):
+focus to \texttt{C2} (\aosafigref{500l.spreadsheet.error}).
 
 \aosafigure[240pt]{spreadsheet-images/04-error.png}{Formula Error}{500l.spreadsheet.error}
 
@@ -122,7 +122,7 @@ arrow' button on the top-left corner.
 
 Before we dive into the 99 lines of code, it's worthwhile to disable JS
 in the browser, reload the page, and note the differences
-(\aosafigref{500l.spreadsheet.nojs}):
+(\aosafigref{500l.spreadsheet.nojs}).
 
 \begin{aosaitemize}
 
@@ -171,12 +171,11 @@ browser and disable CSS instead, the effects are:
 \aosasecti{Code Walkthrough}\label{code-walkthrough}
 
 \aosafigref{500l.spreadsheet.architecture} shows the links between HTML
-and JS components:
+and JS components. In order to make sense of the diagram, let's go
+through the four source code files, in the same sequence as the browser
+loads them.
 
 \aosafigure[240pt]{spreadsheet-images/00-architecture.png}{Architecture Diagram}{500l.spreadsheet.architecture}
-
-In order to make sense of the diagram, let's go through the four source
-code files, in the same sequence as the browser loads them:
 
 \begin{aosaitemize}
 
