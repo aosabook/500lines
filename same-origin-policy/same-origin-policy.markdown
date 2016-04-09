@@ -614,13 +614,12 @@ fact Configuration {
 }
 ```
 
-In addition, let us say that that the email, blog, and calendar
-applications are all developed by a single organization, and thus,
-share the same base domain name. Conceptually, we can think of
-`EmailServer` and `CalendarServer` having domain names
-`email.example.com` and `calendar.example.com`, thus sharing
-`example.com` as the common superdomain. In our model, this can be
-represented by introducing a domain name that _subsumes_ others:
+In addition, let us say that that the email, blog, and calendar applications
+are all developed by a single organization, and thus, share the same base
+domain name. Conceptually, we can think of `EmailServer` and `CalendarServer`
+having subdomains `email` and `calendar`, sharing `example.com` as the common
+superdomain. In our model, this can be represented by introducing a domain name
+that _subsumes_ others:
 
 ```alloy 
 one sig ExampleDomain extends Domain {}{
@@ -679,9 +678,8 @@ sig DataflowCall in Call {
 ```
 
 For example, during each call of type `HttpRequest`, the client
-transfers two arguments (`sentCookies` and `body`) to the server, and
-in turn, receives two addition sets of data (`receivedCookies` and
-`response`) as return values. 
+transfers `sentCookies` and `body` to the server, and
+receives `receivedCookies` and `response` as return values. 
 
 More generally, arguments flow from the sender of the call to the
 receiver, and return values flow from the receiver to the sender. This
@@ -887,7 +885,7 @@ communication (e.g., mashups).
 
 In this section, we will discuss four techniques that have been
 devised and frequently used by web developers to bypass the
-restrictions imposed by the SOP: (1) The "document.domain" property
+restrictions imposed by the SOP: (1) The `document.domain` property
 relaxation; (2) JSONP; (3) PostMessage; and (4) CORS. These are valuable
 tools, but if used without caution, may render a web application
 vulnerable to exactly the kinds of attacks that the SOP was designed
@@ -913,9 +911,9 @@ without falling into security pitfalls.
 ### Domain Property
 
 As the first technique on our list, we will look at the use of the
-"document.domain" property as a way of bypassing the SOP. The idea
+`document.domain` property as a way of bypassing the SOP. The idea
 behind this technique is to allow two documents from different origins
-to access each other's DOM simply by setting the "document.domain"
+to access each other's DOM simply by setting the `document.domain`
 property to the same value. So, for example, a script from
 `email.example.com` could read or write the DOM of a document from
 `calendar.example.com` if the scripts in both documents set the
@@ -975,7 +973,7 @@ fact domSop {
 }
 ```
 
-Here, `currOrigin[d, t]` is a function that returns the origin of document `d` with the `document.domain` property at time `t` as its hostname.
+Here, `currOrigin[d, t]` is a function that returns the origin of document `d` with the property `document.domain` at time `t` as its hostname.
 
 It is worth pointing out that the `document.domain` properties for
 _both_ documents must be _explictly_ set sometime after they
@@ -1005,7 +1003,7 @@ generates a counterexample scenario to the confidentiality property:
 check Confidentiality for 5
 ```
 
-This scenario consists of five steps; the first three steps show a typical use case of the `document.domain` property, where two documents from distinct origins, `CalendarPage` and `InboxPage`, communicate by setting their domain properties to a common value (`ExampleDomain`). The last two steps introduce another document, `BlogPage`, that has been compromised with a malicious script that attempts to access the content of the other two documents.
+This scenario consists of five steps; the first three steps show a typical use of `document.domain`, where two documents from distinct origins, `CalendarPage` and `InboxPage`, communicate by setting their domain properties to a common value (`ExampleDomain`). The last two steps introduce another document, `BlogPage`, that has been compromised with a malicious script that attempts to access the content of the other two documents.
 
 At the beginning of the scenario
 (\aosafigref{500l.same-origin-policy.fig-setdomain-1a} and
@@ -1025,11 +1023,11 @@ executing `ReadDom` or `WriteDom` operations, as in \aosafigref{500l.same-origin
 
 \aosafigure[180pt]{same-origin-policy-images/fig-setdomain-1c.png}{Cross-origin counterexample at time 2}{500l.same-origin-policy.fig-setdomain-1c}
 
-Note that when you set the domain property of both "email.example.com"
-and "calendar.example.com" to "example.com", you are allowing not only
+Note that when you set the domain of `email.example.com`
+and `calendar.example.com` to `example.com`, you are allowing not only
 these two pages to communicate between each other, but also _any_
-other page that has "example.com" as a superdomain
-(e.g., "blog.example.com"). An attacker also realizes this, and
+other page that has `example.com` as a superdomain
+(e.g., `blog.example.com`). An attacker also realizes this, and
 constructs a special script (`EvilScript`) that runs inside the
 attacker's blog page (`BlogPage`). In the next step (\aosafigref{500l.same-origin-policy.fig-setdomain-2a}), the script executes the `SetDomain` operation to modify the domain property of `BlogPage` to `ExampleDomain`.
 
@@ -1157,7 +1155,7 @@ resource (`MySchedule`) wrapped inside the padding `Leak` (\aosafigref{500l.same
 
 \aosafigure[240pt]{same-origin-policy-images/fig-jsonp-1.png}{JSONP counterexample at time 0}{500l.same-origin-policy.fig-jsonp-1}
 
-In the next step (\aosafigref{500l.same-origin-policy.fig-jsonp-2}), the browser interprets the JSONP response as a call to `Leak(MySchedule)`. The rest of the attack is simple; `Leak` can simply be programmed to forward the input argument to `EvilServer`, allowing the attacker to access the victim's sensitive information.
+In the next step, the browser interprets the JSONP response as a call to `Leak(MySchedule)` (\aosafigref{500l.same-origin-policy.fig-jsonp-2}). The rest of the attack is simple; `Leak` can simply be programmed to forward the input argument to `EvilServer`, allowing the attacker to access the victim's sensitive information.
 
 \aosafigure[180pt]{same-origin-policy-images/fig-jsonp-2.png}{JSONP counterexample at time 1}{500l.same-origin-policy.fig-jsonp-2}
 

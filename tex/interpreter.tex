@@ -1133,12 +1133,12 @@ class VirtualMachine(object):
 
 \aosasecti{The Instructions}\label{the-instructions}
 
-All that's left is to implement the dozens of methods for instructions:
-\texttt{byte\_LOAD\_FAST}, \texttt{byte\_BINARY\_MODULO}, and so on. The
-actual instructions are the least interesting part of the interpreter,
-so we show only a handful here, but the full implementation is available
-at https://github.com/nedbat/byterun. (Enough instructions are included
-here to execute all the code samples that we disassembled above.)
+All that's left is to implement the dozens of methods for instructions.
+The actual instructions are the least interesting part of the
+interpreter, so we show only a handful here, but the full implementation
+is \href{https://github.com/nedbat/byterun}{available on GitHub}.
+(Enough instructions are included here to execute all the code samples
+that we disassembled above.)
 
 \begin{verbatim}
 class VirtualMachine(object):

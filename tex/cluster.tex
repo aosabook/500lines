@@ -166,8 +166,11 @@ acceptors.
 
 Returning to the example, initially no other value has been accepted, so
 the acceptors all send back a \texttt{Promise} with no value, and the
-proposer sends an \texttt{Accept} containing its value, say
-\texttt{operation(name='deposit', amount=100.00, destination\_account='Mike DiBernardo')}.
+proposer sends an \texttt{Accept} containing its value, say:
+
+\begin{verbatim}
+    operation(name='deposit', amount=100.00, destination_account='Mike DiBernardo')
+\end{verbatim}
 
 If another proposer later initiates a ballot with a lower ballot number
 and a different operation (say, a transfer to acount
@@ -197,8 +200,8 @@ Consider the following sequence of events:
   ballot number 1.
 \item
   Before Proposer A manages to get its proposal accepted, Proposer B
-  performs a \texttt{Prepare}/\texttt{Promise} phase for ballot number
-  2.
+  performs a \newline \texttt{Prepare}/\texttt{Promise} phase for ballot
+  number 2.
 \item
   When Proposer A finally sends its \texttt{Accept} with ballot number
   1, the acceptors reject it because they have already promised ballot
@@ -657,7 +660,8 @@ class Replica(Role):
         # find a leader we think is working - either the latest we know of, or
         # ourselves (which may trigger a scout to make us the leader)
         leader = self.latest_leader or self.node.address
-        self.logger.info("proposing %s at slot %d to leader %s" % (proposal, slot, leader))
+        self.logger.info(
+            "proposing %s at slot %d to leader %s" % (proposal, slot, leader))
         self.node.send([leader], Propose(slot=slot, proposal=proposal))
 
     # handling decided proposals
@@ -674,7 +678,8 @@ class Replica(Role):
 
         # re-propose our proposal in a new slot if it lost its slot and wasn't a no-op
         our_proposal = self.proposals.get(slot)
-        if our_proposal is not None and our_proposal != proposal and our_proposal.caller:
+        if (our_proposal is not None and 
+            our_proposal != proposal and our_proposal.caller):
             self.propose(our_proposal)
 
         # execute any pending, decided proposals
@@ -793,7 +798,8 @@ class Leader(Role):
             self.scouting = False
         self.logger.info("leader preempted by %s", preempted_by.leader)
         self.active = False
-        self.ballot_num = Ballot((preempted_by or self.ballot_num).n + 1, self.ballot_num.leader)
+        self.ballot_num = Ballot((preempted_by or self.ballot_num).n + 1, 
+                                 self.ballot_num.leader)
 
     def do_Propose(self, sender, slot, proposal):
         if slot not in self.proposals:
@@ -863,7 +869,8 @@ class Scout(Role):
                 # leader is active.  # Any such conflicts will be handled by the
                 # commanders.
                 self.node.send([self.node.address],
-                    Adopted(ballot_num=ballot_num, accepted_proposals=accepted_proposals))
+                    Adopted(ballot_num=ballot_num, 
+                            accepted_proposals=accepted_proposals))
                 self.stop()
         else:
             # this acceptor has promised another leader a higher ballot number,
@@ -1024,7 +1031,8 @@ as for the replica role.
 
 class Seed(Role):
 
-    def __init__(self, node, initial_state, execute_fn, peers, bootstrap_cls=Bootstrap):
+    def __init__(self, node, initial_state, execute_fn, peers, 
+                 bootstrap_cls=Bootstrap):
         super(Seed, self).__init__(node)
         self.initial_state = initial_state
         self.execute_fn = execute_fn
@@ -1050,7 +1058,8 @@ class Seed(Role):
 
     def finish(self):
         # bootstrap this node into the cluster we just seeded
-        bs = self.bootstrap_cls(self.node, peers=self.peers, execute_fn=self.execute_fn)
+        bs = self.bootstrap_cls(self.node, 
+                                peers=self.peers, execute_fn=self.execute_fn)
         bs.start()
         self.stop()
     
@@ -1559,9 +1568,9 @@ be specified by the state after execution of the $i$th state machine
 command. (Lamport, 2001)
 \end{quote}
 
-The idea is that each instance of Paxos (slot) uses the view from α
-slots earlier. This allows the cluster to work on, at most, $\alpha$
-slots at any one time, so a very small value of $\alpha$ limits
+The idea is that each instance of Paxos (slot) uses the view from
+$\alpha$ slots earlier. This allows the cluster to work on, at most,
+$\alpha$ slots at any one time, so a very small value of $\alpha$ limits
 concurrency, while a very large value of $\alpha$ makes view changes
 slow to take effect.
 

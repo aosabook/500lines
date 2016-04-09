@@ -298,7 +298,8 @@ are ready for the buffer to be flushed and displayed to the screen.
         self.modelView = numpy.transpose(currentModelView)
         self.inverseModelView = inv(numpy.transpose(currentModelView))
 
-        # render the scene. This will call the render function for each object in the scene
+        # render the scene. This will call the render function for each object
+        # in the scene
         self.scene.render()
 
         # draw the grid
@@ -361,7 +362,7 @@ class Scene(object):
         self.node_list.append(node)
 
     def render(self):
-        """ Render the scene. This function simply calls the render function for each node. """
+        """ Render the scene. """
         for node in self.node_list:
             node.render()
 \end{verbatim}
@@ -420,7 +421,8 @@ class Node(object):
         glPopMatrix()
 
     def render_self(self):
-        raise NotImplementedError("The Abstract Node Class doesn't define 'render_self'")
+        raise NotImplementedError(
+            "The Abstract Node Class doesn't define 'render_self'")
 
 class Primitive(Node):
     def __init__(self):
@@ -1167,7 +1169,9 @@ matrix for use during rendering.
 \begin{verbatim}
     # class Node
     def translate(self, x, y, z):
-        self.translation_matrix = numpy.dot(self.translation_matrix, translation([x, y, z]))
+        self.translation_matrix = numpy.dot(
+            self.translation_matrix, 
+            translation([x, y, z]))
 \end{verbatim}
 
 The \texttt{translation} function returns a translation matrix given a

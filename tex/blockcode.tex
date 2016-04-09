@@ -67,14 +67,14 @@ show how the blocks themselves can serve as a framework for other
 languages besides our mini turtle language.
 
 To do this, we encapsulate everything that is specific to the turtle
-language into one file (\texttt{turtle.js}) that we can easily swap with
-another file. Nothing else should be specific to the turtle language;
-the rest should just be about handling the blocks (\texttt{block.js} and
-\texttt{menu.js}) or be generally useful web utilities
-(\texttt{util.js}, \texttt{drag.js}, \texttt{file.js}). That is the
-goal, although to maintain the small size of the project, some of those
-utilities are less general-purpose and more specific to their use with
-the blocks.
+language into one file \newline (\texttt{turtle.js}) that we can easily
+swap with another file. Nothing else should be specific to the turtle
+language; the rest should just be about handling the blocks
+(\texttt{block.js} and \texttt{menu.js}) or be generally useful web
+utilities (\texttt{util.js}, \texttt{drag.js}, \texttt{file.js}). That
+is the goal, although to maintain the small size of the project, some of
+those utilities are less general-purpose and more specific to their use
+with the blocks.
 
 One thing that struck me when writing a block language was that the
 language is its own IDE. You can't just code up blocks in your favourite

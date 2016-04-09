@@ -126,13 +126,13 @@ ports.
 \aosasectii{Files in this Project}\label{files-in-this-project}
 
 This project contains Python files for each of these components: the
-repository observer (\texttt{repo\_observer.py}), the test job
+repository observer \newline (\texttt{repo\_observer.py}), the test job
 dispatcher (\texttt{dispatcher.py}), and the test runner
-(\texttt{test\_runner.py}). Each of these three processes communicate
-with each other using sockets, and since the code used to transmit
-information is shared by all of them, there is a helpers.py file that
-contains it, so each process imports the communicate function from here
-instead of having it duplicated in the file.
+\newline (\texttt{test\_runner.py}). Each of these three processes
+communicate with each other using sockets, and since the code used to
+transmit information is shared by all of them, there is a helpers.py
+file that contains it, so each process imports the communicate function
+from here instead of having it duplicated in the file.
 
 There are also bash script files used by these processes. These script
 files are used to execute bash and git commands in an easier way than
@@ -272,7 +272,8 @@ perform actions in a more roundabout way.)
             # with the latest commit in the current working directory
             subprocess.check_output(["./update_repo.sh", args.repo])
         except subprocess.CalledProcessError as e:
-            raise Exception("Could not update and check repository. Reason: %s" % e.output)
+            raise Exception("Could not update and check repository. " +
+                            "Reason: %s" % e.output)
 \end{verbatim}
 
 The \texttt{update\_repo.sh} file is used to identify any new commits
@@ -398,8 +399,8 @@ in five seconds if anything went wrong along the way.
 \end{verbatim}
 
 The repository observer will repeat this process forever, until you kill
-the process via a \texttt{KeyboardInterrupt} (Ctrl+c), or by sending it
-a kill signal.
+the process via a \newline \texttt{KeyboardInterrupt} (Ctrl+c), or by
+sending it a kill signal.
 
 \aosasectii{The Dispatcher
 (\texttt{dispatcher.py})}\label{the-dispatcher-dispatcher.py}
@@ -545,10 +546,10 @@ directly and swiftly communicate with all test runners and the
 repository observer.
 
 In order for the dispatcher server to handle simultaneous connections,
-it uses the \texttt{ThreadingTCPServer} custom class, which adds
-threading ability to the default \texttt{SocketServer}. This means that
-any time the dispatcher receives a connection request, it spins off a
-new process just for that connection. This allows the dispatcher to
+it uses the \newline \texttt{ThreadingTCPServer} custom class, which
+adds threading ability to the default \texttt{SocketServer}. This means
+that any time the dispatcher receives a connection request, it spins off
+a new process just for that connection. This allows the dispatcher to
 handle multiple requests at the same time.
 
 \begin{verbatim}
@@ -833,10 +834,10 @@ argument will have it connect to a different address than
 \aosasectii{Control Flow Diagram}\label{control-flow-diagram}
 
 \aosafigref{500l.ci.controlflow} is overview diagram of this system.
-This diagram assumes that all three files (\texttt{repo\_observer.py},
-\texttt{dispatcher.py} and \texttt{test\_runner.py}) are already
-running, and describes the actions each process takes when a new commit
-is made.
+This diagram assumes that all three files
+\newline (\texttt{repo\_observer.py}, \texttt{dispatcher.py} and
+\texttt{test\_runner.py}) are already running, and describes the actions
+each process takes when a new commit is made.
 
 \aosafigure[360pt]{ci-images/diagram.png}{Control Flow}{500l.ci.controlflow}
 
@@ -864,7 +865,7 @@ You may run as many test runners as you like.
 Lastly, in another new shell, let's start the repo observer:
 
 \begin{verbatim}
-$ python repo_observer.py --dispatcher-server=localhost:8888 <path/to/test_repo_clone_obs>
+$ python repo_observer.py --dispatcher-server=localhost:8888 <path/to/repo_clone_obs>
 \end{verbatim}
 
 Now that everything is set up, let's trigger some tests! To do that,

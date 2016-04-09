@@ -741,7 +741,7 @@ class VirtualMachine(object):
 
 ## The Instructions
 
-All that's left is to implement the dozens of methods for instructions: `byte_LOAD_FAST`, `byte_BINARY_MODULO`, and so on. The actual instructions are the least interesting part of the interpreter, so we show only a handful here, but the full implementation is available at https://github.com/nedbat/byterun. (Enough instructions are included here to execute all the code samples that we disassembled above.)
+All that's left is to implement the dozens of methods for instructions. The actual instructions are the least interesting part of the interpreter, so we show only a handful here, but the full implementation is [available on GitHub](https://github.com/nedbat/byterun). (Enough instructions are included here to execute all the code samples that we disassembled above.)
 
 ```python
 class VirtualMachine(object):

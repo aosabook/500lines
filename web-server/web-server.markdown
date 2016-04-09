@@ -267,7 +267,7 @@ we still need the last three lines to actually start a server running.
 The first of these lines defines the server's address as a tuple:
 the empty string means "run on the current machine",
 and 8080 is the port.
-We then create an instance of `BaseHTTPServer.HTTPServer`
+We then create an instance of \newline `BaseHTTPServer.HTTPServer`
 with that address and the name of our request handler class as parameters,
 then ask it to run forever
 (which in practice means until we kill it with Control-C).
@@ -656,8 +656,7 @@ putting it in the case handler prevents clutter in the main `RequestHandler`.
 `test` checks whether the path is a directory containing an `index.html` page,
 and `act` just asks the main request handler to serve that page.
 
-The only change needed to `RequestHandler` to include this logic
-is to add a `case_directory_index_file` object to our `Cases` list:
+The only change needed to `RequestHandler` is to add a `case_directory_index_file` object to our `Cases` list:
 
 ```python 
     Cases = [case_no_file(),
@@ -725,7 +724,8 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def list_dir(self, full_path):
         try:
             entries = os.listdir(full_path)
-            bullets = ['<li>{0}</li>'.format(e) for e in entries if not e.startswith('.')]
+            bullets = ['<li>{0}</li>'.format(e) 
+                for e in entries if not e.startswith('.')]
             page = self.Listing_Page.format('\n'.join(bullets))
             self.send_content(page)
         except OSError as msg:
@@ -775,9 +775,8 @@ class case_cgi_file(object):
 ```
 
 The test is simple:
-does the file path end with `.py`?
-The action is equally simple:
-tell `RequestHandler` to run this program.
+does the file path end with `.py`? 
+If so, we tell `RequestHandler` to run this program.
 
 ```python 
     def run_cgi(self, full_path):

@@ -705,8 +705,8 @@ def heur_random(data, candidates):
     return random.choice(candidates)
 \end{verbatim}
 
-The next heuristic uses the other extreme. Rather than randomly
-selecting a candidate, \texttt{heur\_hillclimbing} selects the candidate
+The next heuristic \texttt{heur\_hillclimbing} uses the other extreme.
+Rather than randomly selecting a candidate, it selects the candidate
 that has the best makespan. Note that the list \texttt{scores} will
 contain tuples of the form \texttt{(make,perm)} where \texttt{make} is
 the makespan value for permutation \texttt{perm}. Sorting such a list

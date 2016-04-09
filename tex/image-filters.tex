@@ -278,8 +278,8 @@ the constants in \texttt{WIDTH} and \texttt{HEIGHT}, to see different
 sizes.
 
 \texttt{background(0)} specifies a black background. Try changing the
-number passed into \texttt{background()} and see what happens --- it's
-the alpha value, and so if you only pass one number in, it is always
+number passed to \texttt{background()} and see what happens --- it's the
+alpha value, and so if you only pass one number in, it is always
 greyscale. Alternatively, you can call
 \texttt{background(int r, int g, int b)}.
 
@@ -1023,11 +1023,14 @@ use. We are using
 as our mock object framework.
 
 To create a mock we use the \texttt{@Mock} annotation on an instance
-variable, and the \texttt{MockitoJUnitRunner} will mock it for us at
-runtime.
+variable, and it will be mocked at runtime by the
+\texttt{MockitoJUnitRunner}.
 
-To stub (set the behavior of) a method, we use
-\texttt{when(mock.methodCall()).thenReturn(value)}.
+To stub (set the behavior of) a method, we use:
+
+\begin{verbatim}
+    when(mock.methodCall()).thenReturn(value)
+\end{verbatim}
 
 To verify a method was called, we use
 \texttt{verify(mock.methodCall())}.
@@ -1148,8 +1151,7 @@ Notice that:
   always return it.
 \item
   Helper methods make it easier to set expectations for recurring tasks
-  (e.g., \texttt{setHsbValuesForPixel()},
-  \texttt{setRgbValuesForPixel()}).
+  (e.g., \texttt{set*ForPixel()}).
 \end{aosaitemize}
 
 \aosasectii{Image State and Associated

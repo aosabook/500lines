@@ -37,7 +37,7 @@ Now let’s open [our spreadsheet](http://audreyt.github.io/500lines/spreadsheet
 
 The spreadsheet spans two dimensions, with _columns_ starting from **A**, and _rows_ starting from **1**. Each _cell_ has a unique _coordinate_ (such as **A1**) and _content_ (such as "1874"), which belongs to one of four _types_:
 
-* Text: "+" in **B1** and "⇒" in **D1**, aligned to the left.
+* Text: "+" in **B1** and "->" in **D1**, aligned to the left.
 * Number: "1874" in **A1** and "2046" in **C1**, aligned to the right.
 * Formula:  `=A1+C1` in **E1**, which _calculates_ to the _value_ "3920", displayed with a light blue background.
 * Empty: All cells in row **2** are currently empty.
@@ -103,17 +103,20 @@ The first line in `index.html` declares that it’s written in HTML5 (`<!DOCTYPE
 <!DOCTYPE html><html><head><meta charset="UTF-8">
 ```
 
-Without the `charset` declaration, the browser may display the reset button’s Unicode symbol `↻` as `â†»`, an example of _mojibake_: garbled text caused by decoding issues.
+Without the `charset` declaration, the browser may display the reset button’s Unicode symbol as `â†»`, an example of _mojibake_: garbled text caused by decoding issues.
 
 The next three lines are JS declarations, placed within the `head` section as usual:
 
 ```html
   <script src="lib/angular.js"></script>
   <script src="main.js"></script>
-  <script>try{ angular.module('500lines') }catch(e){ location="es5/index.html" }</script>
+  <script>
+      try { angular.module('500lines') }
+      catch(e){ location="es5/index.html" }
+  </script>
 ```
 
-The `<script src="…">` tags load JS resources from the same path as the HTML page. For example,  if the current URL is `http://audreyt.github.io/500lines/spreadsheet/index.html`, then `lib/angular.js` refers to `http://audreyt.github.io/500lines/spreadsheet/lib/angular.js`.
+The `<script src="…">` tags load JS resources from the same path as the HTML page. For example, if the current URL is `http://abc.com/x/index.html`, then `lib/angular.js` refers to `http://abc.com/x/lib/angular.js`.
 
 The `try{ angular.module('500lines') }` line tests if `main.js` is loaded correctly; if not, it tells the browser to navigate to `es5/index.html` instead. This _redirect-based graceful degradation_ technique ensures that for pre-2015 browsers with no ES6 support, we can use the translated-to-ES5 versions of JS programs as a fallback.
 
@@ -273,11 +276,12 @@ Next up, we retrieve the target element using the ID selector syntax (e.g. `"#A3
 
 We put an extra check on the result of `querySelector` because moving upward from **A1** will produce the selector `#A0`, which has no corresponding element, and so will not trigger a focus change — the same goes for pressing **DOWN** at the bottom row.
 
-Next, we define the `reset()` function so the `↻` button can restore the initial contents of the `sheet`:
+Next, we define the `reset()` function so the reset button can restore the initial contents of the `sheet`:
 
 ```javascript
   // Default sheet content, with some data cells and one formula cell.
-  $scope.reset = ()=>{ $scope.sheet = { A1: 1874, B1: '+', C1: 2046, D1: '⇒', E1: '=A1+C1' }; }
+  $scope.reset = ()=>{ 
+    $scope.sheet = { A1: 1874, B1: '+', C1: 2046, D1: '->', E1: '=A1+C1' }; }
 ```
 
 The `init()` function tries restoring the `sheet` content from its previous state from the [localStorage](https://developer.mozilla.org/en-US/docs/Web/Guide/API/DOM/Storage#localStorage), and defaults to the initial content if it’s our first time running the application:
@@ -455,7 +459,7 @@ In that case, we set the missing cell’s default value to "0", clear `vals[coor
           }
 ```
 
- If the user gives the missing cell a content later on in `sheet[coord]`, then `Object.defineProperty` would take over and override the temporary value.
+ If the user gives the missing cell a content later on in `sheet[coord]`, then the temporary value would be overridden by `Object.defineProperty`.
 
 Other kinds of errors are stored in `errs[coord]`:
 
@@ -471,7 +475,9 @@ Finally, the `get` accessor returns the calculated value stored in `vals[coord]`
 
 ```javascript
         // Turn vals[coord] into a string if it's not a number or Boolean
-        switch (typeof vals[coord]) { case 'function': case 'object': vals[coord]+=''; }
+        switch (typeof vals[coord]) { 
+            case 'function': case 'object': vals[coord]+=''; 
+        }
         return vals[coord];
       } } );
     }));

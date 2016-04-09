@@ -570,12 +570,12 @@ early Smalltalk[^smalltalk] systems under the name ``doesNotUnderstand:``.
 [^smalltalk]: A. Goldberg, Smalltalk-80: The Language and its Implementation. Addison-Wesley, 1983, page 61.
 
 The case of ``__setattr__`` is a bit different. Since setting an attribute
-always creates it, ``__setattr__`` is always called when setting an attribute.
-To make sure that a ``__setattr__`` method always exists, the ``OBJECT`` class
-has a definition of ``__setattr__``. This base implementation simply does what
-setting an attribute did so far, which is write the attribute into the object's
-dictionary. This also makes it possible for a user-defined ``__setattr__`` to
-delegate to the base ``OBJECT.__setattr__`` in some cases.
+always creates it, \newline ``__setattr__`` is always called when setting an
+attribute.  To make sure that a ``__setattr__`` method always exists, the
+``OBJECT`` class has a definition of ``__setattr__``. This base implementation
+simply does what setting an attribute did so far, which is write the attribute
+into the object's dictionary. This also makes it possible for a user-defined
+``__setattr__`` to delegate to the base ``OBJECT.__setattr__`` in some cases.
 
 A test for these two special methods is the following:
 
@@ -733,7 +733,7 @@ instance where the lookup was done[^secondarg].
 found, though we will ignore that here.
 
 Implementing this behaviour is easy. We simply need to change ``_is_bindable``
-and ``_make_boundmethod``:
+and \newline ``_make_boundmethod``:
 
 ```python
 def _is_bindable(meth):

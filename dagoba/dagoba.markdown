@@ -47,7 +47,7 @@ WHERE r.out = "Thor" AND r.type = "parent" AND r.in = e.id
 
 But how do we extend that to grandparents? We need to do a subquery, or use some other type of vendor-specific extension to SQL. And by the time we get to second cousins once removed we're going to have *a lot* of SQL.
 
-What would we like to write? Something both concise and flexible; something that models our query in a natural way and extends to other queries like it. `second_cousins_once_removed('Thor')` is concise, but it doesn't give us any flexibility. The SQL above is flexible, but lacks concision.
+What would we like to write? Something both concise and flexible; something that models our query in a natural way and extends to other queries like it. `second_cousins('Thor')` is concise, but it doesn't give us any flexibility. The SQL above is flexible, but lacks concision.
 
 Something like `Thor.parents.parents.parents.children.children.children` strikes a reasonably good balance. The primitives give us flexibility to ask many similar questions, but the query is concise and natural. This particular phrasing gives us too many results, as it includes first cousins and siblings, but we're going for gestalt here.
 
@@ -93,7 +93,13 @@ children = function(x) { return E.reduce(
   function(acc, e) { return ~x.indexOf(e[0]) ? acc.concat(e[1]) : acc }, [] )}
 ```
 
-Now we can say something like `children(children(children(parents(parents(parents([8]))))))`. It reads backwards and gets us lost in silly parens, but is otherwise pretty close to what we wanted. Take a minute to look at the code. Can you see any ways to improve it?
+Now we can say something like: 
+
+```javascript
+    children(children(children(parents(parents(parents([8]))))))
+``` 
+
+It reads backwards and gets us lost in silly parens, but is otherwise pretty close to what we wanted. Take a minute to look at the code. Can you see any ways to improve it?
 
 We're treating the edges as a global variable, which means we can only ever have one database at a time using these helper functions. That's pretty limiting.
 
@@ -251,7 +257,13 @@ A *gremlin* is a creature that travels through the graph doing our bidding. A gr
 
 Remember that question we wanted to answer about Thor's second cousins once removed? We decided `Thor.parents.parents.parents.children.children.children` was a pretty good way of expressing that. Each `parents` or `children` instance is a step in our program. Each of those steps contains a reference to its *pipetype*, which is the function that performs that step's operation.
 
-That query in our actual system might look like `g.v('Thor').out().out().out().in().in().in()`. Each of the steps is a function call, and so they can take *arguments*. The interpreter passes the step's arguments to the step's pipetype function, so in the query `g.v('Thor').out(2, 3)` the `out` pipetype function would receive `[2, 3]` as its first parameter.
+That query in our actual system might look like:
+
+```javascript
+    g.v('Thor').out().out().out().in().in().in()
+```
+
+Each of the steps is a function call, and so they can take *arguments*. The interpreter passes the step's arguments to the step's pipetype function, so in the query `g.v('Thor').out(2, 3)` the `out` pipetype function would receive `[2, 3]` as its first parameter.
 
 We'll need a way to add steps to our query. Here's a helper function for that:
 
@@ -491,7 +503,14 @@ Note that if the property doesn't exist we return `false` instead of the gremlin
 
 If we want to collect all Thor's grandparents' grandchildren&mdash;his cousins, his siblings, and himself&mdash;we could do a query like this: `g.v('Thor').in().in().out().out().run()`. That would give us many duplicates, however. In fact there would be at least four copies of Thor himself. (Can you think of a time when there might be more?)
 
-To resolve this we introduce a new pipetype called 'unique'. Our new query <latex>\linebreak</latex> `g.v('Thor').in().in().out().out().unique().run()` produces output in one-to-one correspondence with the grandchildren.
+To resolve this we introduce a new pipetype called 'unique'. Our new query
+produces output in one-to-one correspondence with the grandchildren:
+
+```javascript
+    g.v('Thor').in().in().out().out().unique().run()
+``` 
+
+The pipetype implementation:
 
 ```javascript
 Dagoba.addPipetype('unique', function(graph, args, gremlin, state) {
@@ -750,7 +769,7 @@ Dagoba.G.findVertices = function(args) {                      // vertex finder h
 }
 ```
 
-This function receives its arguments as a list. If the first one is an object it passes it to `searchVertices`, allowing queries like `g.v({_id:'Thor'}).run()` or `g.v({species: 'Aesir'}).run()`.
+This function receives its arguments as a list. If the first one is an object it passes it to `searchVertices`, allowing queries like \newline `g.v({_id:'Thor'}).run()` or `g.v({species: 'Aesir'}).run()`.
 
 Otherwise, if there are arguments it gets passed to `findVerticesByIds`, which handles queries like `g.v('Thor', 'Odin').run()`.
 
@@ -900,7 +919,15 @@ There are a couple of tradeoffs with this approach: one is that spatial performa
 
 This second point isn't usually an issue, because of the phase separation between when our compiler runs its optimizations and when all the thunking occurs during runtime. In our case we don't have that advantage: because we're using method chaining to implement a fluent interface [^fluentinterface] if we also use thunks to achieve laziness we would thunk each new method as it is called, which means by the time we get to `run()` we have only a single thunk as our input, and no way to optimize our query.
 
-[^fluentinterface]: Method chaining lets us write `g.v('Thor').in().out().run()` instead of `var query = g.query(); query.add('vertex', 'Thor'); query.add('in'); query.add('out'); query.run()`
+[^fluentinterface]: Method chaining lets us write `g.v('Thor').in().out().run()` instead of: 
+
+```javascript
+    var query = g.query(); 
+    query.add('vertex', 'Thor'); 
+    query.add('in'); 
+    query.add('out'); 
+    query.run()`
+```
 
 Interestingly, our fluent interface hides another difference between our query language and regular programming languages. The query `g.v('Thor').in().out().run()` could be rewritten as `run(out(in(v(g, 'Thor'))))` if we weren't using method chaining. In JS we would first process `g` and `'Thor'`, then `v`, then `in`, `out` and `run`, working from the inside out. In a language with non-strict semantics we would work from the outside in, processing each consecutive nested layer of arguments only as needed.
 
@@ -1305,7 +1332,13 @@ g.v('Thor').out().as('a')
 
 after the query transformers have all run.
 
-We could run the `times` transformer first, to produce  <latex>\linebreak</latex> `g.v('Thor').out().all().out().all().out().all().run()`. Then run the `all` transformer and have it transform each `all` into a uniquely labeled `as`, and put a `merge` after the last `as`.
+We could run the `times` transformer first, to produce:
+
+```javascript
+    g.v('Thor').out().all().out().all().out().all().run()
+``` 
+
+Then run the `all` transformer and have it transform each `all` into a uniquely labeled `as`, and put a `merge` after the last `as`.
 
 There are a few problems with this, though. For one, this `as`/`merge` technique only works if every pathway is present in the graph: if we're missing an entry for one of Thor's great-grandparents then we will skip valid entries. For another, what happens if we want to do this to just part of a query and not the whole thing? What if there are multiple `all`s?
 

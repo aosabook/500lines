@@ -67,7 +67,8 @@ PRODUCT_HTML = "<li>{prodname}: {price}</li>\n"
 def make_page(username, products):
     product_html = ""
     for prodname, price in products:
-        product_html += PRODUCT_HTML.format(prodname=prodname, price=format_price(price))
+        product_html += PRODUCT_HTML.format(
+            prodname=prodname, price=format_price(price))
     html = PAGE_HTML.format(name=username, products=product_html)
     return html
 \end{verbatim}
@@ -781,7 +782,7 @@ append_result('hello')
 which will add the string \texttt{hello} to the rendered output of the
 template. We have multiple levels of abstraction here which can be
 difficult to keep straight. The compiler uses
-\texttt{buffered.append("'hello'")}, which creates
+\newline \texttt{buffered.append("'hello'")}, which creates
 \texttt{append\_result('hello')} in the compiled Python function, which
 when run, appends \texttt{hello} to the template result.
 

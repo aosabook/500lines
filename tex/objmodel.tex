@@ -557,8 +557,8 @@ Smalltalk\footnote{A. Goldberg, Smalltalk-80: The Language and its
 \texttt{doesNotUnderstand:}.
 
 The case of \texttt{\_\_setattr\_\_} is a bit different. Since setting
-an attribute always creates it, \texttt{\_\_setattr\_\_} is always
-called when setting an attribute. To make sure that a
+an attribute always creates it, \newline \texttt{\_\_setattr\_\_} is
+always called when setting an attribute. To make sure that a
 \texttt{\_\_setattr\_\_} method always exists, the \texttt{OBJECT} class
 has a definition of \texttt{\_\_setattr\_\_}. This base implementation
 simply does what setting an attribute did so far, which is write the
@@ -726,7 +726,7 @@ instance where the lookup was done\footnote{In Python the second
   ignore that here.}.
 
 Implementing this behaviour is easy. We simply need to change
-\texttt{\_is\_bindable} and \texttt{\_make\_boundmethod}:
+\texttt{\_is\_bindable} and \newline \texttt{\_make\_boundmethod}:
 
 \begin{verbatim}
 def _is_bindable(meth):

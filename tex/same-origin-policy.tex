@@ -640,11 +640,10 @@ fact Configuration {
 In addition, let us say that that the email, blog, and calendar
 applications are all developed by a single organization, and thus, share
 the same base domain name. Conceptually, we can think of
-\texttt{EmailServer} and \texttt{CalendarServer} having domain names
-\texttt{email.example.com} and \texttt{calendar.example.com}, thus
-sharing \texttt{example.com} as the common superdomain. In our model,
-this can be represented by introducing a domain name that
-\emph{subsumes} others:
+\texttt{EmailServer} and \texttt{CalendarServer} having subdomains
+\texttt{email} and \texttt{calendar}, sharing \texttt{example.com} as
+the common superdomain. In our model, this can be represented by
+introducing a domain name that \emph{subsumes} others:
 
 \begin{verbatim}
 one sig ExampleDomain extends Domain {}{
@@ -703,9 +702,9 @@ sig DataflowCall in Call {
 \end{verbatim}
 
 For example, during each call of type \texttt{HttpRequest}, the client
-transfers two arguments (\texttt{sentCookies} and \texttt{body}) to the
-server, and in turn, receives two addition sets of data
-(\texttt{receivedCookies} and \texttt{response}) as return values.
+transfers \texttt{sentCookies} and \texttt{body} to the server, and
+receives \texttt{receivedCookies} and \texttt{response} as return
+values.
 
 More generally, arguments flow from the sender of the call to the
 receiver, and return values flow from the receiver to the sender. This
@@ -950,10 +949,11 @@ mashups).
 
 In this section, we will discuss four techniques that have been devised
 and frequently used by web developers to bypass the restrictions imposed
-by the SOP: (1) The ``document.domain'' property relaxation; (2) JSONP;
-(3) PostMessage; and (4) CORS. These are valuable tools, but if used
-without caution, may render a web application vulnerable to exactly the
-kinds of attacks that the SOP was designed to thwart in the first place.
+by the SOP: (1) The \texttt{document.domain} property relaxation; (2)
+JSONP; (3) PostMessage; and (4) CORS. These are valuable tools, but if
+used without caution, may render a web application vulnerable to exactly
+the kinds of attacks that the SOP was designed to thwart in the first
+place.
 
 Each of these four techniques is surprisingly complex, and if described
 in full detail, would merit its own chapter. So here we just give a
@@ -975,14 +975,15 @@ falling into security pitfalls.
 \aosasectii{Domain Property}\label{domain-property}
 
 As the first technique on our list, we will look at the use of the
-``document.domain'' property as a way of bypassing the SOP. The idea
-behind this technique is to allow two documents from different origins
-to access each other's DOM simply by setting the ``document.domain''
-property to the same value. So, for example, a script from
-\texttt{email.example.com} could read or write the DOM of a document
-from \texttt{calendar.example.com} if the scripts in both documents set
-the \texttt{document.domain} property to \texttt{example.com} (assuming
-both source URLs have also the same protocol and port).
+\texttt{document.domain} property as a way of bypassing the SOP. The
+idea behind this technique is to allow two documents from different
+origins to access each other's DOM simply by setting the
+\texttt{document.domain} property to the same value. So, for example, a
+script from \texttt{email.example.com} could read or write the DOM of a
+document from \texttt{calendar.example.com} if the scripts in both
+documents set the \texttt{document.domain} property to
+\texttt{example.com} (assuming both source URLs have also the same
+protocol and port).
 
 We model the behavior of setting the \texttt{document.domain} property
 as a type of browser operation called \texttt{SetDomain}:
@@ -1039,7 +1040,7 @@ fact domSop {
 \end{verbatim}
 
 Here, \texttt{currOrigin{[}d, t{]}} is a function that returns the
-origin of document \texttt{d} with the \texttt{document.domain} property
+origin of document \texttt{d} with the property \texttt{document.domain}
 at time \texttt{t} as its hostname.
 
 It is worth pointing out that the \texttt{document.domain} properties
@@ -1071,13 +1072,12 @@ check Confidentiality for 5
 \end{verbatim}
 
 This scenario consists of five steps; the first three steps show a
-typical use case of the \texttt{document.domain} property, where two
-documents from distinct origins, \texttt{CalendarPage} and
-\texttt{InboxPage}, communicate by setting their domain properties to a
-common value (\texttt{ExampleDomain}). The last two steps introduce
-another document, \texttt{BlogPage}, that has been compromised with a
-malicious script that attempts to access the content of the other two
-documents.
+typical use of \texttt{document.domain}, where two documents from
+distinct origins, \texttt{CalendarPage} and \texttt{InboxPage},
+communicate by setting their domain properties to a common value
+(\texttt{ExampleDomain}). The last two steps introduce another document,
+\texttt{BlogPage}, that has been compromised with a malicious script
+that attempts to access the content of the other two documents.
 
 At the beginning of the scenario
 (\aosafigref{500l.same-origin-policy.fig-setdomain-1a} and
@@ -1100,13 +1100,13 @@ Having done this, they can now access each other's DOM by executing
 
 \aosafigure[180pt]{same-origin-policy-images/fig-setdomain-1c.png}{Cross-origin counterexample at time 2}{500l.same-origin-policy.fig-setdomain-1c}
 
-Note that when you set the domain property of both ``email.example.com''
-and ``calendar.example.com'' to ``example.com'', you are allowing not
-only these two pages to communicate between each other, but also
-\emph{any} other page that has ``example.com'' as a superdomain (e.g.,
-``blog.example.com''). An attacker also realizes this, and constructs a
-special script (\texttt{EvilScript}) that runs inside the attacker's
-blog page (\texttt{BlogPage}). In the next step
+Note that when you set the domain of \texttt{email.example.com} and
+\texttt{calendar.example.com} to \texttt{example.com}, you are allowing
+not only these two pages to communicate between each other, but also
+\emph{any} other page that has \texttt{example.com} as a superdomain
+(e.g., \texttt{blog.example.com}). An attacker also realizes this, and
+constructs a special script (\texttt{EvilScript}) that runs inside the
+attacker's blog page (\texttt{BlogPage}). In the next step
 (\aosafigref{500l.same-origin-policy.fig-setdomain-2a}), the script
 executes the \texttt{SetDomain} operation to modify the domain property
 of \texttt{BlogPage} to \texttt{ExampleDomain}.
@@ -1252,12 +1252,12 @@ victim's resource (\texttt{MySchedule}) wrapped inside the padding
 
 \aosafigure[240pt]{same-origin-policy-images/fig-jsonp-1.png}{JSONP counterexample at time 0}{500l.same-origin-policy.fig-jsonp-1}
 
-In the next step (\aosafigref{500l.same-origin-policy.fig-jsonp-2}), the
-browser interprets the JSONP response as a call to
-\texttt{Leak(MySchedule)}. The rest of the attack is simple;
-\texttt{Leak} can simply be programmed to forward the input argument to
-\texttt{EvilServer}, allowing the attacker to access the victim's
-sensitive information.
+In the next step, the browser interprets the JSONP response as a call to
+\texttt{Leak(MySchedule)}
+(\aosafigref{500l.same-origin-policy.fig-jsonp-2}). The rest of the
+attack is simple; \texttt{Leak} can simply be programmed to forward the
+input argument to \texttt{EvilServer}, allowing the attacker to access
+the victim's sensitive information.
 
 \aosafigure[180pt]{same-origin-policy-images/fig-jsonp-2.png}{JSONP counterexample at time 1}{500l.same-origin-policy.fig-jsonp-2}
 

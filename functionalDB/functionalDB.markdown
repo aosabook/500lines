@@ -432,12 +432,12 @@ These latter two helper functions are responsible for finding the next timestamp
          new-ts               (next-ts db)]
        [(update-creation-ts (assoc ent :id ent-id) new-ts) next-top-id]))
 ```
-To add the entity to storage, we locate the most recent layer in the database and update the storage in that layer with a new layer. The results of this operation are assigned to the `layer-with-updated-storage` local variable.
+To add the entity to storage, we locate the most recent layer in the database and update the storage in that layer with a new layer, the results of which are stored in `layer-with-updated-storage`. 
 
 Finally, we must update the indexes. This means, for each of the indexes (done by the combination of `reduce` and the `partial`-ed `add-entity-to-index` at the `add-entity` function):
 
 * Find the attributes that should be indexed (see the combination of `filter` with the index’s `usage-pred` that operates on the attributes in `add-entity-to-index`) 
-* Build an index-path from the the entity’s ID (see the combination of the `partial`-ed `update-entry-in-index` with `from-eav` at the `update-attr-in-index` function)
+* Build an index-path from the the entity’s ID (see the combination of the `partial`-ed \newline `update-entry-in-index` with `from-eav` at the `update-attr-in-index` function)
 * Add that path to the index (see the `update-entry-in-index` function)
 
 ```clojure
@@ -725,9 +725,9 @@ Let's look at an example query in our proposed language. This query asks: "What 
 {  :find [?nm ?bd ]
    :where [
       [?e  :likes "pizza"]
-      [?e  :name  ?nm] 
+      [?e  :name  ?nm]
       [?e  :speak "English"]
-      [?e  :birthday (birthday-this-month? ?bd)]]}
+      [?e  :bday (bday-mo? ?bd)]]}
 ```
 #### Syntax
 
@@ -735,8 +735,8 @@ We use the syntax of Clojure’s data literals directly to provide the basic syn
 
 A query is a map with two items:
 
-* An item with `:where` as a key, and with a _rule_ as a value. A rule is a vector of _clauses_, and a clause is a vector composed of three _predicates_, each of which operates on a different component of a datom.  In the example above, `[?e  :likes "pizza"]` is a clause.  This `:where` item defines a rule that acts as a filter on datoms in our database (like the 'WHERE' clause in a SQL query).
-* An item with `:find` as a key, and with a vector as a value. The vector defines which components of the selected datom should be projected into the results (like the 'SELECT' clause in a SQL query).
+* An item with `:where` as a key, and with a _rule_ as a value. A rule is a vector of _clauses_, and a clause is a vector composed of three _predicates_, each of which operates on a different component of a datom.  In the example above, `[?e  :likes "pizza"]` is a clause.  This `:where` item defines a rule that acts as a filter on datoms in our database (like the `WHERE` clause in a SQL query).
+* An item with `:find` as a key, and with a vector as a value. The vector defines which components of the selected datom should be projected into the results (like the `SELECT` clause in a SQL query).
 
 The description above omits a crucial requirement: how to make different clauses sync on a value (i.e., make a join operation between them), and how to structure the found values in the output (specified by the `:find` part). 
 
@@ -772,7 +772,7 @@ A clause in a query is composed of three predicates; \aosatblref{500l.functional
         Bind the datom's item's value to the variable (unless it's an '_').<br/>
         Replace the variable with the value of the item in the datom.<br/>
         Return the application of the operation.</td>
-    <td>(birthday-this-month? _)</td>
+    <td>(bday-mo? _)</td>
   </tr>
   <tr>
     <td>Binary operator</td>
@@ -794,11 +794,11 @@ A clause in a query is composed of three predicates; \aosatblref{500l.functional
 \hline
 \textbf{Name} & \textbf{Meaning} & \textbf{Example} \\
 \hline
-Constant & Is the value of the item in the datom equal to the constant? & \verb|:likes| \\
-Variable & Bind the value of the item in the datom to the variable and return true. & \verb|?e| \\
+Constant & Is the value of the datom item equal to the constant? & \verb|:likes| \\
+Variable & Bind the value of the datom item to the variable and return true. & \verb|?e| \\
 Don't-care & Always returns true. & \verb|_| \\
-Unary operator & \begin{tabular}{@{}l@{}} Unary operation that takes a variable as its operand. \\ Bind the datom's item's value to the variable (unless it's an \verb|_|). \\  Replace the variable with the value of the item in the datom. \\ Return the application of the operation. \end{tabular} & \verb|(birthday-this-month? _)| \\
-Binary operator & \begin{tabular}{@{}l@{}} A binary operation that must have a variable as one of its operands. \\ Bind the datom's item's value to the variable (unless it's an \verb|_|). \\ Replace the variable with the value of the item in the datom. \\ Return the result of the operation. \end{tabular} & \verb|(&gt; ?age 20)| \\
+Unary operator & \begin{tabular}{@{}l@{}} Unary operation that takes a variable as its operand. \\ Bind the datom's item's value to the variable (unless it's an \verb|_|). \\  Replace the variable with the value of the item in the datom. \\ Return the application of the operation. \end{tabular} & \verb|(bday-mo? _)| \\
+Binary operator & \begin{tabular}{@{}l@{}} A binary operation that requires a variable as an operand. \\ Bind the datom's item's value to the variable (unless it's an \verb|_|). \\ Replace the variable with the value of the item in the datom. \\ Return the result of the operation. \end{tabular} & \verb|(&gt; ?age 20)| \\
 \hline
 \end{tabular}
 }
@@ -919,8 +919,8 @@ and the following structure in \aosatblref{500l.functionaldb.clauses} for the `:
 	<td>["?e" nil nil]</td>
 </tr>
 <tr>
-	<td>[?e  :birthday (birthday-this-month? ?bd)]</td>
-	<td>[#(= % %) #(= % :birthday) #(birthday-this-month? %)]</td>
+	<td>[?e  :bday (bday-mo? ?bd)]</td>
+	<td>[#(= % %) #(= % :bday) #(bday-mo? %)]</td>
 	<td>["?e" nil "?bd"]
 </td>
 </tr>
@@ -936,10 +936,10 @@ and the following structure in \aosatblref{500l.functionaldb.clauses} for the `:
 \hline
 \textbf{Query Clause} & \textbf{Predicate Clause} & \textbf{Meta Clause} \\
 \hline
-\verb|[?e  :likes "pizza"]| & \verb|[#(= % %)  #(= % :likes)  #(= % "pizza")]| & \verb|["?e" nil nil]| \\
-\verb|[?e  :name  ?nm]| & \verb|[#(= % %)  #(= % :name) #(= % %)]| & \verb|["?e" nil "?nm"]| \\
-\verb|[?e  :speak "English"]| & \verb|[#(= % %) #(= % :speak) #(= % "English")]| & \verb|["?e" nil nil]| \\
-\verb|[?e  :birthday (birthday-this-month? ?bd)]| & \verb|[#(= % %) #(= % :birthday) #(birthday-this-month? %)]| & \verb|["?e" nil "?bd"]| \\
+\verb|[?e  :likes "pizza"]| & \verb|[#(= % %)  #(= % :likes)  #(= % "pizza")]| & \verb|["?e" nil nil]| \\
+\verb|[?e  :name  ?nm]| & \verb|[#(= % %)  #(= % :name) #(= % %)]| & \verb|["?e" nil "?nm"]| \\
+\verb|[?e  :speak "English"]| & \verb|[#(= % %) #(= % :speak) #(= % "English")]| & \verb|["?e" nil nil]| \\
+\verb|[?e  :bday (bday-mo? ?bd)]| & \verb|[#(= % %) #(= % :bday) #(bday-mo? %)]| & \verb|["?e" nil "?bd"]| \\
 \hline
 \end{tabular}
 }
@@ -1020,7 +1020,7 @@ In our example the chosen index is the `AVET` index, as the joining variable act
 
 #### Phase 3: Execution of the Plan
 
-We saw in the previous phase that the query plan we construct ends by calling `single-index-query-plan`. This function will:
+We saw in the previous phase that our query plan ends by calling `single-index-query-plan`. This function will:
 
 1. Apply each predicate clause on an index (each predicate on its appropriate index level).
 2. Perform an AND operation across the results.
@@ -1045,7 +1045,7 @@ To better explain this process we'll demonstrate it using our exemplary query, a
 	<td>:name </br>
 		:likes</br>
 		:speak</br>
-		:birthday 
+		:bday 
 	</td>
 	<td>USA</br>
 		Pizza</br>
@@ -1058,7 +1058,7 @@ To better explain this process we'll demonstrate it using our exemplary query, a
 	<td>:name </br>
 		:likes</br>
 		:speak</br>
-		:birthday 
+		:bday 
 	</td>
 	<td>France</br>
 		Red wine</br>
@@ -1071,7 +1071,7 @@ To better explain this process we'll demonstrate it using our exemplary query, a
 	<td>:name </br>
 		:likes</br>
 		:speak</br>
-		:birthday 
+		:bday 
 	</td>
 	<td>Canada</br>
 		Snow</br>
@@ -1091,9 +1091,9 @@ To better explain this process we'll demonstrate it using our exemplary query, a
 \hline
 \textbf{Entity ID} & \textbf{Attribute Name} & \textbf{Attribute Value} \\
 \hline
-1 & \begin{tabular}{@{}l@{}} \verb|:name| \\ \verb|:likes| \\ \verb|:speak| \\ \verb|:birthday| \end{tabular} & \begin{tabular}{@{}l@{}} USA \\ Pizza \\ English \\ July 4, 1776 \end{tabular} \\
-2 & \begin{tabular}{@{}l@{}} \verb|:name| \\ \verb|:likes| \\ \verb|:speak| \\ \verb|:birthday| \end{tabular} & \begin{tabular}{@{}l@{}} France \\ Red wine \\ French \\ July 14, 1789 \end{tabular} \\
-3 & \begin{tabular}{@{}l@{}} \verb|:name| \\ \verb|:likes| \\ \verb|:speak| \\ \verb|:birthday| \end{tabular} & \begin{tabular}{@{}l@{}} Canada \\ Snow \\ English \\ July 1, 1867 \end{tabular} \\
+1 & \begin{tabular}{@{}l@{}} \verb|:name| \\ \verb|:likes| \\ \verb|:speak| \\ \verb|:bday| \end{tabular} & \begin{tabular}{@{}l@{}} USA \\ Pizza \\ English \\ July 4, 1776 \end{tabular} \\
+2 & \begin{tabular}{@{}l@{}} \verb|:name| \\ \verb|:likes| \\ \verb|:speak| \\ \verb|:bday| \end{tabular} & \begin{tabular}{@{}l@{}} France \\ Red wine \\ French \\ July 14, 1789 \end{tabular} \\
+3 & \begin{tabular}{@{}l@{}} \verb|:name| \\ \verb|:likes| \\ \verb|:speak| \\ \verb|:bday| \end{tabular} & \begin{tabular}{@{}l@{}} Canada \\ Snow \\ English \\ July 1, 1867 \end{tabular} \\
 \hline
 \end{tabular}
 }
@@ -1151,19 +1151,19 @@ Assuming the query was executed on July 4th, the results of executing it on the 
 <td>[:speak "English" #{1, 3}]</td><td>["?e" nil nil]</td>
 </tr>
 <tr>
-<td>[:birthday "July 4, 1776" #{1}]</td><td>["?e" nil "?bd"]</td>
+<td>[:bday "July 4, 1776" #{1}]</td><td>["?e" nil "?bd"]</td>
 </tr>
 <tr>
 <td>[:name France #{2}]</td><td>["?e" nil "?nm"]</td>
 </tr>
 <tr>
-<td>[:birthday "July 14, 1789" #{2}]</td><td>["?e" nil "?bd"]</td>
+<td>[:bday "July 14, 1789" #{2}]</td><td>["?e" nil "?bd"]</td>
 </tr>
 <tr>
 <td>[:name Canada #{3}]</td><td>["?e" nil "?nm"]</td>
 </tr>
 <tr>
-<td>[:birthday "July 1, 1867" {3}]</td><td>["?e" nil "?bd"]</td>
+<td>[:bday "July 1, 1867" {3}]</td><td>["?e" nil "?bd"]</td>
 </tr>
 </table>
 : \label{500l.functionaldb.queryresults} Query results
@@ -1180,11 +1180,11 @@ Assuming the query was executed on July 4th, the results of executing it on the 
 \verb|[:likes Pizza #{1}]| & \verb|["?e" nil nil]| \\
 \verb|[:name USA #{1}]| & \verb|["?e" nil "?nm"]| \\
 \verb|[:speak "English" #{1, 3}]| & \verb|["?e" nil nil]| \\
-\verb|[:birthday "July 4, 1776" #{1}]| & \verb|["?e" nil "?bd"]| \\
+\verb|[:bday "July 4, 1776" #{1}]| & \verb|["?e" nil "?bd"]| \\
 \verb|[:name France #{2}]| & \verb|["?e" nil "?nm"]| \\
-\verb|[:birthday "July 14, 1789" #{2}]| & \verb|["?e" nil "?bd"]| \\
+\verb|[:bday "July 14, 1789" #{2}]| & \verb|["?e" nil "?bd"]| \\
 \verb|[:name Canada #{3}]| & \verb|["?e" nil "?nm"]| \\
-\verb|[:birthday "July 1, 1867" {3}]| & \verb|["?e" nil "?bd"]| \\
+\verb|[:bday "July 1, 1867" {3}]| & \verb|["?e" nil "?bd"]| \\
 \hline
 \end{tabular}
 }
@@ -1229,7 +1229,7 @@ Finally, we remove all of the result clauses that are "empty" (i.e., their last 
 <td>[:name USA #{1}]</td><td>["?e" nil "?nm"]</td>
 </tr>
 <tr>
-<td>[:birthday "July 4, 1776" #{1}]</td><td>["?e" nil "?bd"]</td>
+<td>[:bday "July 4, 1776" #{1}]</td><td>["?e" nil "?bd"]</td>
 </tr>
 <tr>
 <td>[:speak "English" #{1}]</td><td>["?e" nil nil]</td>
@@ -1248,7 +1248,7 @@ Finally, we remove all of the result clauses that are "empty" (i.e., their last 
 \hline
 \verb|[:likes Pizza #{1}]| & \verb|["?e" nil nil]| \\
 \verb|[:name USA #{1}]| & \verb|["?e" nil "?nm"]| \\ 
-\verb|[:birthday "July 4, 1776" #{1}]| & \verb|["?e" nil "?bd"]| \\
+\verb|[:bday "July 4, 1776" #{1}]| & \verb|["?e" nil "?bd"]| \\
 \verb|[:speak "English" #{1}]| & \verb|["?e" nil nil]| \\
 \hline
 \end{tabular}
@@ -1284,7 +1284,7 @@ At the end of phase 3 of our example execution, we have the following structure 
 	{[:likes nil]    ["Pizza" nil]}
 	{[:name nil]     ["USA" "?nm"]}
 	{[:speaks nil]   ["English" nil]} 
-	{[:birthday nil] ["July 4, 1776" "?bd"]} 
+	{[:bday nil] ["July 4, 1776" "?bd"]} 
 }}
 ```
 

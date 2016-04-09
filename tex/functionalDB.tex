@@ -603,9 +603,8 @@ updating their \texttt{:ts} fields.
 \end{verbatim}
 
 To add the entity to storage, we locate the most recent layer in the
-database and update the storage in that layer with a new layer. The
-results of this operation are assigned to the
-\texttt{layer-with-updated-storage} local variable.
+database and update the storage in that layer with a new layer, the
+results of which are stored in \texttt{layer-with-updated-storage}.
 
 Finally, we must update the indexes. This means, for each of the indexes
 (done by the combination of \texttt{reduce} and the \texttt{partial}-ed
@@ -619,7 +618,7 @@ Finally, we must update the indexes. This means, for each of the indexes
   the attributes in \texttt{add-entity-to-index})
 \item
   Build an index-path from the the entity's ID (see the combination of
-  the \texttt{partial}-ed \texttt{update-entry-in-index} with
+  the \texttt{partial}-ed \newline \texttt{update-entry-in-index} with
   \texttt{from-eav} at the \texttt{update-attr-in-index} function)
 \item
   Add that path to the index (see the \texttt{update-entry-in-index}
@@ -1085,9 +1084,9 @@ speak English, and who have a birthday this month?''
 {  :find [?nm ?bd ]
    :where [
       [?e  :likes "pizza"]
-      [?e  :name  ?nm] 
+      [?e  :name  ?nm]
       [?e  :speak "English"]
-      [?e  :birthday (birthday-this-month? ?bd)]]}
+      [?e  :bday (bday-mo? ?bd)]]}
 \end{verbatim}
 
 \aosasectiii{Syntax}\label{syntax}
@@ -1108,11 +1107,12 @@ A query is a map with two items:
   different component of a datom. In the example above,
   \texttt{{[}?e  :likes "pizza"{]}} is a clause. This \texttt{:where}
   item defines a rule that acts as a filter on datoms in our database
-  (like the `WHERE' clause in a SQL query).
+  (like the \texttt{WHERE} clause in a SQL query).
 \item
   An item with \texttt{:find} as a key, and with a vector as a value.
   The vector defines which components of the selected datom should be
-  projected into the results (like the `SELECT' clause in a SQL query).
+  projected into the results (like the \texttt{SELECT} clause in a SQL
+  query).
 \end{aosaitemize}
 
 The description above omits a crucial requirement: how to make different
@@ -1136,11 +1136,11 @@ predicate in our query language.
 \hline
 \textbf{Name} & \textbf{Meaning} & \textbf{Example} \\
 \hline
-Constant & Is the value of the item in the datom equal to the constant? & \verb|:likes| \\
-Variable & Bind the value of the item in the datom to the variable and return true. & \verb|?e| \\
+Constant & Is the value of the datom item equal to the constant? & \verb|:likes| \\
+Variable & Bind the value of the datom item to the variable and return true. & \verb|?e| \\
 Don't-care & Always returns true. & \verb|_| \\
-Unary operator & \begin{tabular}{@{}l@{}} Unary operation that takes a variable as its operand. \\ Bind the datom's item's value to the variable (unless it's an \verb|_|). \\  Replace the variable with the value of the item in the datom. \\ Return the application of the operation. \end{tabular} & \verb|(birthday-this-month? _)| \\
-Binary operator & \begin{tabular}{@{}l@{}} A binary operation that must have a variable as one of its operands. \\ Bind the datom's item's value to the variable (unless it's an \verb|_|). \\ Replace the variable with the value of the item in the datom. \\ Return the result of the operation. \end{tabular} & \verb|(&gt; ?age 20)| \\
+Unary operator & \begin{tabular}{@{}l@{}} Unary operation that takes a variable as its operand. \\ Bind the datom's item's value to the variable (unless it's an \verb|_|). \\  Replace the variable with the value of the item in the datom. \\ Return the application of the operation. \end{tabular} & \verb|(bday-mo? _)| \\
+Binary operator & \begin{tabular}{@{}l@{}} A binary operation that requires a variable as an operand. \\ Bind the datom's item's value to the variable (unless it's an \verb|_|). \\ Replace the variable with the value of the item in the datom. \\ Return the result of the operation. \end{tabular} & \verb|(&gt; ?age 20)| \\
 \hline
 \end{tabular}
 }
@@ -1298,10 +1298,10 @@ Clause} column.)
 \hline
 \textbf{Query Clause} & \textbf{Predicate Clause} & \textbf{Meta Clause} \\
 \hline
-\verb|[?e  :likes "pizza"]| & \verb|[#(= % %)  #(= % :likes)  #(= % "pizza")]| & \verb|["?e" nil nil]| \\
-\verb|[?e  :name  ?nm]| & \verb|[#(= % %)  #(= % :name) #(= % %)]| & \verb|["?e" nil "?nm"]| \\
-\verb|[?e  :speak "English"]| & \verb|[#(= % %) #(= % :speak) #(= % "English")]| & \verb|["?e" nil nil]| \\
-\verb|[?e  :birthday (birthday-this-month? ?bd)]| & \verb|[#(= % %) #(= % :birthday) #(birthday-this-month? %)]| & \verb|["?e" nil "?bd"]| \\
+\verb|[?e  :likes "pizza"]| & \verb|[#(= % %)  #(= % :likes)  #(= % "pizza")]| & \verb|["?e" nil nil]| \\
+\verb|[?e  :name  ?nm]| & \verb|[#(= % %)  #(= % :name) #(= % %)]| & \verb|["?e" nil "?nm"]| \\
+\verb|[?e  :speak "English"]| & \verb|[#(= % %) #(= % :speak) #(= % "English")]| & \verb|["?e" nil nil]| \\
+\verb|[?e  :bday (bday-mo? ?bd)]| & \verb|[#(= % %) #(= % :bday) #(bday-mo? %)]| & \verb|["?e" nil "?bd"]| \\
 \hline
 \end{tabular}
 }
@@ -1384,8 +1384,8 @@ joining variable acts on the entity IDs.
 \aosasectiii{Phase 3: Execution of the
 Plan}\label{phase-3-execution-of-the-plan}
 
-We saw in the previous phase that the query plan we construct ends by
-calling \texttt{single-index-query-plan}. This function will:
+We saw in the previous phase that our query plan ends by calling
+\texttt{single-index-query-plan}. This function will:
 
 \begin{aosaenumerate}
 \def\labelenumi{\arabic{enumi}.}
@@ -1417,9 +1417,9 @@ query, assuming that our database holds the entities in
 \hline
 \textbf{Entity ID} & \textbf{Attribute Name} & \textbf{Attribute Value} \\
 \hline
-1 & \begin{tabular}{@{}l@{}} \verb|:name| \\ \verb|:likes| \\ \verb|:speak| \\ \verb|:birthday| \end{tabular} & \begin{tabular}{@{}l@{}} USA \\ Pizza \\ English \\ July 4, 1776 \end{tabular} \\
-2 & \begin{tabular}{@{}l@{}} \verb|:name| \\ \verb|:likes| \\ \verb|:speak| \\ \verb|:birthday| \end{tabular} & \begin{tabular}{@{}l@{}} France \\ Red wine \\ French \\ July 14, 1789 \end{tabular} \\
-3 & \begin{tabular}{@{}l@{}} \verb|:name| \\ \verb|:likes| \\ \verb|:speak| \\ \verb|:birthday| \end{tabular} & \begin{tabular}{@{}l@{}} Canada \\ Snow \\ English \\ July 1, 1867 \end{tabular} \\
+1 & \begin{tabular}{@{}l@{}} \verb|:name| \\ \verb|:likes| \\ \verb|:speak| \\ \verb|:bday| \end{tabular} & \begin{tabular}{@{}l@{}} USA \\ Pizza \\ English \\ July 4, 1776 \end{tabular} \\
+2 & \begin{tabular}{@{}l@{}} \verb|:name| \\ \verb|:likes| \\ \verb|:speak| \\ \verb|:bday| \end{tabular} & \begin{tabular}{@{}l@{}} France \\ Red wine \\ French \\ July 14, 1789 \end{tabular} \\
+3 & \begin{tabular}{@{}l@{}} \verb|:name| \\ \verb|:likes| \\ \verb|:speak| \\ \verb|:bday| \end{tabular} & \begin{tabular}{@{}l@{}} Canada \\ Snow \\ English \\ July 1, 1867 \end{tabular} \\
 \hline
 \end{tabular}
 }
@@ -1491,11 +1491,11 @@ on the above data are seen in
 \verb|[:likes Pizza #{1}]| & \verb|["?e" nil nil]| \\
 \verb|[:name USA #{1}]| & \verb|["?e" nil "?nm"]| \\
 \verb|[:speak "English" #{1, 3}]| & \verb|["?e" nil nil]| \\
-\verb|[:birthday "July 4, 1776" #{1}]| & \verb|["?e" nil "?bd"]| \\
+\verb|[:bday "July 4, 1776" #{1}]| & \verb|["?e" nil "?bd"]| \\
 \verb|[:name France #{2}]| & \verb|["?e" nil "?nm"]| \\
-\verb|[:birthday "July 14, 1789" #{2}]| & \verb|["?e" nil "?bd"]| \\
+\verb|[:bday "July 14, 1789" #{2}]| & \verb|["?e" nil "?bd"]| \\
 \verb|[:name Canada #{3}]| & \verb|["?e" nil "?nm"]| \\
-\verb|[:birthday "July 1, 1867" {3}]| & \verb|["?e" nil "?bd"]| \\
+\verb|[:bday "July 1, 1867" {3}]| & \verb|["?e" nil "?bd"]| \\
 \hline
 \end{tabular}
 }
@@ -1543,7 +1543,7 @@ their last item is empty). We do this in the last line of the
 \hline
 \verb|[:likes Pizza #{1}]| & \verb|["?e" nil nil]| \\
 \verb|[:name USA #{1}]| & \verb|["?e" nil "?nm"]| \\ 
-\verb|[:birthday "July 4, 1776" #{1}]| & \verb|["?e" nil "?bd"]| \\
+\verb|[:bday "July 4, 1776" #{1}]| & \verb|["?e" nil "?bd"]| \\
 \verb|[:speak "English" #{1}]| & \verb|["?e" nil nil]| \\
 \hline
 \end{tabular}
@@ -1587,7 +1587,7 @@ structure at hand:
     {[:likes nil]    ["Pizza" nil]}
     {[:name nil]     ["USA" "?nm"]}
     {[:speaks nil]   ["English" nil]} 
-    {[:birthday nil] ["July 4, 1776" "?bd"]} 
+    {[:bday nil] ["July 4, 1776" "?bd"]} 
 }}
 \end{verbatim}
 

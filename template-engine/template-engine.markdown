@@ -72,7 +72,8 @@ PRODUCT_HTML = "<li>{prodname}: {price}</li>\n"
 def make_page(username, products):
     product_html = ""
     for prodname, price in products:
-        product_html += PRODUCT_HTML.format(prodname=prodname, price=format_price(price))
+        product_html += PRODUCT_HTML.format(
+            prodname=prodname, price=format_price(price))
     html = PAGE_HTML.format(name=username, products=product_html)
     return html
 ```
@@ -777,7 +778,7 @@ which will mean that our compiled Python function will have this line:
 append_result('hello')
 ```
 
-which will add the string `hello` to the rendered output of the template. We have multiple levels of abstraction here which can be difficult to keep straight. The compiler uses `buffered.append("'hello'")`, which creates `append_result('hello')` in the compiled Python function, which when run, appends `hello` to the template result.
+which will add the string `hello` to the rendered output of the template. We have multiple levels of abstraction here which can be difficult to keep straight. The compiler uses \newline `buffered.append("'hello'")`, which creates `append_result('hello')` in the compiled Python function, which when run, appends `hello` to the template result.
 
 Back to our Templite class. As we parse control structures, we want to check
 that they are properly nested.  The `ops_stack` list is a stack of strings:

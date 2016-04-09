@@ -126,14 +126,13 @@ ports.
 
 ### Files in this Project
 
-This project contains Python files for each of these components: the
-repository observer (`repo_observer.py`), the test job dispatcher
-(`dispatcher.py`), and the test runner (`test_runner.py`). Each of these
-three processes communicate with each other using sockets, and since the
+This project contains Python files for each of these components: the repository
+observer \newline (`repo_observer.py`), the test job dispatcher
+(`dispatcher.py`), and the test runner \newline (`test_runner.py`). Each of
+these three processes communicate with each other using sockets, and since the
 code used to transmit information is shared by all of them, there is a
-helpers.py file that contains it, so each process imports the
-communicate function from here instead of having it duplicated in the
-file.
+helpers.py file that contains it, so each process imports the communicate
+function from here instead of having it duplicated in the file.
 
 There are also bash script files used by these processes. These script
 files are used to execute bash and git commands in an easier way than
@@ -271,7 +270,8 @@ roundabout way.)
             # with the latest commit in the current working directory
             subprocess.check_output(["./update_repo.sh", args.repo])
         except subprocess.CalledProcessError as e:
-            raise Exception("Could not update and check repository. Reason: %s" % e.output)
+            raise Exception("Could not update and check repository. " +
+                            "Reason: %s" % e.output)
 ```
 
 The `update_repo.sh` file is used to identify any new commits and let the
@@ -393,7 +393,7 @@ seconds if anything went wrong along the way.
 ```
 
 The repository observer will repeat this process forever, until you kill
-the process via a `KeyboardInterrupt` (Ctrl+c), or by sending it a kill
+the process via a \newline `KeyboardInterrupt` (Ctrl+c), or by sending it a kill
 signal.
 
 ### The Dispatcher (`dispatcher.py`)
@@ -539,7 +539,7 @@ for our case, since the dispatcher server must be able to directly and
 swiftly communicate with all test runners and the repository observer.
 
 In order for the dispatcher server to handle simultaneous connections,
-it uses the `ThreadingTCPServer` custom class, which adds threading
+it uses the \newline `ThreadingTCPServer` custom class, which adds threading
 ability to the default `SocketServer`. This means that any time the
 dispatcher receives a connection request, it spins off a new process
 just for that connection. This allows the dispatcher to handle multiple
@@ -817,9 +817,9 @@ the dispatcher.
 ### Control Flow Diagram
 
 \aosafigref{500l.ci.controlflow} is overview diagram of this system. This
-diagram assumes that all three files (`repo_observer.py`, `dispatcher.py` and
-`test_runner.py`) are already running, and describes the actions each process
-takes when a new commit is made.
+diagram assumes that all three files \newline (`repo_observer.py`,
+`dispatcher.py` and `test_runner.py`) are already running, and describes the
+actions each process takes when a new commit is made.
 
 \aosafigure[360pt]{ci-images/diagram.png}{Control Flow}{500l.ci.controlflow}
 
@@ -847,7 +847,7 @@ You may run as many test runners as you like.
 Lastly, in another new shell, let's start the repo observer:
 
 ```bash
-$ python repo_observer.py --dispatcher-server=localhost:8888 <path/to/test_repo_clone_obs>
+$ python repo_observer.py --dispatcher-server=localhost:8888 <path/to/repo_clone_obs>
 ```
 
 Now that everything is set up, let's trigger some tests! To do that,

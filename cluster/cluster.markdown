@@ -113,7 +113,11 @@ Otherwise, it sends the value from the highest-numbered promise.
 Unless it would violate a promise, each acceptor records the value from the ``Accept`` message as accepted and replies with an ``Accepted`` message.
 The ballot is complete and the value decided when the proposer has heard its ballot number from a majority of acceptors.
 
-Returning to the example, initially no other value has been accepted, so the acceptors all send back a ``Promise`` with no value, and the proposer sends an ``Accept`` containing its value, say ``operation(name='deposit', amount=100.00, destination_account='Mike DiBernardo')``.
+Returning to the example, initially no other value has been accepted, so the acceptors all send back a ``Promise`` with no value, and the proposer sends an ``Accept`` containing its value, say:
+
+```python
+    operation(name='deposit', amount=100.00, destination_account='Mike DiBernardo')
+```
 
 If another proposer later initiates a ballot with a lower ballot number and a different operation (say, a transfer to acount ``'Dustin J. Mitchell'``), the acceptors will simply not accept it.
 If that ballot has a larger ballot number, then the ``Promise`` from the acceptors will inform the proposer about Michael's $100.00 deposit operation, and the proposer will send that value in the ``Accept`` message instead of the transfer to Dustin.
@@ -127,7 +131,7 @@ Both proposers then re-propose, and hopefully one wins, but the deadlock can con
 Consider the following sequence of events:
 
 * Proposer A performs the ``Prepare``/``Promise`` phase for ballot number 1.
-* Before Proposer A manages to get its proposal accepted, Proposer B performs a ``Prepare``/``Promise`` phase for ballot number 2.
+* Before Proposer A manages to get its proposal accepted, Proposer B performs a \newline ``Prepare``/``Promise`` phase for ballot number 2.
 * When Proposer A finally sends its ``Accept`` with ballot number 1, the acceptors reject it because they have already promised ballot number 2.
 * Proposer A reacts by immediately sending a ``Prepare`` with a higher ballot number (3), before Proposer B can send its ``Accept`` message.
 * Proposer B's subsequent ``Accept`` is rejected, and the process repeats.
@@ -491,7 +495,8 @@ class Replica(Role):
         # find a leader we think is working - either the latest we know of, or
         # ourselves (which may trigger a scout to make us the leader)
         leader = self.latest_leader or self.node.address
-        self.logger.info("proposing %s at slot %d to leader %s" % (proposal, slot, leader))
+        self.logger.info(
+            "proposing %s at slot %d to leader %s" % (proposal, slot, leader))
         self.node.send([leader], Propose(slot=slot, proposal=proposal))
 
     # handling decided proposals
@@ -508,7 +513,8 @@ class Replica(Role):
 
         # re-propose our proposal in a new slot if it lost its slot and wasn't a no-op
         our_proposal = self.proposals.get(slot)
-        if our_proposal is not None and our_proposal != proposal and our_proposal.caller:
+        if (our_proposal is not None and 
+            our_proposal != proposal and our_proposal.caller):
             self.propose(our_proposal)
 
         # execute any pending, decided proposals
@@ -622,7 +628,8 @@ class Leader(Role):
             self.scouting = False
         self.logger.info("leader preempted by %s", preempted_by.leader)
         self.active = False
-        self.ballot_num = Ballot((preempted_by or self.ballot_num).n + 1, self.ballot_num.leader)
+        self.ballot_num = Ballot((preempted_by or self.ballot_num).n + 1, 
+                                 self.ballot_num.leader)
 
     def do_Propose(self, sender, slot, proposal):
         if slot not in self.proposals:
@@ -688,7 +695,8 @@ class Scout(Role):
                 # leader is active.  # Any such conflicts will be handled by the
                 # commanders.
                 self.node.send([self.node.address],
-                    Adopted(ballot_num=ballot_num, accepted_proposals=accepted_proposals))
+                    Adopted(ballot_num=ballot_num, 
+                            accepted_proposals=accepted_proposals))
                 self.stop()
         else:
             # this acceptor has promised another leader a higher ballot number,
@@ -827,7 +835,8 @@ Seed emulates the ``Join``/``Welcome`` part of the bootstrap/replica interaction
 
 class Seed(Role):
 
-    def __init__(self, node, initial_state, execute_fn, peers, bootstrap_cls=Bootstrap):
+    def __init__(self, node, initial_state, execute_fn, peers, 
+                 bootstrap_cls=Bootstrap):
         super(Seed, self).__init__(node)
         self.initial_state = initial_state
         self.execute_fn = execute_fn
@@ -853,7 +862,8 @@ class Seed(Role):
 
     def finish(self):
         # bootstrap this node into the cluster we just seeded
-        bs = self.bootstrap_cls(self.node, peers=self.peers, execute_fn=self.execute_fn)
+        bs = self.bootstrap_cls(self.node, 
+                                peers=self.peers, execute_fn=self.execute_fn)
         bs.start()
         self.stop()
     
@@ -1234,7 +1244,7 @@ Lamport addresses this challenge in the final paragraph of "Paxos Made Simple":
 
 > We can allow a leader to get $\alpha$ commands ahead by letting the set of servers that execute instance $i+\alpha$ of the consensus algorithm be specified by the state after execution of the $i$th state machine command.  (Lamport, 2001)
 
-The idea is that each instance of Paxos (slot) uses the view from α slots earlier.
+The idea is that each instance of Paxos (slot) uses the view from $\alpha$ slots earlier.
 This allows the cluster to work on, at most, $\alpha$ slots at any one time, so a very small value of $\alpha$ limits concurrency, while a very large value of $\alpha$ makes view changes slow to take effect.
 
 In early drafts of this implementation (dutifully preserved in the git history!), I implemented support for view changes (using $\alpha$ in place of 3).

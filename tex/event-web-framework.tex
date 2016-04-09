@@ -421,8 +421,8 @@ functions like \texttt{buffer!}.
 \texttt{defclass} does allow us to specify getters/setters
 (\texttt{reader}s/\texttt{accessor}s), and slot initializers;
 \texttt{:initform} specifies a default value, while \texttt{:initarg}
-identifies a hook that the caller of \texttt{make-instance} can use to
-provide a default value.
+identifies a hook that the caller of \newline \texttt{make-instance} can
+use to provide a default value.
 
 \begin{verbatim}
 (defclass buffer ()
@@ -942,14 +942,14 @@ Here's our \texttt{define-handler} macro\footnote{I should note, the
 \end{verbatim}
 
 It delegates to three other macros (\texttt{bind-handler},
-\texttt{make-closing-handler}, \texttt{make-stream-handler}) that we
-will define later. \texttt{make-closing-handler} will create a handler
-for a full HTTP request/response cycle; \texttt{make-stream-handler}
-will instead handle an SSE message. The predicate \texttt{is-stream?}
-distinguishes between these cases for us. The backtick and comma are
-macro-specific operators that we can use to ``cut holes'' in our code
-that will be filled out by values specified in our Lisp code when we
-actually use \texttt{define-handler}.
+\texttt{make-closing-handler}, \newline \texttt{make-stream-handler})
+that we will define later. \texttt{make-closing-handler} will create a
+handler for a full HTTP request/response cycle;
+\texttt{make-stream-handler} will instead handle an SSE message. The
+predicate \texttt{is-stream?} distinguishes between these cases for us.
+The backtick and comma are macro-specific operators that we can use to
+``cut holes'' in our code that will be filled out by values specified in
+our Lisp code when we actually use \texttt{define-handler}.
 
 Notice how closely our macro conforms to our specification of what we
 wanted \texttt{define-handler} to do: If we were to write a series of
@@ -1301,11 +1301,10 @@ expression.
 \end{verbatim}
 
 An \texttt{:integer} is something we're making from a \texttt{parameter}
-by using \texttt{(parse-integer parameter :junk-allowed t)}.
-\texttt{junk-allowed} tells \texttt{parse-integer} that we're not
-confident the data we're giving it is actually parseable, so we need to
-make sure that the returned result is an integer. If it isn't, we get
-this behaviour:
+by using \texttt{parse-integer}. The \texttt{junk-allowed} parameter
+tells \texttt{parse-integer} that we're not confident the data we're
+giving it is actually parseable, so we need to make sure that the
+returned result is an integer. If it isn't, we get this behaviour:
 
 \begin{verbatim}
 HOUSE> (type-expression 'blah :integer)

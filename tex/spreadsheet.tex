@@ -72,8 +72,8 @@ has a unique \emph{coordinate} (such as \textbf{A1}) and \emph{content}
 \begin{aosaitemize}
 
 \item
-  Text: ``+'' in \textbf{B1} and ``⇒'' in \textbf{D1}, aligned to the
-  left.
+  Text: ``+'' in \textbf{B1} and ``-\textgreater{}'' in \textbf{D1},
+  aligned to the left.
 \item
   Number: ``1874'' in \textbf{A1} and ``2046'' in \textbf{C1}, aligned
   to the right.
@@ -200,7 +200,7 @@ encoding:
 \end{verbatim}
 
 Without the \texttt{charset} declaration, the browser may display the
-reset button's Unicode symbol \texttt{↻} as \texttt{â†»}, an example of
+reset button's Unicode symbol as \texttt{â†»}, an example of
 \emph{mojibake}: garbled text caused by decoding issues.
 
 The next three lines are JS declarations, placed within the
@@ -209,15 +209,17 @@ The next three lines are JS declarations, placed within the
 \begin{verbatim}
   <script src="lib/angular.js"></script>
   <script src="main.js"></script>
-  <script>try{ angular.module('500lines') }catch(e){ location="es5/index.html" }</script>
+  <script>
+      try { angular.module('500lines') }
+      catch(e){ location="es5/index.html" }
+  </script>
 \end{verbatim}
 
 The \texttt{\textless{}script src="\ldots{}"\textgreater{}} tags load JS
 resources from the same path as the HTML page. For example, if the
-current URL is
-\texttt{http://audreyt.github.io/500lines/spreadsheet/index.html}, then
+current URL is \texttt{http://abc.com/x/index.html}, then
 \texttt{lib/angular.js} refers to
-\texttt{http://audreyt.github.io/500lines/spreadsheet/lib/angular.js}.
+\texttt{http://abc.com/x/lib/angular.js}.
 
 The \texttt{try\{ angular.module('500lines') \}} line tests if
 \texttt{main.js} is loaded correctly; if not, it tells the browser to
@@ -506,12 +508,13 @@ moving upward from \textbf{A1} will produce the selector \texttt{\#A0},
 which has no corresponding element, and so will not trigger a focus
 change --- the same goes for pressing \textbf{DOWN} at the bottom row.
 
-Next, we define the \texttt{reset()} function so the \texttt{↻} button
-can restore the initial contents of the \texttt{sheet}:
+Next, we define the \texttt{reset()} function so the reset button can
+restore the initial contents of the \texttt{sheet}:
 
 \begin{verbatim}
   // Default sheet content, with some data cells and one formula cell.
-  $scope.reset = ()=>{ $scope.sheet = { A1: 1874, B1: '+', C1: 2046, D1: '⇒', E1: '=A1+C1' }; }
+  $scope.reset = ()=>{ 
+    $scope.sheet = { A1: 1874, B1: '+', C1: 2046, D1: '->', E1: '=A1+C1' }; }
 \end{verbatim}
 
 The \texttt{init()} function tries restoring the \texttt{sheet} content
@@ -788,8 +791,8 @@ In that case, we set the missing cell's default value to ``0'', clear
 \end{verbatim}
 
 If the user gives the missing cell a content later on in
-\texttt{sheet{[}coord{]}}, then \texttt{Object.defineProperty} would
-take over and override the temporary value.
+\texttt{sheet{[}coord{]}}, then the temporary value would be overridden
+by \texttt{Object.defineProperty}.
 
 Other kinds of errors are stored in \texttt{errs{[}coord{]}}:
 
@@ -808,7 +811,9 @@ a string:
 
 \begin{verbatim}
         // Turn vals[coord] into a string if it's not a number or Boolean
-        switch (typeof vals[coord]) { case 'function': case 'object': vals[coord]+=''; }
+        switch (typeof vals[coord]) { 
+            case 'function': case 'object': vals[coord]+=''; 
+        }
         return vals[coord];
       } } );
     }));

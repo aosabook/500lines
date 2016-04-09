@@ -242,7 +242,7 @@ These don’t really do much yet, but try running the app again, adjusting the c
 in `WIDTH` and `HEIGHT`, to see different sizes.
 
 `background(0)` specifies a black background. Try changing the number passed
-into `background()` and see what happens — it’s the alpha value, and so if you
+to `background()` and see what happens — it’s the alpha value, and so if you
 only pass one number in, it is always greyscale. Alternatively, you can call
 `background(int r, int g, int b)`.
 
@@ -1064,10 +1064,14 @@ objects, and here we see their use. We are using
 [Mockito](http://docs.mockito.googlecode.com/hg/org/mockito/Mockito.html) as
 our mock object framework.
 
-To create a mock we use the `@Mock` annotation on an instance variable, and the
-`MockitoJUnitRunner` will mock it for us at runtime.
+To create a mock we use the `@Mock` annotation on an instance variable, and it will be mocked at runtime by the
+`MockitoJUnitRunner`.
 
-To stub (set the behavior of) a method, we use `when(mock.methodCall()).thenReturn(value)`.
+To stub (set the behavior of) a method, we use: 
+
+```java
+    when(mock.methodCall()).thenReturn(value)
+```
 
 To verify a method was called, we use `verify(mock.methodCall())`.
 
@@ -1173,7 +1177,7 @@ Notice that:
 - We mock `PApplet`, `IFAImage` (created for expressly this purpose), and `ImageColorHelper`.
 - Test methods are annotated with `@Test`[^habits]. If you want to ignore a test (e.g., whilst debugging) you can add the annotation `@Ignore`.
 - In `setup()`, we create the pixel array and have the mock image always return it.
-- Helper methods make it easier to set expectations for recurring tasks (e.g., `setHsbValuesForPixel()`, `setRgbValuesForPixel()`).
+- Helper methods make it easier to set expectations for recurring tasks (e.g., `set*ForPixel()`).
 
 [^habits]: Method names in tests need not start with `test` as of JUnit 4, but habits are hard to break.
 

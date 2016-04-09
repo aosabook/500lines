@@ -361,7 +361,7 @@ but I do want to have the *option* of using it (which, if I were to
 just use the `np.random` module, I would not be able to do).
 
 So, if the `rso` variable is not given, then the constructor defaults
-to using `np.random.multinomial`. Otherwise, it uses the multinomial
+to `np.random.multinomial`. Otherwise, it uses the multinomial
 sampler from the `RandomState` object itself[^rng].
 
 [^rng]: The functions in `np.random` actually do rely on a random

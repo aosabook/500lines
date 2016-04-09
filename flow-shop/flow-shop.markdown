@@ -472,7 +472,7 @@ def heur_random(data, candidates):
     return random.choice(candidates)
 ```
 
-The next heuristic uses the other extreme. Rather than randomly selecting a candidate, `heur_hillclimbing` selects the candidate that has the best makespan. Note that the list `scores` will contain tuples of the form `(make,perm)` where `make` is the makespan value for permutation `perm`. Sorting such a list places the tuple with the best makespan at the start of the list; from this tuple we return the permutation.
+The next heuristic `heur_hillclimbing` uses the other extreme. Rather than randomly selecting a candidate, it selects the candidate that has the best makespan. Note that the list `scores` will contain tuples of the form `(make,perm)` where `make` is the makespan value for permutation `perm`. Sorting such a list places the tuple with the best makespan at the start of the list; from this tuple we return the permutation.
 
 ```python
 def heur_hillclimbing(data, candidates):
