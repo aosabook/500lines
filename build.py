@@ -194,7 +194,7 @@ def build_mobi():
 def build_html(chapter_markdowns):
     run('mkdir -p html/content/pages')
     temp = 'python _build/preprocessor.py --chapter {chap} --html-refs --output={md}.1 --latex {md}'
-    temp2 = 'pandoc --csl=minutiae/ieee.csl --mathjax --bibliography=tex/500L.bib -t html -f markdown+citations -o html/content/pages/{basename}.md {md}.1'
+    temp2 = 'pandoc --csl=minutiae/ieee.csl --mathjax -t html -f markdown+citations -o html/content/pages/{basename}.md {md}.1'
     temp3 = './_build/fix_html_title.sh html/content/pages/{basename}.md'
     for i, markdown in enumerate(chapter_markdowns):
         basename = os.path.splitext(os.path.split(markdown)[1])[0]
