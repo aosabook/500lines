@@ -377,7 +377,7 @@ The function `evolution-of` does exactly that. It returns a sequence of pairs, e
 
 So far, our discussion has focused on the structure of our data: what the core components are and how they are aggregated together. It's time to explore the dynamics of our system: how data is changed over time through the add--update--remove _data lifecycle_. 
 
-As we've already discussed, data in an archaeologist's world never actually changes. Once it is created, it exists forever and can only be hidden from the world by data in a newer layer. The term "hidden" is crucial here. Older data does not "disappear" --- it is buried, and can be revealed again by exposing an older layer. Conversely, updating data means obscuring the old by adding a new layer on top of it with something else. We can thus "delete" data by adding a layer of "nothing" on top of it. 
+As we've already discussed, data in an archaeologist's world never actually changes. Once it is created, it exists forever and can only be hidden from the world by data in a newer layer. The term "hidden" is crucial here. Older data does not "disappear"&mdash;it is buried, and can be revealed again by exposing an older layer. Conversely, updating data means obscuring the old by adding a new layer on top of it with something else. We can thus "delete" data by adding a layer of "nothing" on top of it. 
 
 This means that when we talk about data lifecycle, we are really talking about adding layers to our data over time. 
 
@@ -1258,7 +1258,7 @@ Finally, we remove all of the result clauses that are "empty" (i.e., their last 
 \end{table}
 </latex>
 
-We are now ready to report the results. The result clause structure is unwieldy for this purpose, so we will convert it into an an index-like structure (map of maps) --- with a significant twist. 
+We are now ready to report the results. The result clause structure is unwieldy for this purpose, so we will convert it into an an index-like structure (map of maps)&mdash;with a significant twist. 
 
 To understand the twist, we must first introduce the idea of a _binding pair_, which is a pair that matches a variable name to its value. The variable name is the one used at the predicate clauses, and the value is the value found in the result clauses.
 

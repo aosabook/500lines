@@ -170,9 +170,9 @@ described in more detail below.
 
 These settings could be exposed to the user as command line parameters,
 but at this stage we instead provide the input data as parameters to the
-program. The input problem --- a problem from the Taillard benchmark set
---- is assumed to be in a standard format for flow shop scheduling. The
-following code is used as the \texttt{\_\_main\_\_} method for the
+program. The input problem---a problem from the Taillard benchmark
+set---is assumed to be in a standard format for flow shop scheduling.
+The following code is used as the \texttt{\_\_main\_\_} method for the
 solver file, and calls the appropriate functions based on the number of
 parameters input to the program:
 
@@ -226,8 +226,8 @@ One appealing feature of the flow shop scheduling problem is that
 \emph{every} permutation is a valid solution, and at least one will have
 the optimal makespan (though many will have horrible makespans).
 Thankfully, this allows us to forgo checking that we stay within the
-space of feasible solutions when going from one permutation to another
---- everything is feasible!
+space of feasible solutions when going from one permutation to
+another---everything is feasible!
 
 However, to start a local search in the space of permutations, we must
 have an initial permutation. To keep things simple, we seed our local
@@ -632,10 +632,10 @@ we make use of the \texttt{permutations} function from the
 
 The final neighbourhood that we consider is commonly referred to as
 \emph{Large Neighbourhood Search} (LNS). Intuitively, LNS works by
-considering small subsets of the current permutation in isolation ---
-locating the best permutation of the subset of jobs gives us a single
-candidate for the LNS neighbourhood. By repeating this process for
-several (or all) subsets of a particular size, we can increase the
+considering small subsets of the current permutation in
+isolation---locating the best permutation of the subset of jobs gives us
+a single candidate for the LNS neighbourhood. By repeating this process
+for several (or all) subsets of a particular size, we can increase the
 number of candidates in the neighbourhood. We limit the number that are
 considered through the \texttt{MAX\_LNS\_NEIGHBOURHOODS} parameter, as
 the number of neighbours can grow quite quickly. The first step in the

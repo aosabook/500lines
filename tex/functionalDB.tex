@@ -516,9 +516,9 @@ through the add--update--remove \emph{data lifecycle}.
 As we've already discussed, data in an archaeologist's world never
 actually changes. Once it is created, it exists forever and can only be
 hidden from the world by data in a newer layer. The term ``hidden'' is
-crucial here. Older data does not ``disappear'' --- it is buried, and
-can be revealed again by exposing an older layer. Conversely, updating
-data means obscuring the old by adding a new layer on top of it with
+crucial here. Older data does not ``disappear''---it is buried, and can
+be revealed again by exposing an older layer. Conversely, updating data
+means obscuring the old by adding a new layer on top of it with
 something else. We can thus ``delete'' data by adding a layer of
 ``nothing'' on top of it.
 
@@ -1531,7 +1531,7 @@ We now have to remove the items that didn't pass all of the conditions:
 Finally, we remove all of the result clauses that are ``empty'' (i.e.,
 their last item is empty). We do this in the last line of the
 \texttt{query-index} function. Our example leaves us with the items in
-\aosatblref{500.functionaldb.filteredqueryresults}.
+\aosatblref{500l.functionaldb.filteredqueryresults}.
 
 \begin{table}
 \centering
@@ -1554,7 +1554,7 @@ their last item is empty). We do this in the last line of the
 
 We are now ready to report the results. The result clause structure is
 unwieldy for this purpose, so we will convert it into an an index-like
-structure (map of maps) --- with a significant twist.
+structure (map of maps)---with a significant twist.
 
 To understand the twist, we must first introduce the idea of a
 \emph{binding pair}, which is a pair that matches a variable name to its

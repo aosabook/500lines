@@ -612,7 +612,7 @@ template engine only needs to define one function.  But it's better software
 design to keep that implementation detail in the template engine code, and out
 of our CodeBuilder class.
 
-Even as we're actually using it --- to define a single function --- having `get_globals`
+Even as we're actually using it&mdash;to define a single function&mdash;having `get_globals`
 return the dictionary keeps the code more modular because it doesn't need to
 know the name of the function we've defined.  Whatever function name we define
 in our Python source, we can retrieve that name from the dict returned by

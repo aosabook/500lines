@@ -223,8 +223,6 @@ logic, so conditionals are available:
 \begin{verbatim}
 {% if user.is_logged_in %}
     <p>Welcome, {{ user.name }}!</p>
-{% else %}
-    <p><a href="/login">Log in </a></p>
 {% endif %}
 \end{verbatim}
 
@@ -628,11 +626,11 @@ needs to define one function. But it's better software design to keep
 that implementation detail in the template engine code, and out of our
 CodeBuilder class.
 
-Even as we're actually using it --- to define a single function ---
-having \texttt{get\_globals} return the dictionary keeps the code more
-modular because it doesn't need to know the name of the function we've
-defined. Whatever function name we define in our Python source, we can
-retrieve that name from the dict returned by \texttt{get\_globals}.
+Even as we're actually using it---to define a single function---having
+\texttt{get\_globals} return the dictionary keeps the code more modular
+because it doesn't need to know the name of the function we've defined.
+Whatever function name we define in our Python source, we can retrieve
+that name from the dict returned by \texttt{get\_globals}.
 
 Now we can get into the implementation of the Templite class itself, and
 see how CodeBuilder is used.
@@ -1340,7 +1338,7 @@ here. To keep this code small, we're leaving out interesting ideas like:
 \item
   Arguments to filters
 \item
-  Complex logic like elif and for/else
+  Complex conditional logic like else and elif
 \item
   Loops with more than one loop variable
 \item

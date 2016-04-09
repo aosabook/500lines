@@ -6,8 +6,8 @@ _Cate left the tech industry and spent a year finding her way back whilst buildi
 ## A Brilliant Idea (That Wasn’t All That Brilliant)
 
 When I was traveling in China I often saw series of four paintings showing the same
-place in different seasons. Color — the cool whites of winter, pale hues of
-spring, lush greens of summer, and reds and yellows of fall — is what
+place in different seasons. Color&mdash;the cool whites of winter, pale hues of
+spring, lush greens of summer, and reds and yellows of fall&mdash;is what
 visually 
 differentiates the seasons. Around 2011, I had what I thought was a brilliant
 idea: I wanted to be able to visualize a photo series as a series of colors. I
@@ -48,7 +48,7 @@ University, and later work, filled up my time with other people’s ideas and
 priorities. Part of finishing this project was learning how to carve out time
 to make progress on my own ideas; I required 
 about four hours of good mental time a week. A tool that allowed me to
-move faster was therefore really helpful, even necessary --- although it came with
+move faster was therefore really helpful, even necessary&mdash;although it came with
 its own set of problems, especially around writing tests. 
 
 I felt that thorough
@@ -91,8 +91,8 @@ a matter of seconds. However, a long long time ago (in digital terms),
 it was a process that took weeks.
 
 In the old days, we would take the picture, then when we had used a whole roll of film, we would
-take it in to be developed (often at the pharmacy). We'd pick up the developed pictures some days later --- 
-and discover that there was something wrong with many of them.
+take it in to be developed (often at the pharmacy). We'd pick up the developed pictures some days 
+later&mdash;and discover that there was something wrong with many of them.
 Hand not steady enough? Random person or thing that we didn’t notice at
 the time? Overexposed? Underexposed? Of course by then it was too late to remedy the problem.
 

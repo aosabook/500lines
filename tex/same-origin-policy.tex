@@ -18,9 +18,9 @@ common attacks such as cross-site request forgery. Furthermore, the
 design of the SOP has evolved organically over the years and puzzles
 many developers.
 
-The goal of this chapter is to capture the essence of this important ---
-yet often misunderstood --- feature. In particular, we will attempt to
-answer the following questions:
+The goal of this chapter is to capture the essence of this
+important---yet often misunderstood---feature. In particular, we will
+attempt to answer the following questions:
 
 \begin{aosaitemize}
 
@@ -37,11 +37,11 @@ answer the following questions:
 \end{aosaitemize}
 
 Covering the SOP in its entirety is a daunting task, given the
-complexity of the parts that are involved --- web servers, browsers,
-HTTP, HTML documents, client-side scripts, and so on. We would likely
-get bogged down by the gritty details of all these parts (and consume
-our 500 lines before even reaching SOP). But how can we hope to be
-precise without representing crucial details?
+complexity of the parts that are involved---web servers, browsers, HTTP,
+HTML documents, client-side scripts, and so on. We would likely get
+bogged down by the gritty details of all these parts (and consume our
+500 lines before even reaching SOP). But how can we hope to be precise
+without representing crucial details?
 
 \aosasecti{Modeling with Alloy}\label{modeling-with-alloy}
 
@@ -165,13 +165,13 @@ two-column database table. Thus \texttt{protocol} is a table with the
 first column containing URLs and the second column containing protocols.
 And the innocuous looking dot operator is in fact a rather general kind
 of relational join, so that you could also write \texttt{protocol.p} for
-all the URLs with a protocol \texttt{p} --- but more on that later.
+all the URLs with a protocol \texttt{p}---but more on that later.
 
-Note that paths, unlike URLs, are treated as if they have no structure
---- a simplification. The keyword \texttt{lone} (which can be read
-``less than or equal to one'') says that each URL has at most one port.
-The path is the string that follows the host name in the URL, and which
-(for a simple static server) corresponds to the file path of the
+Note that paths, unlike URLs, are treated as if they have no
+structure---a simplification. The keyword \texttt{lone} (which can be
+read ``less than or equal to one'') says that each URL has at most one
+port. The path is the string that follows the host name in the URL, and
+which (for a simple static server) corresponds to the file path of the
 resource; we're assuming that it's always present, but can be an empty
 path.
 
@@ -333,7 +333,7 @@ but with two different servers. (In the Alloy visualizer, objects of the
 same type are distinguished by appending numeric suffixes to their
 names; if there is only one object of a given type, no suffix is added.
 Every name that appears in a snapshot diagram is the name of an object.
-So --- perhaps confusingly at first sight --- the names \texttt{Domain},
+So---perhaps confusingly at first sight---the names \texttt{Domain},
 \texttt{Path}, \texttt{Resource}, \texttt{Url} all refer to individual
 objects, not to types.)
 
@@ -484,8 +484,8 @@ of a document. The flexibility of client-side scripts is one of the main
 catalysts of the rapid development of Web 2.0, but is also the reason
 why the SOP was created in the first place. Without the SOP, scripts
 would be able to send arbitrary requests to servers, or freely modify
-documents inside the browser --- which would be bad news if one or more
-of the scripts turned out to be malicious.
+documents inside the browser---which would be bad news if one or more of
+the scripts turned out to be malicious.
 
 A script can communicate to a server by sending an
 \texttt{XmlHttpRequest}:
@@ -539,8 +539,8 @@ called DOM elements). In a typical browser, there are a large number of
 API functions for accessing the DOM (e.g.,
 \texttt{document.getElementById}), but enumerating all of them is not
 important for our purpose. Instead, we will simply group them into two
-kinds --- \texttt{ReadDom} and \texttt{WriteDom} --- and model
-modifications as wholesale replacements of the entire document:
+kinds---\texttt{ReadDom} and \texttt{WriteDom}---and model modifications
+as wholesale replacements of the entire document:
 
 \begin{verbatim}
 sig ReadDom extends BrowserOp { result: Resource }{
@@ -667,13 +667,13 @@ have not discussed yet: What exactly do we mean when we say our system
 is \emph{secure}?
 
 Not surprisingly, this is a tricky question to answer. For our purposes,
-we will turn to two well-studied concepts in information security ---
-\emph{confidentiality} and \emph{integrity}. Both of these concepts talk
-about how information should be allowed to pass through the various
-parts of the system. Roughly, \emph{confidentiality} means that a
-critical piece of data should only be accessible to parts that are
-deemed trusted, and \emph{integrity} means that trusted parts only rely
-on data that have not been maliciously tampered with.
+we will turn to two well-studied concepts in information
+security---\emph{confidentiality} and \emph{integrity}. Both of these
+concepts talk about how information should be allowed to pass through
+the various parts of the system. Roughly, \emph{confidentiality} means
+that a critical piece of data should only be accessible to parts that
+are deemed trusted, and \emph{integrity} means that trusted parts only
+rely on data that have not been maliciously tampered with.
 
 \aosasectii{Dataflow Properties}\label{dataflow-properties}
 
@@ -860,8 +860,8 @@ is used to represent the user's identity (e.g., a session cookie),
 server into responding with the user's private data
 (\texttt{MyInboxInfo}). Here, the problem is again related to the
 liberal ways in which a script may be used to access information across
-different domains --- namely, that a script executing under one domain
-is able to make an HTTP request to a server with a different domain.
+different domains---namely, that a script executing under one domain is
+able to make an HTTP request to a server with a different domain.
 
 These two counterexamples tell us that extra measures are needed to
 restrict the behavior of scripts, especially since some of those scripts
@@ -909,7 +909,7 @@ origin.
 
 The second part of the policy says that a script cannot send an HTTP
 request to a server unless its context has the same origin as the target
-URL --- effectively preventing instances such as the second script
+URL---effectively preventing instances such as the second script
 scenario.
 
 \begin{verbatim}
@@ -1465,7 +1465,7 @@ would potentially be even more beneficial if it is done during the early
 stage of system design.
 
 Besides the SOP, Alloy has been used to model and reason about a variety
-of systems across different domains --- ranging from network protocols,
+of systems across different domains---ranging from network protocols,
 semantic web, bytecode security to electronic voting and medical
 systems. For many of these systems, Alloy's analysis led to discovery of
 design flaws and bugs that had eluded the developers, in some cases, for
@@ -1524,7 +1524,7 @@ points in a system execution; for example, \texttt{cookies} in the
 \texttt{Browser} signature. In this sense, \texttt{Time} objects are
 nothing but helper objects used as a kind of index.
 
-Each call occurs between two points in time --- its \texttt{start} and
+Each call occurs between two points in time---its \texttt{start} and
 \texttt{end} times, and is associated with a sender (represented by
 \texttt{from}) and a receiver (\texttt{to}):
 

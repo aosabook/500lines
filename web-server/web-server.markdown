@@ -458,7 +458,7 @@ and uses our existing `send_content` to send it back to the client:
             self.handle_error(msg)
 ```
 
-Note that we open the file in binary mode --- the 'b' in 'rb' --- so that
+Note that we open the file in binary mode&mdash;the 'b' in 'rb'&mdash;so that
 Python won't try to "help" us by altering byte sequences that look like a Windows line ending.
 Note also that reading the whole file into memory when serving it is a bad idea in real life,
 where the file might be several gigabytes of video data.
@@ -805,9 +805,9 @@ the core idea is simple:
 2.  Capture whatever that subprocess sends to standard output.
 3.  Send that back to the client that made the request.
 
-The full CGI protocol is much richer than this---in particular,
+The full CGI protocol is much richer than this&mdash;in particular,
 it allows for parameters in the URL,
-which the server passes into the program being run---but
+which the server passes into the program being run&mdash;but
 those details don't affect the overall architecture of the system...
 
 ...which is once again becoming rather tangled.

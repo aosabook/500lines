@@ -8,7 +8,7 @@ fundamental structure of the Python interpreter fits easily into the
 500-line size restriction. This chapter will walk through the structure
 of the interpreter and give you enough context to explore it further.
 The goal is not to explain everything there is to know about
-interpreters --- like so many interesting areas of programming and
+interpreters---like so many interesting areas of programming and
 computer science, you could devote years to developing a deep
 understanding of the topic.
 
@@ -69,8 +69,8 @@ the Python run-time, particularly the object system. For example,
 Byterun can fall back to ``real'' Python when it needs to create a
 class. Another advantage is that Byterun is easy to understand, partly
 because it's written in a high-level language (Python!) that many people
-find easy to read. (We also exclude interpreter optimizations in Byterun
---- once again favoring clarity and simplicity over speed.)
+find easy to read. (We also exclude interpreter optimizations in
+Byterun---once again favoring clarity and simplicity over speed.)
 
 \aosasecti{Building an Interpreter}\label{building-an-interpreter}
 
@@ -88,7 +88,7 @@ The Python interpreter is a \emph{bytecode interpreter}: its input is
 instruction sets called \emph{bytecode}. When you write Python, the
 lexer, parser, and compiler generate code objects for the interpreter to
 operate on. Each code object contains a set of instructions to be
-executed --- that's the bytecode --- plus other information that the
+executed---that's the bytecode---plus other information that the
 interpreter will need. Bytecode is an \emph{intermediate representation}
 of Python code: it expresses the source code that you wrote in a way the
 interpreter can understand. It's analogous to the way that assembly
@@ -171,10 +171,10 @@ You may be wondering why instructions other than
 case of adding two numbers, the example is a little contrived. However,
 this instruction is a building block for more complex programs. For
 example, with just the instructions we've defined so far, we can already
-add together three values --- or any number of values --- given the
-right set of these instructions. The stack provides a clean way to keep
-track of the state of the interpreter, and it will support more
-complexity as we go along.
+add together three values---or any number of values---given the right
+set of these instructions. The stack provides a clean way to keep track
+of the state of the interpreter, and it will support more complexity as
+we go along.
 
 Now let's start to write the interpreter itself. The interpreter object
 has a stack, which we'll represent with a list. The object also has a
@@ -310,9 +310,9 @@ question and then use the dictionary to store or retrieve its value.
 The arguments to an instruction can now mean two different things: They
 can either be an index into the ``numbers'' list, or they can be an
 index into the ``names'' list. The interpreter knows which it should be
-by checking what instruction it's executing. We'll break out this logic
---- and the mapping of instructions to what their arguments mean ---
-into a separate method.
+by checking what instruction it's executing. We'll break out this
+logic---and the mapping of instructions to what their arguments
+mean---into a separate method.
 
 \begin{verbatim}
 class Interpreter:
@@ -404,8 +404,8 @@ access them right from the REPL. For the function object \texttt{cond},
 \texttt{cond.\_\_code\_\_} is the code object associated it, and
 \texttt{cond.\_\_code\_\_.co\_code} is the bytecode. There's almost
 never a good reason to use these attributes directly when you're writing
-Python code, but they do allow us to get up to all sorts of mischief ---
-and to look at the internals in order to understand them.
+Python code, but they do allow us to get up to all sorts of
+mischief---and to look at the internals in order to understand them.
 
 \begin{verbatim}
 >>> cond.__code__.co_code  # the bytecode as raw bytes
@@ -416,7 +416,7 @@ b'd\x01\x00}\x00\x00|\x00\x00d\x02\x00k\x00\x00r\x16\x00d\x03\x00Sd\x04\x00Sd\x0
  100, 4, 0, 83, 100, 0, 0, 83]
 \end{verbatim}
 
-When we just print the bytecode, it looks unintelligible --- all we can
+When we just print the bytecode, it looks unintelligible---all we can
 tell is that it's a series of bytes. Luckily, there's a powerful tool we
 can use to understand it: the \texttt{dis} module in the Python standard
 library.
@@ -466,8 +466,8 @@ strings, to find out what instructions 100 and 125 map to:
 'STORE_FAST'
 \end{verbatim}
 
-The second and third bytes --- 1, 0 --- are arguments to
-\texttt{LOAD\_CONST}, while the fifth and sixth bytes --- 0, 0 --- are
+The second and third bytes---1, 0---are arguments to
+\texttt{LOAD\_CONST}, while the fifth and sixth bytes---0, 0---are
 arguments to \texttt{STORE\_FAST}. Just like in our toy example,
 \texttt{LOAD\_CONST} needs to know where to find its constant to load,
 and \texttt{STORE\_FAST} needs to find the name to store. (Python's
@@ -517,7 +517,7 @@ to load \texttt{x}, load 5, and compare the two values. The instruction
 \texttt{POP\_JUMP\_IF\_FALSE} is responsible for implementing the
 \texttt{if}. This instruction will pop the top value off the
 interpreter's stack. If the value is true, then nothing happens. (The
-value can be ``truthy'' --- it doesn't have to be the literal
+value can be ``truthy''---it doesn't have to be the literal
 \texttt{True} object.) If the value is false, then the interpreter will
 jump to another instruction.
 
@@ -535,8 +535,8 @@ Python loops also rely on jumping. In the bytecode below, notice that
 the line \texttt{while x \textless{} 5} generates almost identical
 bytecode to \texttt{if x \textless{} 10}. In both cases, the comparison
 is calculated and then \texttt{POP\_JUMP\_IF\_FALSE} controls which
-instruction is executed next. At the end of line 4 --- the end of the
-loop's body --- the instruction \texttt{JUMP\_ABSOLUTE} always sends the
+instruction is executed next. At the end of line 4---the end of the
+loop's body---the instruction \texttt{JUMP\_ABSOLUTE} always sends the
 interpreter back to instruction 9 at the top of the loop. When x
 \textless{} 5 becomes false, then \texttt{POP\_JUMP\_IF\_FALSE} jumps
 the interpreter past the end of the loop, to instruction 34.
@@ -599,21 +599,21 @@ To answer this question, we must add one additional layer of complexity:
 the frame. A frame is a collection of information and context for a
 chunk of code. Frames are created and destroyed on the fly as your
 Python code executes. There's one frame corresponding to each
-\emph{call} of a function --- so while each frame has one code object
+\emph{call} of a function---so while each frame has one code object
 associated with it, a code object can have many frames. If you had a
 function that called itself recursively ten times, you'd have eleven
-frames --- one for each level of recursion and one for the module you
+frames---one for each level of recursion and one for the module you
 started from. In general, there's a frame for each scope in a Python
 program. For example, each module, each function call, and each class
 definition has a frame.
 
 Frames live on the \emph{call stack}, a completely different stack from
 the one we've been discussing so far. (The call stack is the stack
-you're most familiar with already --- you've seen it printed out in the
+you're most familiar with already---you've seen it printed out in the
 tracebacks of exceptions. Each line in a traceback starting with ``File
 `program.py', line 10'' corresponds to one frame on the call stack.) The
-stack we've been examining --- the one the interpreter is manipulating
-while it executes bytecode --- we'll call the \emph{data stack}. There's
+stack we've been examining---the one the interpreter is manipulating
+while it executes bytecode---we'll call the \emph{data stack}. There's
 also a third stack, called the \emph{block stack}. Blocks are used for
 certain kinds of control flow, particularly looping and exception
 handling. Each frame on the call stack has its own data stack and block
@@ -822,8 +822,8 @@ class VirtualMachine(object):
 
 The implementation of the \texttt{Function} object is somewhat twisty,
 and most of the details aren't critical to understanding the
-interpreter. The important thing to notice is that calling a function
---- invoking the \texttt{\_\_call\_\_} method --- creates a new
+interpreter. The important thing to notice is that calling a
+function---invoking the \texttt{\_\_call\_\_} method---creates a new
 \texttt{Frame} object and starts running it.
 
 \begin{verbatim}
@@ -976,7 +976,7 @@ these methods as a black box. Each bytecode method will return either
 \texttt{None} or a string, called \texttt{why}, which is an extra piece
 of state the interpreter needs in some cases. These return values of the
 individual instruction methods are used only as internal indicators of
-interpreter state --- don't confuse these with return values from
+interpreter state---don't confuse these with return values from
 executing frames.
 
 \begin{verbatim}
@@ -1328,9 +1328,10 @@ class VirtualMachine(object):
 \aosasecti{Dynamic Typing: What the Compiler Doesn't
 Know}\label{dynamic-typing-what-the-compiler-doesnt-know}
 
-One thing you've probably heard is that Python is a ``dynamic'' language
---- particularly that it's ``dynamically typed''. The context we've just
-built up on the interpreter sheds some light on this description.
+One thing you've probably heard is that Python is a ``dynamic''
+language---particularly that it's ``dynamically typed''. The context
+we've just built up on the interpreter sheds some light on this
+description.
 
 One of the things ``dynamic'' means in this context is that a lot of
 work is done at run time. We saw earlier that the Python compiler
@@ -1353,8 +1354,8 @@ operation itself.
 4
 \end{verbatim}
 
-Calculating 19 \texttt{\%} 5 yields 4 --- no surprise there. What
-happens if we call it with different kinds of arguments?
+Calculating 19 \texttt{\%} 5 yields 4---no surprise there. What happens
+if we call it with different kinds of arguments?
 
 \begin{verbatim}
 >>> mod("by%sde", "teco")
@@ -1371,11 +1372,11 @@ bytecode
 
 Using the symbol \texttt{\%} to format a string for printing means
 invoking the instruction \texttt{BINARY\_MODULO}. This instruction mods
-together the top two values on the stack when the instruction executes
---- regardless of whether they're strings, integers, or instances of a
-class you defined yourself. The bytecode was generated when the function
-was compiled (effectively, when it was defined) and the same bytecode is
-used with different types of arguments.
+together the top two values on the stack when the instruction
+executes---regardless of whether they're strings, integers, or instances
+of a class you defined yourself. The bytecode was generated when the
+function was compiled (effectively, when it was defined) and the same
+bytecode is used with different types of arguments.
 
 The Python compiler knows relatively little about the effect the
 bytecode will have. It's up to the interpreter to determine the type of
@@ -1388,7 +1389,7 @@ type the arguments will be (or the compiler figures them out for
 itself).
 
 The compiler's ignorance is one of the challenges to optimizing Python
-or analyzing it statically --- just looking at the bytecode, without
+or analyzing it statically---just looking at the bytecode, without
 actually running the code, you don't know what each instruction will do!
 In fact, you could define a class that implements the
 \texttt{\_\_mod\_\_} method, and Python would invoke that method if you
@@ -1404,8 +1405,8 @@ def mod(a,b):
     return a %b
 \end{verbatim}
 
-Unfortunately, a static analysis of this code --- the kind of you can do
-without running it --- can't be certain that the first \texttt{a \% b}
+Unfortunately, a static analysis of this code---the kind of you can do
+without running it---can't be certain that the first \texttt{a \% b}
 really does nothing. Calling \texttt{\_\_mod\_\_} with \texttt{\%} might
 write to a file, or interact with another part of your program, or do
 literally anything else that's possible in Python. It's hard to optimize
@@ -1430,7 +1431,7 @@ instructions.
 I encourage you to disassemble your own programs and to run them using
 Byterun. You'll quickly run into instructions that this shorter version
 of Byterun doesn't implement. The full implementation can be found at
-https://github.com/nedbat/byterun --- or, by carefully reading the real
+https://github.com/nedbat/byterun---or, by carefully reading the real
 CPython interpreter's \texttt{ceval.c}, you can implement it yourself!
 
 \aosasecti{Acknowledgements}\label{acknowledgements}

@@ -73,7 +73,7 @@ MAX_LNS_NEIGHBOURHOODS = 1000 # Maximum number of neighbours to explore in LNS
 
 There are two settings that should be explained further. The `TIME_INCREMENT` setting will be used as part of the dynamic strategy selection, and the `MAX_LNS_NEIGHBOURHOODS` setting will be used as part of the neighbourhood selection strategy. Both are described in more detail below.
 
-These settings could be exposed to the user as command line parameters, but at this stage we instead provide the input data as parameters to the program. The input problem --- a problem from the Taillard benchmark set --- is assumed to be in a standard format for flow shop scheduling. The following code is used as the `__main__` method for the solver file, and calls the appropriate functions based on the number of parameters input to the program:
+These settings could be exposed to the user as command line parameters, but at this stage we instead provide the input data as parameters to the program. The input problem&mdash;a problem from the Taillard benchmark set&mdash;is assumed to be in a standard format for flow shop scheduling. The following code is used as the `__main__` method for the solver file, and calls the appropriate functions based on the number of parameters input to the program:
 
 ```python
 if __name__ == '__main__':
@@ -113,7 +113,7 @@ def solve(data):
     strat_usage = {strategy: 0 for strategy in STRATEGIES}
 ```
 
-One appealing feature of the flow shop scheduling problem is that *every* permutation is a valid solution, and at least one will have the optimal makespan (though many will have horrible makespans). Thankfully, this allows us to forgo checking that we stay within the space of feasible solutions when going from one permutation to another --- everything is feasible!
+One appealing feature of the flow shop scheduling problem is that *every* permutation is a valid solution, and at least one will have the optimal makespan (though many will have horrible makespans). Thankfully, this allows us to forgo checking that we stay within the space of feasible solutions when going from one permutation to another&mdash;everything is feasible!
 
 However, to start a local search in the space of permutations, we must have an initial permutation. To keep things simple, we seed our local search by shuffling the list of jobs randomly:
 
@@ -420,7 +420,7 @@ Finally, we construct the neighbourhood by considering every permutation of the 
     return candidates
 ```
 
-The final neighbourhood that we consider is commonly referred to as *Large Neighbourhood Search* (LNS). Intuitively, LNS works by considering small subsets of the current permutation in isolation --- locating the best permutation of the subset of jobs gives us a single candidate for the LNS neighbourhood. By repeating this process for several (or all) subsets of a particular size, we can increase the number of candidates in the neighbourhood. We limit the number that are considered through the `MAX_LNS_NEIGHBOURHOODS` parameter, as the number of neighbours can grow quite quickly. The first step in the LNS computation is to compute the random list of job sets that we will consider swapping using the `combinations` function of the `itertools` package:
+The final neighbourhood that we consider is commonly referred to as *Large Neighbourhood Search* (LNS). Intuitively, LNS works by considering small subsets of the current permutation in isolation&mdash;locating the best permutation of the subset of jobs gives us a single candidate for the LNS neighbourhood. By repeating this process for several (or all) subsets of a particular size, we can increase the number of candidates in the neighbourhood. We limit the number that are considered through the `MAX_LNS_NEIGHBOURHOODS` parameter, as the number of neighbours can grow quite quickly. The first step in the LNS computation is to compute the random list of job sets that we will consider swapping using the `combinations` function of the `itertools` package:
 
 ```python
 def neighbours_LNS(data, perm, size = 2):

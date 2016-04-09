@@ -71,7 +71,7 @@ User acceleration is the acceleration of the device due to the movement of the u
 
 To count steps, we're interested in the bounces created by the user in the direction of gravity. That means we're interested in isolating the 1-dimensional time series which describes **user acceleration in the direction of gravity** from our 3-dimensional acceleration signal (\aosafigref{500l.pedometer.componentsignals}).
 
-In our simple example, gravitational acceleration is 0 in $x(t)$ and $z(t)$ and constant at 9.8 $m/s^2$ in $y(t)$. Therefore, in our total acceleration plot, $x(t)$ and $z(t)$ fluctuate around 0 while $y(t)$ fluctuates around -1 *g*. In our user acceleration plot, we notice that --- because we have removed gravitational acceleration --- all three time series fluctuate around 0. Note the obvious peaks in $y_{u}(t)$. Those are due to step bounces! In our last plot, gravitational acceleration, $y_{g}(t)$ is constant at -1 *g*, and $x_{g}(t)$ and $z_{g}(t)$ are constant at 0.
+In our simple example, gravitational acceleration is 0 in $x(t)$ and $z(t)$ and constant at 9.8 $m/s^2$ in $y(t)$. Therefore, in our total acceleration plot, $x(t)$ and $z(t)$ fluctuate around 0 while $y(t)$ fluctuates around -1 *g*. In our user acceleration plot, we notice that&mdash;because we have removed gravitational acceleration&mdash;all three time series fluctuate around 0. Note the obvious peaks in $y_{u}(t)$. Those are due to step bounces! In our last plot, gravitational acceleration, $y_{g}(t)$ is constant at -1 *g*, and $x_{g}(t)$ and $z_{g}(t)$ are constant at 0.
 
 So, in our example, the 1-dimensional user acceleration in the direction of gravity time series we're interested in is $y_{u}(t)$. Although $y_{u}(t)$ isn't as smooth as our perfect sine wave, we can identify the peaks, and use those peaks to count steps. So far, so good. Now, let's add even more reality to our world.
 
@@ -340,7 +340,7 @@ The input into our system will be data from an accelerometer, information on the
 
 \aosafigure[240pt]{pedometer-images/pipeline.png}{The pipeline}{500l.pedometer.pipeline}
 
-In the spirit of separation of concerns, we'll write the code for each distinct component of the pipeline --- parsing, processing, and analyzing --- individually.
+In the spirit of separation of concerns, we'll write the code for each distinct component of the pipeline&mdash;parsing, processing, and analyzing&mdash;individually.
 
 ### Parsing
 

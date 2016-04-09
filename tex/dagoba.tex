@@ -5,13 +5,13 @@
 \begin{quote}
 ``When we try to pick out anything by itself we find that it is bound
 fast by a thousand invisible cords that cannot be broken, to everything
-in the universe.'' --- John Muir
+in the universe.'' ---John Muir
 \end{quote}
 
 \begin{quote}
 ``What went forth to the ends of the world to traverse not itself, God,
 the sun, Shakespeare, a commercial traveller, having itself traversed in
-reality itself becomes that self.'' --- James Joyce
+reality itself becomes that self.'' ---James Joyce
 \end{quote}
 
 A long time ago, when the world was still young, all data walked happily
@@ -63,7 +63,7 @@ Then the internet happened.
 The distributed revolution changed everything, again. Data broke free of
 spacial constraints and roamed from machine to machine. CAP-wielding
 theorists busted the relational monopoly, opening the door to a plethora
-of new herding techniques --- some of which hark back to the earliest
+of new herding techniques---some of which hark back to the earliest
 attempts to domesticate random-access data. We're going to look at one
 of these, a style known as the graph database.
 
@@ -247,10 +247,10 @@ basic data structures in JavaScript?'')
 
 Now we need some graphs. We can build these using a classic OOP pattern,
 but JavaScript offers us prototypal inheritance, which means we can
-build up a prototype object --- we'll call it \texttt{Dagoba.G} --- and
-then instantiate copies of that using a factory function. An advantage
-of this approach is that we can return different types of objects from
-the factory, instead of binding the creation process to a single class
+build up a prototype object---we'll call it \texttt{Dagoba.G}---and then
+instantiate copies of that using a factory function. An advantage of
+this approach is that we can return different types of objects from the
+factory, instead of binding the creation process to a single class
 constructor. So we get some extra flexibility for free.
 
 \begin{verbatim}
@@ -292,7 +292,7 @@ and to build the graph up programmatically \footnote{The
 Then we create a new object that has all of our prototype's strengths
 and none of its weaknesses. We build a brand new array (one of the other
 basic JS data structures) for our edges, another for the vertices, a new
-object called \texttt{vertexIndex} and an ID counter --- more on those
+object called \texttt{vertexIndex} and an ID counter---more on those
 latter two later. (Think: Why can't we just put these in the prototype?)
 
 Then we call \texttt{addVertices} and \texttt{addEdges} from inside our
@@ -303,7 +303,7 @@ Dagoba.G.addVertices = function(vs) { vs.forEach(this.addVertex.bind(this)) }
 Dagoba.G.addEdges    = function(es) { es.forEach(this.addEdge  .bind(this)) }
 \end{verbatim}
 
-Okay, that was too easy --- we're just passing off the work to
+Okay, that was too easy---we're just passing off the work to
 \texttt{addVertex} and \texttt{addEdge}. We should define those now too.
 
 \begin{verbatim}
@@ -341,8 +341,8 @@ could retain a pointer to that vertex object and manipulate it at
 runtime, breaking our invariants.
 
 So if we create a vertex instance object, we're forced to decide up
-front whether we will always copy the provided data into a new object
---- potentially doubling our space usage --- or allow the host
+front whether we will always copy the provided data into a new
+object---potentially doubling our space usage---or allow the host
 application unfettered access to the database objects. There's a tension
 here between performance and protection, and the right balance depends
 on your specific use case.
@@ -446,9 +446,9 @@ Dagoba.query = function(graph) {                // factory
 Now's a good time to introduce some friends.
 
 A \emph{program} is a series of \emph{steps}. Each step is like a pipe
-in a pipeline --- a piece of data comes in one end, is transformed in
-some fashion, and goes out the other end. Our pipeline doesn't quite
-work like that, but it's a good first approximation.
+in a pipeline---a piece of data comes in one end, is transformed in some
+fashion, and goes out the other end. Our pipeline doesn't quite work
+like that, but it's a good first approximation.
 
 Each step in our program can have \emph{state}, and \texttt{query.state}
 is a list of per-step states that index correlates with the list of
@@ -492,9 +492,9 @@ Dagoba.Q.add = function(pipetype, args) { // add a new step to the query
 Each step is a composite entity, combining the pipetype function with
 the arguments to apply to that function. We could combine the two into a
 partially applied function at this stage, instead of using a tuple
-\footnote{A tuple is another abstract data structure --- one that is
-  more constrained than a list. In particular a tuple has a fixed size:
-  in this case we're using a 2-tuple (also known as a ``pair'' in the
+\footnote{A tuple is another abstract data structure---one that is more
+  constrained than a list. In particular a tuple has a fixed size: in
+  this case we're using a 2-tuple (also known as a ``pair'' in the
   technical jargon of data structure researchers). Using the term for
   the most constrained abstract data structure required is a nicety for
   future implementors.}, but then we'd lose some introspective power
@@ -529,7 +529,7 @@ main schools of thought: the Call By Value clan, also known as eager
 beavers, are strict in their insistence that all arguments be evaluated
 before the function is applied. Their opposing faction, the Call By
 Needians, are content to procrastinate until the last possible moment
-before doing anything, and even then do as little as possible --- they
+before doing anything, and even then do as little as possible---they
 are, in a word, lazy.
 
 JavaScript, being a strict language, will process each of our steps as
@@ -539,11 +539,11 @@ all vertices connected to it by outgoing edges, and from each of those
 vertices finally return all vertices they are connected to by inbound
 edges.
 
-In a non-strict language we would get the same result --- the execution
+In a non-strict language we would get the same result---the execution
 strategy doesn't make much difference here. But what if we added a few
 additional calls? Given how well-connected Thor is, our
 \texttt{g.v('Thor').out().out().out().in().in().in()} query may produce
-many results --- in fact, because we're not limiting our vertex list to
+many results---in fact, because we're not limiting our vertex list to
 unique results, it may produce many more results than we have vertices
 in our total graph.
 
@@ -743,8 +743,8 @@ multiple return values it would make this option more elegant.
 
 We would still need to find a way to deal with the mutations, though, as
 the call site maintains a reference to the original variable. What if we
-had some way to determine whether a particular reference is ``unique''
---- that it is the only reference to that object?
+had some way to determine whether a particular reference is
+``unique''---that it is the only reference to that object?
 
 If we know a reference is unique then we can get the benefits of
 immutability while avoiding expensive copy-on-write schemes or
@@ -769,10 +769,9 @@ typed system we might make use of uniqueness types \footnote{Uniqueness
 has only one reference. If we had a reference counter \footnote{Most
   modern JS runtimes employ generational garbage collectors, and the
   language is intentionally kept at arm's length from the engine's
-  memory management to curtail a source of programmatic non-determinism.}
---- even just a cheap two-bit sticky counter --- we could know at
-runtime that an object only has one reference and use that knowledge to
-our advantage.
+  memory management to curtail a source of programmatic non-determinism.}---even
+just a cheap two-bit sticky counter---we could know at runtime that an
+object only has one reference and use that knowledge to our advantage.
 
 JavaScript doesn't have either of these facilities, but we can get
 almost the same effect if we're really, really disciplined. Which we
@@ -909,8 +908,8 @@ think of a use for this? What are the tradeoffs in this design decision?
 
 \aosasectiii{Unique}\label{unique}
 
-If we want to collect all Thor's grandparents' grandchildren --- his
-cousins, his siblings, and himself --- we could do a query like this:
+If we want to collect all Thor's grandparents' grandchildren---his
+cousins, his siblings, and himself---we could do a query like this:
 \texttt{g.v('Thor').in().in().out().out().run()}. That would give us
 many duplicates, however. In fact there would be at least four copies of
 Thor himself. (Can you think of a time when there might be more?)
@@ -1122,8 +1121,8 @@ Dagoba.addPipetype('merge', function(graph, args, gremlin, state) {
 We map over each argument, looking for it in the gremlin's list of
 labeled vertices. If we find it, we clone the gremlin to that vertex.
 Note that only gremlins that make it to this pipe are included in the
-merge --- if Thor's mother's parents aren't in the graph, she won't be
-in the result set.
+merge---if Thor's mother's parents aren't in the graph, she won't be in
+the result set.
 
 \aosasectiii{Except}\label{except}
 
@@ -1281,7 +1280,7 @@ Dagoba.G.findVertexById = function(vertex_id) {
 
 Note the use of \texttt{vertexIndex} here. Without that index we'd have
 to go through each vertex in our list one at a time to decide if it
-matched the ID --- turning a constant time operation into a linear time
+matched the ID---turning a constant time operation into a linear time
 one, and any $O(n)$ operations that directly rely on it into $O(n^2)$
 operations.
 
@@ -1389,7 +1388,7 @@ An index of the last `done' step that starts behind the first step:
 \end{verbatim}
 
 We need a place to store the most recent step's output, which might be a
-gremlin --- or it might be nothing --- so we'll call it
+gremlin---or it might be nothing---so we'll call it
 \texttt{maybe\_gremlin}:
 
 \begin{verbatim}
@@ -1633,7 +1632,7 @@ to evaluate it later \footnote{Note that we're keeping the domain of the
 
 We'll assume there won't be an enormous number of transformer additions,
 and walk the list linearly to add a new one. We'll leave a note in case
-this assumption turns out to be false --- a binary search is much more
+this assumption turns out to be false---a binary search is much more
 time-optimal for long lists, but adds a little complexity and doesn't
 really speed up short lists.
 
@@ -1825,7 +1824,7 @@ list would arrive faster if sent by Pony Express \footnote{Though only
 To alleviate this dismal performance most databases index over
 oft-queried fields, which turns an $O(n)$ search into an $O(log n)$
 search. This gives considerably better search performance, but at the
-cost of some write performance and a lot of space --- indices can easily
+cost of some write performance and a lot of space---indices can easily
 double the size of a database. Careful balancing of the space/time
 tradeoffs of indices is part of the perpetual tuning process for most
 databases.
@@ -1876,11 +1875,11 @@ Dagoba.G.findOutEdges = function(vertex) { return vertex._out }
 \end{verbatim}
 
 Run these yourself to experience the graph database difference
-\footnote{In modern JavaScript engines filtering a list is quite fast
-  --- for small graphs the naive version can actually be faster than the
-  index-free version due to the underlying data structures and the way
-  the code is JIT compiled. Try it with different sizes of graphs to see
-  how the two approaches scale.}.
+\footnote{In modern JavaScript engines filtering a list is quite
+  fast---for small graphs the naive version can actually be faster than
+  the index-free version due to the underlying data structures and the
+  way the code is JIT compiled. Try it with different sizes of graphs to
+  see how the two approaches scale.}.
 
 \aosasecti{Serialization}\label{serialization}
 
@@ -1949,8 +1948,7 @@ it fits in a tweet.)
 
 Persistence is usually one of the trickier parts of a database: disks
 are relatively safe, but dreadfully slow. Batching writes, making them
-atomic, journaling --- these are difficult to make both fast and
-correct.
+atomic, journaling---these are difficult to make both fast and correct.
 
 Fortunately, we're building an \emph{in-memory} database, so we don't
 have to worry about any of that! We may, though, occasionally want to
@@ -1977,7 +1975,7 @@ Dagoba.fromString = function(str) {             // another graph constructor
 \end{verbatim}
 
 Now we'll use those in our persistence functions. The \texttt{toString}
-function is hiding --- can you spot it?
+function is hiding---can you spot it?
 
 \begin{verbatim}
 Dagoba.persist = function(graph, name) {
@@ -2062,7 +2060,7 @@ g.v('Thor').out().as('parent')
            .run()
 \end{verbatim}
 
-This is pretty clumsy, and doesn't scale well --- what if we wanted six
+This is pretty clumsy, and doesn't scale well---what if we wanted six
 layers of ancestors? Or to look through an arbitrary number of ancestors
 until we found what we wanted?
 
@@ -2072,8 +2070,8 @@ It'd be nice if we could say something like this instead:
 g.v('Thor').out().all().times(3).run()
 \end{verbatim}
 
-What we'd like to get out of this is something like the query above ---
-maybe:
+What we'd like to get out of this is something like the query
+above---maybe:
 
 \begin{verbatim}
 g.v('Thor').out().as('a')
@@ -2101,13 +2099,12 @@ thing? What if there are multiple \texttt{all}s?
 To solve that first problem we're going to have to treat \texttt{all}s
 as something more than just as/merge. We need each parent gremlin to
 actually skip the intervening steps. We can think of this as a kind of
-teleportation --- jumping from one part of the pipeline directly to
-another --- or we can think of it as a certain kind of branching
-pipeline, but either way it complicates our model somewhat. Another
-approach would be to think of the gremlin as passing through the
-intervening pipes in a sort of suspended animation, until awoken by a
-special pipe. Scoping the suspending/unsuspending pipes may be tricky,
-however.
+teleportation---jumping from one part of the pipeline directly to
+another---or we can think of it as a certain kind of branching pipeline,
+but either way it complicates our model somewhat. Another approach would
+be to think of the gremlin as passing through the intervening pipes in a
+sort of suspended animation, until awoken by a special pipe. Scoping the
+suspending/unsuspending pipes may be tricky, however.
 
 The next two problems are easier. To modify just part of a query we'll
 wrap that portion in special start/end steps, like
@@ -2123,9 +2120,9 @@ all \texttt{all}s uniquely, and again after \texttt{times}' time to
 re-mark all marked \texttt{all}s uniquely.
 
 There's still the issue of searching through an unbounded number of
-ancestors --- for example, how do we find out which of Ymir's
-descendants are scheduled to survive Ragnarök? We could make individual
-queries like \texttt{g.v('Ymir').in().filter(\{survives: true\})} and
+ancestors---for example, how do we find out which of Ymir's descendants
+are scheduled to survive Ragnarök? We could make individual queries like
+\texttt{g.v('Ymir').in().filter(\{survives: true\})} and
 \newline \texttt{g.v('Ymir').in().in().in().in().filter(\{survives: true\})},
 and manually collect the results ourselves, but that's pretty awful.
 
@@ -2147,7 +2144,7 @@ other generation'' in a straightforward fashion:
 \aosasecti{Wrapping Up}\label{wrapping-up}
 
 So what have we learned? Graph databases are great for storing
-interconnected \footnote{Not \emph{too} interconnected, though --- you'd
+interconnected \footnote{Not \emph{too} interconnected, though---you'd
   like the number of edges to grow in direct proportion to the number of
   vertices. In other words, the average number of edges connected to a
   vertex shouldn't vary with the size of the graph. Most systems we'd
@@ -2163,8 +2160,8 @@ temporal dependency (e.g., state, observable effects, etc.) we make
 reasoning about our system easier. Building in a simple, decoupled and
 painfully unoptimized style leaves the door open for global
 optimizations later on, and using a driver loop allows for orthogonal
-optimizations --- each without introducing the brittleness and
-complexity that is the hallmark of most optimization techniques.
+optimizations---each without introducing the brittleness and complexity
+that is the hallmark of most optimization techniques.
 
 That last point can't be overstated: keep it simple. Eschew optimization
 in favor of simplicity. Work hard to achieve simplicity by finding the
