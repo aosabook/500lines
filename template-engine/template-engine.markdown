@@ -222,8 +222,6 @@ so conditionals are available:
 ```html
 {% if user.is_logged_in %}
     <p>Welcome, {{ user.name }}!</p>
-{% else %}
-    <p><a href="/login">Log in </a></p>
 {% endif %}
 ```
 
@@ -1335,7 +1333,7 @@ here.  To keep this code small, we're leaving out interesting ideas like:
 * Custom tags
 * Automatic escaping
 * Arguments to filters
-* Complex logic like elif and for/else
+* Complex conditional logic like else and elif
 * Loops with more than one loop variable
 * Whitespace control
 
