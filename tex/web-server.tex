@@ -40,14 +40,14 @@ server sends some data in response (\aosafigref{500l.web-server.cycle}.)
 The data may be copied from a file on disk, generated dynamically by a
 program, or some mix of the two.
 
-\aosafigure{web-server-images/http-cycle.png}{The HTTP Cycle}{500l.web-server.cycle}
+\aosafigure[240pt]{web-server-images/http-cycle.png}{The HTTP Cycle}{500l.web-server.cycle}
 
 The most important thing about an HTTP request is that it's just text:
 any program that wants to can create one or parse one. In order to be
 understood, though, that text must have the parts shown in
 \aosafigref{500l.web-server.request}.
 
-\aosafigure{web-server-images/http-request.png}{An HTTP Request}{500l.web-server.request}
+\aosafigure[240pt]{web-server-images/http-request.png}{An HTTP Request}{500l.web-server.request}
 
 The HTTP method is almost always either ``GET'' (to fetch information)
 or ``POST'' (to submit form data or upload files). The URL specifies
@@ -81,7 +81,7 @@ bytes to expect to read in the body of the request.
 HTTP responses are formatted like HTTP requests
 (\aosafigref{500l.web-server.response}):
 
-\aosafigure{web-server-images/http-response.png}{An HTTP Response}{500l.web-server.response}
+\aosafigure[240pt]{web-server-images/http-response.png}{An HTTP Response}{500l.web-server.response}
 
 The version, headers, and body have the same form and meaning. The
 status code is a number indicating what happened when the request was

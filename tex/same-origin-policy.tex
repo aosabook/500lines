@@ -324,9 +324,9 @@ one that violates the property, displays that instance as a
 \aosafigref{500l.same-origin-policy.fig-http-2a} and
 \aosafigref{500l.same-origin-policy.fig-http-2b}.
 
-\aosafigure[240pt]{same-origin-policy-images/fig-http-2a.png}{Counterexample at time 0}{500l.same-origin-policy.fig-http-2a}
+\aosafigure[180pt]{same-origin-policy-images/fig-http-2a.png}{Counterexample at time 0}{500l.same-origin-policy.fig-http-2a}
 
-\aosafigure[240pt]{same-origin-policy-images/fig-http-2b.png}{Counterexample at time 1}{500l.same-origin-policy.fig-http-2b}
+\aosafigure[180pt]{same-origin-policy-images/fig-http-2b.png}{Counterexample at time 1}{500l.same-origin-policy.fig-http-2b}
 
 This counterexample again shows an HTTP request being made by a client,
 but with two different servers. (In the Alloy visualizer, objects of the
@@ -827,8 +827,8 @@ in \aosafigref{500l.same-origin-policy.fig-attack-1a} and
 \texttt{EvilScript} may access a piece of critical data
 (\texttt{MyInboxInfo}).
 
-\aosafigure[240pt]{same-origin-policy-images/fig-attack-1a.png}{Confidentiality counterexample at time 0}{500l.same-origin-policy.fig-attack-1a}
-\aosafigure[240pt]{same-origin-policy-images/fig-attack-1b.png}{Confidentiality counterexample at time 1}{500l.same-origin-policy.fig-attack-1b}
+\aosafigure[180pt]{same-origin-policy-images/fig-attack-1a.png}{Confidentiality counterexample at time 0}{500l.same-origin-policy.fig-attack-1a}
+\aosafigure[180pt]{same-origin-policy-images/fig-attack-1b.png}{Confidentiality counterexample at time 1}{500l.same-origin-policy.fig-attack-1b}
 
 This counterexample involves two steps. In the first step
 (\aosafigref{500l.same-origin-policy.fig-attack-1a}),
@@ -848,7 +848,7 @@ There may be multiple counterexamples to a single assertion. Consider
 different way in which the system may violate the confidentiality
 property.
 
-\aosafigure[240pt]{same-origin-policy-images/fig-attack-2.png}{Another confidentiality violation}{500l.same-origin-policy.fig-attack-2}
+\aosafigure[180pt]{same-origin-policy-images/fig-attack-2.png}{Another confidentiality violation}{500l.same-origin-policy.fig-attack-2}
 
 In this scenario, instead of reading the content of the inbox page,
 \texttt{EvilScript} directly makes a \texttt{GetInboxInfo} request to
@@ -1091,14 +1091,14 @@ other's DOM. The scripts running inside the documents
 \texttt{ExampleDomain} (which is allowed because \texttt{ExampleDomain}
 is a superdomain of the original domain).
 
-\aosafigure[240pt]{same-origin-policy-images/fig-setdomain-1a.png}{Cross-origin counterexample at time 0}{500l.same-origin-policy.fig-setdomain-1a}
-\aosafigure[240pt]{same-origin-policy-images/fig-setdomain-1b.png}{Cross-origin counterexample at time 1}{500l.same-origin-policy.fig-setdomain-1b}
+\aosafigure[180pt]{same-origin-policy-images/fig-setdomain-1a.png}{Cross-origin counterexample at time 0}{500l.same-origin-policy.fig-setdomain-1a}
+\aosafigure[180pt]{same-origin-policy-images/fig-setdomain-1b.png}{Cross-origin counterexample at time 1}{500l.same-origin-policy.fig-setdomain-1b}
 
 Having done this, they can now access each other's DOM by executing
 \texttt{ReadDom} or \texttt{WriteDom} operations, as in
 \aosafigref{500l.same-origin-policy.fig-setdomain-1c}.
 
-\aosafigure[240pt]{same-origin-policy-images/fig-setdomain-1c.png}{Cross-origin counterexample at time 2}{500l.same-origin-policy.fig-setdomain-1c}
+\aosafigure[180pt]{same-origin-policy-images/fig-setdomain-1c.png}{Cross-origin counterexample at time 2}{500l.same-origin-policy.fig-setdomain-1c}
 
 Note that when you set the domain property of both ``email.example.com''
 and ``calendar.example.com'' to ``example.com'', you are allowing not
@@ -1111,14 +1111,14 @@ blog page (\texttt{BlogPage}). In the next step
 executes the \texttt{SetDomain} operation to modify the domain property
 of \texttt{BlogPage} to \texttt{ExampleDomain}.
 
-\aosafigure[240pt]{same-origin-policy-images/fig-setdomain-2a.png}{Cross-origin counterexample at time 3}{500l.same-origin-policy.fig-setdomain-2a}
+\aosafigure[180pt]{same-origin-policy-images/fig-setdomain-2a.png}{Cross-origin counterexample at time 3}{500l.same-origin-policy.fig-setdomain-2a}
 
 Now that \texttt{BlogPage} has the same domain property as the other two
 documents, it can successfully execute the \texttt{ReadDOM} operation to
 access their content
 (\aosafigref{500l.same-origin-policy.fig-setdomain-2b}.)
 
-\aosafigure[240pt]{same-origin-policy-images/fig-setdomain-2b.png}{Cross-origin counterexample at time 4}{500l.same-origin-policy.fig-setdomain-2b}
+\aosafigure[180pt]{same-origin-policy-images/fig-setdomain-2b.png}{Cross-origin counterexample at time 4}{500l.same-origin-policy.fig-setdomain-2b}
 
 This attack points out one crucial weakness of the domain property
 method for cross-origin communication: The security of an application
@@ -1259,7 +1259,7 @@ browser interprets the JSONP response as a call to
 \texttt{EvilServer}, allowing the attacker to access the victim's
 sensitive information.
 
-\aosafigure[240pt]{same-origin-policy-images/fig-jsonp-2.png}{JSONP counterexample at time 1}{500l.same-origin-policy.fig-jsonp-2}
+\aosafigure[180pt]{same-origin-policy-images/fig-jsonp-2.png}{JSONP counterexample at time 1}{500l.same-origin-policy.fig-jsonp-2}
 
 This attack, an example of \emph{cross-site request forgery} (CSRF),
 shows an inherent weakness of JSOPN; \emph{any} site on the web can make

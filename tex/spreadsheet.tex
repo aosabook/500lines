@@ -60,7 +60,7 @@ Explorer 11+, as well as mobile browsers on iOS 5+ and Android 4+.
 Now let's open \href{http://audreyt.github.io/500lines/spreadsheet/}{our
 spreadsheet} in a browser (\aosafigref{500l.spreadsheet.initial}):
 
-\aosafigure{spreadsheet-images/01-initial.png}{Initial Screen}{500l.spreadsheet.initial}
+\aosafigure[240pt]{spreadsheet-images/01-initial.png}{Initial Screen}{500l.spreadsheet.initial}
 
 \aosasectii{Basic Concepts}\label{basic-concepts}
 
@@ -87,20 +87,20 @@ has a unique \emph{coordinate} (such as \textbf{A1}) and \emph{content}
 Click ``3920'' to set \emph{focus} on \textbf{E1}, revealing its formula
 in an \emph{input box} (\aosafigref{500l.spreadsheet.inputbox}):
 
-\aosafigure{spreadsheet-images/02-input.png}{Input Box}{500l.spreadsheet.input}
+\aosafigure[240pt]{spreadsheet-images/02-input.png}{Input Box}{500l.spreadsheet.input}
 
 Now let's set focus on \textbf{A1} and \emph{change} its content to
 ``1'', causing \textbf{E1} to \emph{recalculate} its value to ``2047''
 (\aosafigref{500l.spreadsheet.changed}):
 
-\aosafigure{spreadsheet-images/03-changed.png}{Changed Content}{500l.spreadsheet.changed}
+\aosafigure[240pt]{spreadsheet-images/03-changed.png}{Changed Content}{500l.spreadsheet.changed}
 
 Press \textbf{ENTER} to set focus to \textbf{A2} and change its content
 to \texttt{=Date()}, then press \textbf{TAB}, change the content of
 \textbf{B2} to \texttt{=alert()}, then press \textbf{TAB} again to set
 focus to \texttt{C2} (\aosafigref{500l.spreadsheet.error}):
 
-\aosafigure{spreadsheet-images/04-error.png}{Formula Error}{500l.spreadsheet.error}
+\aosafigure[240pt]{spreadsheet-images/04-error.png}{Formula Error}{500l.spreadsheet.error}
 
 This shows that a formula may calculate to a number (``2047'' in
 \textbf{E1}), a text (the current time in \textbf{A2}, aligned to the
@@ -139,7 +139,7 @@ in the browser, reload the page, and note the differences
   reveals an editable input box.
 \end{aosaitemize}
 
-\aosafigure{spreadsheet-images/05-nojs.png}{With JavaScript Disabled}{500l.spreadsheet.nojs}
+\aosafigure[240pt]{spreadsheet-images/05-nojs.png}{With JavaScript Disabled}{500l.spreadsheet.nojs}
 
 When we disable the dynamic interactions (JS), the content structure
 (HTML) and the presentational styles (CSS) remain in effect. If a
@@ -173,7 +173,7 @@ browser and disable CSS instead, the effects are:
 \aosafigref{500l.spreadsheet.architecture} shows the links between HTML
 and JS components:
 
-\aosafigure{spreadsheet-images/00-architecture.png}{Architecture Diagram}{500l.spreadsheet.architecture}
+\aosafigure[240pt]{spreadsheet-images/00-architecture.png}{Architecture Diagram}{500l.spreadsheet.architecture}
 
 In order to make sense of the diagram, let's go through the four source
 code files, in the same sequence as the browser loads them:
@@ -393,7 +393,7 @@ four tasks:
 The flowchart in \aosafigref{500l.spreadsheet.flowchart} shows the
 controller-worker interaction in more detail:
 
-\aosafigure{spreadsheet-images/00-flowchart.png}{Controller-Worker Flowchart}{500l.spreadsheet.flowchart}
+\aosafigure[240pt]{spreadsheet-images/00-flowchart.png}{Controller-Worker Flowchart}{500l.spreadsheet.flowchart}
 
 Now let's walk through the code. In the first line, we request the JS
 model \texttt{\$scope} object from AngularJS:

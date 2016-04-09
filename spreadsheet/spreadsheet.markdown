@@ -31,7 +31,7 @@ The [spreadsheet](https://github.com/audreyt/500lines/tree/master/spreadsheet/co
 
 Now let’s open [our spreadsheet](http://audreyt.github.io/500lines/spreadsheet/) in a browser (\aosafigref{500l.spreadsheet.initial}):
 
-\aosafigure{spreadsheet-images/01-initial.png}{Initial Screen}{500l.spreadsheet.initial}
+\aosafigure[240pt]{spreadsheet-images/01-initial.png}{Initial Screen}{500l.spreadsheet.initial}
 
 ### Basic Concepts
 
@@ -44,15 +44,15 @@ The spreadsheet spans two dimensions, with _columns_ starting from **A**, and _r
 
 Click "3920" to set _focus_ on **E1**, revealing its formula in an _input box_ (\aosafigref{500l.spreadsheet.inputbox}):
 
-\aosafigure{spreadsheet-images/02-input.png}{Input Box}{500l.spreadsheet.input}
+\aosafigure[240pt]{spreadsheet-images/02-input.png}{Input Box}{500l.spreadsheet.input}
 
 Now let’s set focus on **A1** and _change_ its content to "1", causing **E1** to _recalculate_ its value to "2047" (\aosafigref{500l.spreadsheet.changed}):
 
-\aosafigure{spreadsheet-images/03-changed.png}{Changed Content}{500l.spreadsheet.changed}
+\aosafigure[240pt]{spreadsheet-images/03-changed.png}{Changed Content}{500l.spreadsheet.changed}
 
 Press **ENTER** to set focus to **A2** and change its content to `=Date()`, then press **TAB**, change the content of **B2** to `=alert()`, then press **TAB** again to set focus to `C2` (\aosafigref{500l.spreadsheet.error}):
 
-\aosafigure{spreadsheet-images/04-error.png}{Formula Error}{500l.spreadsheet.error}
+\aosafigure[240pt]{spreadsheet-images/04-error.png}{Formula Error}{500l.spreadsheet.error}
 
 This shows that a formula may calculate to a number ("2047" in **E1**), a text (the current time in **A2**, aligned to the left), or an _error_ (red letters in **B2**, aligned to the center).
 
@@ -69,7 +69,7 @@ Before we dive into the 99 lines of code, it’s worthwhile to disable JS in the
 * Pressing the reset button produces no effect.
 * Pressing **TAB** or clicking into the first line of content still reveals an editable input box.
 
-\aosafigure{spreadsheet-images/05-nojs.png}{With JavaScript Disabled}{500l.spreadsheet.nojs}
+\aosafigure[240pt]{spreadsheet-images/05-nojs.png}{With JavaScript Disabled}{500l.spreadsheet.nojs}
 
 When we disable the dynamic interactions (JS), the content structure (HTML) and the presentational styles (CSS) remain in effect. If a website is useful with both JS and CSS disabled, we say it adheres to the _progressive enhancement_ principle, making its content accessible to the largest audience possible.
 
@@ -87,7 +87,7 @@ As shown in \aosafigref{500l.spreadsheet.nocss}, if we enable JS in the browser 
 
 \aosafigref{500l.spreadsheet.architecture} shows the links between HTML and JS components:
 
-\aosafigure{spreadsheet-images/00-architecture.png}{Architecture Diagram}{500l.spreadsheet.architecture}
+\aosafigure[240pt]{spreadsheet-images/00-architecture.png}{Architecture Diagram}{500l.spreadsheet.architecture}
 
 In order to make sense of the diagram, let’s go through the four source code files, in the same sequence as the browser loads them:
 
@@ -206,7 +206,7 @@ As the bridge between the HTML view and the background worker, it has four tasks
 
 The flowchart in \aosafigref{500l.spreadsheet.flowchart} shows the controller-worker interaction in more detail:
 
-\aosafigure{spreadsheet-images/00-flowchart.png}{Controller-Worker Flowchart}{500l.spreadsheet.flowchart}
+\aosafigure[240pt]{spreadsheet-images/00-flowchart.png}{Controller-Worker Flowchart}{500l.spreadsheet.flowchart}
 
 Now let's walk through the code. In the first line, we request the JS model `$scope` object from AngularJS:
 

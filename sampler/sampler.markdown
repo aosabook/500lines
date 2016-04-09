@@ -1140,7 +1140,7 @@ Now we can draw a bunch of samples, and compute the 50th percentile
 If we were to plot a histogram of how many samples we got for each
 amount of damage, it would look something like \aosafigref{500l.sampler.damage}.
 
-\aosafigure[144pt]{sampler-images/damage_distribution.png}{Damage Distribution}{500l.sampler.damage}
+\aosafigure[180pt]{sampler-images/damage_distribution.png}{Damage Distribution}{500l.sampler.damage}
 
 There is a pretty wide range of damage that the player could
 potentially inflict, but it has a long tail: the 50th percentile is at

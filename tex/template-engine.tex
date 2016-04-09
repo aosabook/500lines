@@ -250,24 +250,11 @@ brace-hashes:
 \aosasecti{Implementation Approaches}\label{implementation-approaches}
 
 In broad strokes, the template engine will have two main phases:
+\emph{parsing} the template, and then \emph{rendering} the template.
 
-\begin{aosaitemize}
-
-\item
-  Parse the template
-\item
-  Render the template to assemble the text result, which involves:
-
-  \begin{aosaitemize}
-  
-  \item
-    Managing the dynamic context, the source of the data
-  \item
-    Executing the logic elements
-  \item
-    Implementing dot access and filter execution
-  \end{aosaitemize}
-\end{aosaitemize}
+Rendering the template specifically involves: * Managing the dynamic
+context, the source of the data * Executing the logic elements *
+Implementing dot access and filter execution
 
 The question of what to pass from the parsing phase to the rendering
 phase is key. What does parsing produce that can be rendered? There are

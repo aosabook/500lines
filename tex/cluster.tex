@@ -136,7 +136,7 @@ proposer's goal is to get a majority of cluster members, acting as
 acceptors, to accept its value, but only if another value has not
 already been decided.
 
-\aosafigure{cluster-images/ballot.png}{A Ballot}{500l.cluster.ballot}
+\aosafigure[240pt]{cluster-images/ballot.png}{A Ballot}{500l.cluster.ballot}
 
 A ballot begins with the proposer sending a \texttt{Prepare} message
 with the ballot number \emph{N} to the acceptors and waiting to hear
@@ -567,7 +567,7 @@ and sending a \texttt{Propose} message to the current leader
 the selected slot is for a different proposal, the replica must
 re-propose with a new slot.
 
-\aosafigure{cluster-images/replica.png}{Replica Role Control Flow}{500l.cluster.replica}
+\aosafigure[240pt]{cluster-images/replica.png}{Replica Role Control Flow}{500l.cluster.replica}
 
 \texttt{Decision} messages represent slots on which the cluster has come
 to consensus. Here, replicas store the new decision, then run the state
@@ -615,14 +615,14 @@ dead and moves on to the next leader. In this case, it's important that
 all replicas choose the \emph{same} new leader, which we accomplish by
 sorting the members and selecting the next one in the list.
 
-\aosafigure{cluster-images/active.png}{Active}{500l.cluster.active}
+\aosafigure[240pt]{cluster-images/active.png}{Active}{500l.cluster.active}
 
 Finally, when a node joins the network, the bootstrap role sends a
 \texttt{Join} message (\aosafigref{500l.cluster.bootstrap}.) The replica
 responds with a \texttt{Welcome} message containing its most recent
 state, allowing the new node to come up to speed quickly.
 
-\aosafigure{cluster-images/bootstrap.png}{Bootstrap}{500l.cluster.bootstrap}
+\aosafigure[240pt]{cluster-images/bootstrap.png}{Bootstrap}{500l.cluster.bootstrap}
 
 \begin{verbatim}
 
@@ -633,7 +633,7 @@ class Replica(Role):
         self.execute_fn = execute_fn
         self.state = state
         self.slot = slot
-        self.decisions = decisions.copy()
+        self.decisions = decisions
         self.peers = peers
         self.proposals = {}
         # next slot num for a proposal (may lead slot)
@@ -820,7 +820,7 @@ responses until it has heard from a majority of its peers or until it
 has been preempted. It communicates the result back to the leader with
 an \texttt{Adopted} or \texttt{Preempted} message, respectively.
 
-\aosafigure{cluster-images/leaderscout.png}{Scout}{500l.cluster.leaderscout}
+\aosafigure[240pt]{cluster-images/leaderscout.png}{Scout}{500l.cluster.leaderscout}
 
 \begin{verbatim}
 
@@ -882,7 +882,7 @@ its preemption. When a proposal is accepted, the commander broadcasts a
 \texttt{Decision} message to all nodes. It responds to the leader with
 either \texttt{Decided} or \texttt{Preempted}.
 
-\aosafigure{cluster-images/leadercommander.png}{Commander}{500l.cluster.leadercommander}
+\aosafigure[240pt]{cluster-images/leadercommander.png}{Commander}{500l.cluster.leadercommander}
 
 \begin{verbatim}
 
@@ -1203,7 +1203,9 @@ class Network(object):
 
     def send(self, sender, destinations, message):
         sender.logger.debug("sending %s to %s", message, destinations)
-        for dest in (d for d in destinations if d in self.nodes):
+        # avoid aliasing by making a closure containing distinct deep copy of
+        # message for each dest
+        def sendto(dest, message):
             if dest == sender.address:
                 # reliably deliver local messages with no delay
                 self.set_timer(sender.address, 0,  
@@ -1214,6 +1216,8 @@ class Network(object):
                 self.set_timer(dest, delay, 
                                functools.partial(self.nodes[dest].receive, 
                                                  sender.address, message))
+        for dest in (d for d in destinations if d in self.nodes):
+            sendto(dest, copy.deepcopy(message))
     
 \end{verbatim}
 

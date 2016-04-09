@@ -30,7 +30,7 @@ extracted wasn’t generally the most appealing shade, the creation took a long
 time (a couple of seconds per image), and it took hundreds of images to make
 something cool (\aosafigref{500l.imagefilters.sunflower}).
 
-\aosafigure[240pt]{image-filters-images/sunflower.jpg}{Sunflower layout}{500l.imagefilters.sunflower}
+\aosafigure[180pt]{image-filters-images/sunflower.jpg}{Sunflower layout}{500l.imagefilters.sunflower}
 
 You might think this would be discouraging, but by the time I got to this
 point I had learned many things that hadn’t come my way before — about color
@@ -137,9 +137,9 @@ In \aosafigref{500l.imagefilters.animals}, we see a high-resolution picture of s
 MoMA in NYC. \aosafigref{500l.imagefilters.pixelanimals} is
 the same image blown up, but with just 24 x 32 pixels.
 
-\aosafigure[240pt]{image-filters-images/animals.jpg}{Blow-up animals at MoMA NY}{500l.imagefilters.animals}
+\aosafigure[180pt]{image-filters-images/animals.jpg}{Blow-up animals at MoMA NY}{500l.imagefilters.animals}
 
-\aosafigure[240pt]{image-filters-images/pixelanimals.jpg}{Blow-up animals, blown up}{500l.imagefilters.pixelanimals}
+\aosafigure[180pt]{image-filters-images/pixelanimals.jpg}{Blow-up animals, blown up}{500l.imagefilters.pixelanimals}
 
 See how it's so blurry? We call
 that _pixelation_, which means the image is too big for the number of pixels it

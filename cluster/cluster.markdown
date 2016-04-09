@@ -97,8 +97,7 @@ The protocol operates in a series of ballots, each led by a single member of the
 Each ballot has a unique ballot number based on an integer and the proposer's identity.
 The proposer's goal is to get a majority of cluster members, acting as acceptors, to accept its value, but only if another value has not already been decided.
 
-
-\aosafigure{cluster-images/ballot.png}{A Ballot}{500l.cluster.ballot}
+\aosafigure[240pt]{cluster-images/ballot.png}{A Ballot}{500l.cluster.ballot}
 
 A ballot begins with the proposer sending a ``Prepare`` message with the ballot number *N* to the acceptors and waiting to hear from a majority (\aosafigref{500l.cluster.ballot}.)
 
@@ -420,7 +419,7 @@ The ``Replica`` class is the most complicated role class, as it has a few closel
 The replica creates new proposals in response to ``Invoke`` messages from clients, selecting what it believes to be an unused slot and sending a ``Propose`` message to the current leader (\aosafigref{500l.cluster.replica}.)
 Furthermore, if the consensus for the selected slot is for a different proposal, the replica must re-propose with a new slot.
 
-\aosafigure{cluster-images/replica.png}{Replica Role Control Flow}{500l.cluster.replica}
+\aosafigure[240pt]{cluster-images/replica.png}{Replica Role Control Flow}{500l.cluster.replica}
 
 ``Decision`` messages represent slots on which the cluster has come to consensus.
 Here, replicas store the new decision, then run the state machine until it reaches an undecided slot.
@@ -450,14 +449,14 @@ When the acceptor role sends a ``Promise`` to a new leader, it sends an ``Accept
 
 The active leader sends ``Active`` messages as a heartbeat (\aosafigref{500l.cluster.active}.) If no such message arrives before the ``LEADER_TIMEOUT`` expires, the replica assumes the leader is dead and moves on to the next leader.  In this case, it's important that all replicas choose the *same* new leader, which we accomplish by sorting the members and selecting the next one in the list.
 
-\aosafigure{cluster-images/active.png}{Active}{500l.cluster.active}
+\aosafigure[240pt]{cluster-images/active.png}{Active}{500l.cluster.active}
 
 Finally, when a node joins the network, the bootstrap role sends a ``Join``
 message (\aosafigref{500l.cluster.bootstrap}.) The replica responds with a
 ``Welcome`` message containing its most recent state, allowing the new node to
 come up to speed quickly.
 
-\aosafigure{cluster-images/bootstrap.png}{Bootstrap}{500l.cluster.bootstrap}
+\aosafigure[240pt]{cluster-images/bootstrap.png}{Bootstrap}{500l.cluster.bootstrap}
 
 ```python
 
@@ -646,7 +645,7 @@ The leader creates a scout role when it wants to become active, in response to r
 The scout sends (and re-sends, if necessary) a ``Prepare`` message, and collects ``Promise`` responses until it has heard from a majority of its peers or until it has been preempted.
 It communicates the result back to the leader with an ``Adopted`` or ``Preempted`` message, respectively.
 
-\aosafigure{cluster-images/leaderscout.png}{Scout}{500l.cluster.leaderscout}
+\aosafigure[240pt]{cluster-images/leaderscout.png}{Scout}{500l.cluster.leaderscout}
 
 ```python
 
@@ -705,7 +704,7 @@ Like a scout, a commander sends and re-sends ``Accept`` messages and waits for a
 When a proposal is accepted, the commander broadcasts a ``Decision`` message to all nodes.
 It responds to the leader with either ``Decided`` or ``Preempted``.
 
-\aosafigure{cluster-images/leadercommander.png}{Commander}{500l.cluster.leadercommander}
+\aosafigure[240pt]{cluster-images/leadercommander.png}{Commander}{500l.cluster.leadercommander}
 
 ```python
 
