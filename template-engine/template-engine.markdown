@@ -249,13 +249,12 @@ brace-hashes:
 
 ## Implementation Approaches
 
-In broad strokes, the template engine will have two main phases:
+In broad strokes, the template engine will have two main phases: _parsing_ the template, and then _rendering_ the template.
 
-* Parse the template
-* Render the template to assemble the text result, which involves:
-    * Managing the dynamic context, the source of the data
-    * Executing the logic elements
-    * Implementing dot access and filter execution
+Rendering the template specifically involves:
+* Managing the dynamic context, the source of the data
+* Executing the logic elements
+* Implementing dot access and filter execution
 
 The question of what to pass from the parsing
 phase to the rendering phase is key.  What does parsing produce that can be rendered?
