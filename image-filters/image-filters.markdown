@@ -1575,4 +1575,4 @@ it I kept going… and hit an exhilarating moment and milestone the following
 morning.
 
 So, how do you extract the dominant color from an image? There’s an app for
-that: [Show & Hide](showandhide.com).
+that: [Show & Hide](http://showandhide.com).
