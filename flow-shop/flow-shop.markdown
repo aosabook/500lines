@@ -15,7 +15,7 @@ First, we provide some background material on the flow shop scheduling problem a
 ### Flow Shop Scheduling
 The flow shop scheduling problem is an optimization problem in which we must determine the processing time for various tasks in a job in order to schedule the tasks to minimize the total time it takes to complete the job. Take, for example, a car manufacturer with an assembly line where each part of the car is completed in sequence on different machines. Different orders may have custom requirements, making the task of painting the body, for example, vary from one car to the next. In our example, each car is a new *job* and each part for the car is called a *task*. Every job will have the same sequence of tasks to complete.
 
-The objective in flow shop scheduling is to minimize the total time it takes to process all of the tasks from every job to completion. Typically, this total time is referred to as the *makespan*. The flow shop scheduling problem has many applications, but is most related to optimizing production facilities.
+The objective in flow shop scheduling is to minimize the total time it takes to process all of the tasks from every job to completion. (Typically, this total time is referred to as the *makespan*.) This problem has many applications, but is most related to optimizing production facilities.
 
 Every flow shop problem consists of $n$ machines and $m$ jobs. In our car example, there will be $n$ stations to work on the car and $m$ cars to make in total. Each job is made up of exactly $n$ tasks, and we can assume that the $i$-th task of a job must use machine $i$ and requires a predetermined amount of processing time: $p(j,i)$ is the processing time for the $i$th task of job $j$. Further, the order of the tasks for any given job should follow the order of the machines available; for a given job, task $i$ must be completed prior to the start of task $i+1$. In our car example, we wouldn't want to start painting the car before the frame was assembled. The final restriction is that no two tasks can be processed on a machine simultaneously.
 
@@ -90,7 +90,7 @@ if __name__ == '__main__':
     print_solution(data, perm)
 ```
 
-We will describe the parsing of Taillard problem files shortly, and the files themselves are [available online](http://mistic.heig-vd.ch/taillard/problemes.dir/ordonnancement.dir/ordonnancement.html).
+We will describe the parsing of Taillard problem files shortly. (The files are [available online](http://mistic.heig-vd.ch/taillard/problemes.dir/ordonnancement.dir/ordonnancement.html).)
 
 The `solve` method expects the `data` variable to be a list of integers containing the activity durations for each job. The `solve` method starts by initializing a global set of strategies (to be described below). The key is that we use `strat_*` variables to maintain statistics on each of the strategies. This aids in selecting the strategy dynamically during the solving process.
 
@@ -123,7 +123,7 @@ However, to start a local search in the space of permutations, we must have an i
     random.shuffle(perm)
 ```
 
-Next, we initialize the variables that allow us to keep track of the best permutation found so far, as well as the timing information for providing output.
+Next, we initialize the variables that allow us to keep track of the best permutation found so far, as well as the timing information for providing output. \newpage
 
 ```python
     # Keep track of the best solution
@@ -250,7 +250,7 @@ To make locating the correct instance easier, we assume that lines will be separ
             sys.exit(0)
 ```
 
-We parse the data directly, converting the processing time of each task to an integer and storing it in a list. Finally, we zip the data to invert the rows and columns so that the format respects what is expected by the solving code above. (That is, every item in `data` should correspond to a particular job.)
+We parse the data directly, converting the processing time of each task to an integer and storing it in a list. Finally, we zip the data to invert the rows and columns so that the format respects what is expected by the solving code above. (Every item in `data` should correspond to a particular job.)
 
 ```python
         # Split every line based on spaces and convert each item to an int
@@ -370,7 +370,7 @@ def neighbours_random(data, perm, num = 1):
     return candidates
 ```
 
-For the next neighbourhood, we consider swapping any two jobs in the permutation. By using the `combinations` function from the `itertools` package, we can easily iterate through every pair of indices and create a new permutation that corresponds to swapping the jobs located at each index. In a sense, this neighbourhood creates permutations that are very similar to the permutation we began with.
+For the next neighbourhood, we consider swapping any two jobs in the permutation. By using the `combinations` function from the `itertools` package, we can easily iterate through every pair of indices and create a new permutation that corresponds to swapping the jobs located at each index. In a sense, this neighbourhood creates permutations that are very similar to the one we began with.
 
 ```python
 def neighbours_swap(data, perm):
@@ -432,7 +432,7 @@ def neighbours_LNS(data, perm, size = 2):
     random.shuffle(neighbourhoods)
 ```
 
-Next, we iterate through each of the subsets and for each one we find the best permutation of jobs in that subset. We have seen similar code above for iterating through all permutations of the most idle jobs. The key difference here is that we record only a single best permutation for the subset, as the larger neighbourhood is constructed by choosing one permutation for each subset of the considered jobs.
+Next, we iterate through the subsets to find the best permutation of jobs in each one. We have seen similar code above for iterating through all permutations of the most idle jobs. The key difference here is that we record only the best permutation for the subset, as the larger neighbourhood is constructed by choosing one permutation for each subset of the considered jobs.
 
 ```python
     for subset in neighbourhoods[:flow.MAX_LNS_NEIGHBOURHOODS]:
@@ -496,7 +496,7 @@ def heur_random_hillclimbing(data, candidates):
 Because makespan is the criteria that we are trying to optimize, hillclimbing will steer the local search process towards solutions with a better makespan. Introducing randomness allows us to explore the neighbourhood instead of going blindly towards the best-looking solution at every step.
 
 ## Dynamic Strategy Selection
-At the heart of the local search for a good permutation is the use of a particular heuristic and neighbourhood function to jump from one solution to another. How do we choose one set of options over another? In practice, it frequently pays off to switch strategies during the search. The dynamic strategy selection that we use will switch between combinations of heuristic and neighbourhood functions to try and shift dynamically to those strategies that work best. For us, a *strategy* is a particular configuration of heuristic and neighbourhood functions (including the parameters that they use).
+At the heart of the local search for a good permutation is the use of a particular heuristic and neighbourhood function to jump from one solution to another. How do we choose one set of options over another? In practice, it frequently pays off to switch strategies during the search. The dynamic strategy selection that we use will switch between combinations of heuristic and neighbourhood functions to try and shift dynamically to those strategies that work best. For us, a *strategy* is a particular configuration of heuristic and neighbourhood functions (including their parameter values.)
 
 To begin, our code constructs the range of strategies that we want to consider during solving. In the strategy initialization, we use the `partial` function from the `functools` package to partially assign the parameters for each of the neighbourhoods. Additionally, we construct a list of the heuristic functions, and finally we use the product operator to add every combination of neighbourhood and heuristic function as a new strategy.
 

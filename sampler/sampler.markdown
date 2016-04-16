@@ -80,13 +80,12 @@ the specific application.
 
 #### A Brief Aside About Notation
 
-Typically when we talk about probability distributions, we will use
-mathematical notation like $p(x)$ to indicate that $p$ is the
-*probability density function* (PDF) or *probability mass function*
-(PMF) over values $x$ of a random variable. A PDF is a *continuous*
-function $p(x)$ such that $\int_{-\infty}^\infty p(x)\ \mathrm{d}x=1$,
-whereas a PMF is a *discrete* function $p(x)$ such that $\sum_{x\in
-\mathbb{Z}} p(x)=1$, where $\mathbb{Z}$ is the set of all integers.
+We will use mathematical notation like $p(x)$ to indicate that $p$ is the
+*probability density function* (PDF) or *probability mass function* (PMF) over
+values $x$ of a random variable. A PDF is a *continuous* function $p(x)$ such
+that $\int_{-\infty}^\infty p(x)\ \mathrm{d}x=1$, whereas a PMF is a *discrete*
+function $p(x)$ such that $\sum_{x\in \mathbb{Z}} p(x)=1$, where $\mathbb{Z}$
+is the set of all integers.
 
 The probability distribution in the case of the dart
 board would be a continuous PDF, while the probability distribution in
@@ -102,7 +101,7 @@ probability density at the value $x$).
 Given the PDF or PMF, we might also want to *sample* a value $x$ in a
 manner proportional to the distribution (such that we are more likely
 to get a sample at places where the probability is higher). In
-mathematical notation, we would write this as $x\sim p$, to indicate
+mathematical notation, we write this as $x\sim p$, to indicate
 that $x$ is sampled proportional to $p$.
 
 ## Sampling Magical Items
@@ -242,7 +241,7 @@ necessary in a bit). The `rso` object is what we'll use later to
 produce random numbers. (We'll talk more about what it is a bit later
 as well).
 
-Before we get into the rest of the class, I want to briefly go over
+Before we get into the rest of the class, let's go over
 two points related to the constructor.
 
 #### Descriptive vs. Mathematic Variable Names
@@ -264,7 +263,7 @@ etc. So, if you were translating them directly into code, the easiest
 variable names would be `x`, `y`, and `alpha`. Obviously, these are
 not the most informative variable names (the name `x` does not convey
 much information), but having more descriptive variable names can also
-make it harder to go back and forth between the the code and the
+make it harder to switch between the the code and the
 equation.
 
 I think that when you are writing code that
@@ -457,7 +456,7 @@ $$
 p(\mathbf{x}; \mathbf{p}) = \frac{(\sum_{i=1}^k x_i)!}{x_1!\cdots{}x_k!}p_1^{x_1}\cdots{}p_k^{x_k}
 $$
 
-where $\mathbf{x}=[x_1, \ldots{}, x_k]$ is a vector of length $k$
+\noindent where $\mathbf{x}=[x_1, \ldots{}, x_k]$ is a vector of length $k$
 specifying the number of times each event happened, and
 $\mathbf{p}=[p_1, \ldots{}, p_k]$ is a vector specifying the
 probability of each event occurring. As mentioned above, the event
@@ -525,12 +524,10 @@ would be our lower bound if we did not work in log space):
 ```
 
 So, by working with log values, we can greatly expand our range of
-representable numbers.
-
-Moreover, we can perform multiplication with logs by using addition,
- because $\log(x\cdot{}y) = \log(x) +
- \log(y)$. Thus, if we do the multiplication above with logs, we do
- not have to worry (as much) about loss of precision due to underflow:
+representable numbers.  Moreover, we can perform multiplication with logs by
+using addition, because $\log(x\cdot{}y) = \log(x) + \log(y)$. Thus, if we do
+the multiplication above with logs, we do not have to worry (as much) about
+loss of precision due to underflow:
 
 ```python
 >>> # the result of multiplying small probabilities
@@ -543,8 +540,7 @@ Moreover, we can perform multiplication with logs by using addition,
 
 Of course, this solution is not a magic bullet. If we need to derive
 the number from the logarithm (for example, to add probabilities,
-rather than multiply them), then we are back to the issue of
-underflow:
+rather than multiply them), then we are back to underflow:
 
 ```python
 >>> tiny*tiny

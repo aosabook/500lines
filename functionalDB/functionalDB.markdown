@@ -141,7 +141,7 @@ We will access the storage via a simple _protocol_, which will make it possible 
    (drop-entity [storage entity]))
 ```
 
-And here's our in-memory implementation of the protocol, which uses a map as the backing store:
+And here's our in-memory implementation of the protocol, which uses a map as the store:
 
 ```clojure
 (defrecord InMemory [] Storage
@@ -154,7 +154,7 @@ And here's our in-memory implementation of the protocol, which uses a map as the
 
 Now that we've defined the basic elements of our database, we can start thinking about how we're going to query it. By virtue of how we've structured our data, any query is necessarily going to be interested in at least one of an entity's ID, and the name and value of some of its attributes. This triplet of `(entity-id, attribute-name, attribute-value)` is important enough to our query process that we give it an explicit name: a _datom_.
 
-The reason that datoms are so important is that they represent facts, and our database accumulates facts. 
+Datoms are important because they represent facts, and our database accumulates facts. 
 
 If you've used a database system before, you are probably already familiar with the concept of an _index_, which is a supporting data structure that consumes extra space in order to decrease the average query time.  In our database, an index is a three-leveled structure which stores the components of a datom in a specific order. Each index derives its name from the order it stores the datom's components in.
 
@@ -307,6 +307,8 @@ Nile $\Rightarrow$ \{Egypt $\Rightarrow$ \{river\}\}                            
 \label{500l.functionaldb.indextable}
 \end{table}
 </latex>
+
+\newpage
 
 ### Database
 
@@ -571,7 +573,7 @@ All that remains is to remove the old value from the indexes and add the new one
 
 ### Transactions
 
-Each of the operations in our low-level API acts on a single entity. However, nearly all databases have a mechanism for allowing users to perform multiple operations as a single _transaction_. <!--TODO/FIXME: Reference other chapters on transactional semantics here.--> This means: 
+Each of the operations in our low-level API acts on a single entity. However, nearly all databases have a way for users to do multiple operations as a single _transaction_. This means: 
 
 * The batch of operations is viewed as a single atomic operation, so all of the operations either succeed together or fail together.
 * The database is in a valid state before and after the transaction.
@@ -611,13 +613,13 @@ That transformation occurs in the following transaction call chain:
 transact →  _transact → swap! → transact-on-db
 ```
 
-Users call `transact` with the `Atom` (i.e., the database connection) and the operations to perform, which relays its input to `_transact`, adding to it the name of the function that updates the `Atom` (`swap!`).
+Users call `transact` with the `Atom` (i.e., the connection) and the operations to perform, which relays its input to `_transact`, adding to it the name of the function that updates the `Atom` (`swap!`).
 
 ```clojure
 (defmacro transact [db-conn & txs]  `(_transact ~db-conn swap! ~@txs))
 ```
 
-`_transact` prepares the call to `swap!`. It does so by creating a list that begins with `swap!`, followed by the db-connection (the `Atom`), then the `transact-on-db` symbol and the batch of operations.
+`_transact` prepares the call to `swap!`. It does so by creating a list that begins with `swap!`, followed by the `Atom`, then the `transact-on-db` symbol and the batch of operations.
 
 ```clojure
 (defmacro  _transact [db op & txs]
@@ -648,9 +650,7 @@ The user calls `what-if` with the database value and the operations to perform. 
  
 Note that we are not using functions, but macros. The reason for using macros here is that arguments to macros do not get evaluated as the call happens; this allows us to offer a cleaner API design where the user provides the operations structured in the same way that any function call is structured in Clojure. 
 
-The above process can be seen in the following examples.
-
-For Transaction, the user call: 
+The above process can be seen in the following examples. For Transaction, the user call: 
 ```clojure
 (transact db-conn  (add-entity e1) (update-entity e2 atr2 val2 :db/add))  
 ```
@@ -735,8 +735,8 @@ We use the syntax of Clojure’s data literals directly to provide the basic syn
 
 A query is a map with two items:
 
-* An item with `:where` as a key, and with a _rule_ as a value. A rule is a vector of _clauses_, and a clause is a vector composed of three _predicates_, each of which operates on a different component of a datom.  In the example above, `[?e  :likes "pizza"]` is a clause.  This `:where` item defines a rule that acts as a filter on datoms in our database (like the `WHERE` clause in a SQL query).
-* An item with `:find` as a key, and with a vector as a value. The vector defines which components of the selected datom should be projected into the results (like the `SELECT` clause in a SQL query).
+* An item with `:where` as a key, and with a _rule_ as a value. A rule is a vector of _clauses_, and a clause is a vector composed of three _predicates_, each of which operates on a different component of a datom.  In the example above, `[?e  :likes "pizza"]` is a clause.  This `:where` item defines a rule that acts as a filter on datoms in our database (like a SQL `WHERE` clause.)
+* An item with `:find` as a key, and with a vector as a value. The vector defines which components of the selected datom should be projected into the results (like a SQL `SELECT` clause.)
 
 The description above omits a crucial requirement: how to make different clauses sync on a value (i.e., make a join operation between them), and how to structure the found values in the output (specified by the `:find` part). 
 
@@ -857,7 +857,7 @@ The `:where` part of the query retains its nested vector structure. However, eac
       `#(~(first clause-term) ~(second clause-term) %)))
 ```
 
-Also, for each clause, a vector with the names of the variables used in that clause is set as its metadata. 
+For each clause, a vector with the variable names used in that clause is set as its metadata. 
 
 ```clojure
 (defmacro clause-term-meta [clause-term]
@@ -1004,7 +1004,7 @@ Locating the index of the joining variable is done by `index-of-joining-variable
          collapsed (reduce collapsing-fn metas-seq)] 
      (first (keep-indexed #(when (variable? %2 false) %1)  collapsed)))) 
 ```
-We begin by extracting the metadata of each clause in the query. This extracted metadata is a 3-element vector; each element in the vector is either a variable name or nil. (Note that there is no more than one variable name in that vector.) Once the vector is extracted, we produce from it (by reducing it) a single value, which is either a variable name or nil. If a variable name is produced, then it appeared in all of the metadata vectors at the same index; i.e., this is the joining variable. We can thus choose to use the index relevant for this joining variable based on the mapping described above.
+We begin by extracting the metadata of each clause in the query. This extracted metadata is a 3-element vector; each element is either a variable name or nil. (Note that there is no more than one variable name in that vector.) Once the vector is extracted, we produce from it (by reducing it) a single value, which is either a variable name or nil. If a variable name is produced, then it appeared in all of the metadata vectors at the same index; i.e., this is the joining variable. We can thus choose to use the index relevant for this joining variable based on the mapping described above.
 
 Once the index is chosen, we construct our plan, which is a function that closes over the query and the index name and executes the operations necessary to return the query results.
  

@@ -9,7 +9,7 @@ You may be familiar with a fancy IDE that draws red underlines under parts of yo
 
 Static analysis is a way to check for problems in your code without running it. "Static" means at compile time rather than at run time, and "analysis" means we're analyzing the code. When you've used the tools I mentioned above, it may have felt like magic. But those tools are just programs&mdash;they are made of source code that was written by a person, a programmer like you. In this chapter, we're going to talk about how to implement a couple of static analysis checks. In order to do this, we need to know what we want the check to do and how we want to do it.
 
-We can get more specific about what you need to know by describing the process as having three stages:
+We can get more specific about what you need to know by describing the process as three stages:
 
 #### 1. Deciding what you want to check for.
 
@@ -82,7 +82,7 @@ As in most programming languages, writing very fast code in Julia involves an un
 
 ### Why This Is Important
 
-Let's write a function that takes an `Int64` and increases it by some amount. If the number is small (less than 10), let's increase it by a big number (50), but if it's big, let's only increase it by a little (0.5).
+Let's write a function that takes an `Int64` and increases it by some amount. If the number is small (less than 10), let's increase it by a big number (50), but if it's big, let's only increase it by 0.5.
 
 ```julia
 function increment(x::Int64)
@@ -174,7 +174,7 @@ The new `unstable` allocated about 320 KB, which is what we would expect if the 
 
 This difference between `unstable` and `stable` occurs because `sum` in `unstable` must be boxed while `sum` in `stable` can be unboxed. Boxed values consist of a type tag and the actual bits that represent the value; unboxed values only have their actual bits. But the type tag is small, so that's not why boxing values allocates a lot more memory.
 
-The difference comes from what optimizations the compiler can make. When a variable has a concrete, immutable type, the compiler can unbox it inside the function. If that's not the case, then the variable must be allocated on the heap, and participate in the garbage collector. Immutable types are a concept specific to Julia. When you make a value of a type that's immutable, the value can't be changed.
+The difference comes from what optimizations the compiler can make. When a variable has a concrete, immutable type, the compiler can unbox it inside the function. If that's not the case, then the variable must be allocated on the heap, and participate in the garbage collector. Immutable types are a concept specific to Julia. A value of an immutable type can't be changed.
 
 Immutable types are usually types that represent values, rather than collections of values. For example, most numeric types, including `Int64` and `Float64`, are immutable. (Numeric types in Julia are normal types, not special primitive types; you could define a new `MyInt64` that's the same as the provided one.) Because immutable types cannot be modified, you must make a new copy every time you want change one. For example `4 + 6` must make a new `Int64` to hold the result. In contrast, the members of a mutable type can be updated in-place; this means you don't have to make a copy of the whole thing to make a change.
 
@@ -188,7 +188,7 @@ Using `0` versus `0.0` is an easy mistake to make, especially when you're new to
 
 ### Implementation Details
 
-We'll need to find out which variables are used inside loops and we'll need to find the types of those variables. After we have those results, we'll need to decide how to print them in a human-readable format.
+We'll need to find out which variables are used inside loops and we'll need to find the types of those variables. We'll then need to decide how to print them in a human-readable format.
 
 * How do we find loops?
 * How do we find variables in loops?
@@ -198,7 +198,7 @@ We'll need to find out which variables are used inside loops and we'll need to f
 
 I'm going to tackle the last question first, since this whole endeavour hinges on it. We've looked at an unstable function and seen, as programmers, how to identify an unstable variable, but we need our program to find them. This sounds like it would require simulating the function to look for variables whose values might change&mdash;which sounds like it would take some work. Luckily for us, Julia's type inference already traces through the function's execution to determine the types.
 
-The type of `sum` in `unstable` is `Union(Float64,Int64)`. This is a `UnionType`, a special kind of type that indicates that the variable may hold any of a set of types of values. A variable of type `Union(Float64,Int64)` can hold values of type `Int64` or `Float64`; a value can only have one of those types. A `UnionType` joins any number of types (e.g., `UnionType(Float64, Int64, Int32)` joins three types). The specific thing that we're going to look for is `UnionType`d variables inside loops.
+The type of `sum` in `unstable` is `Union(Float64,Int64)`. This is a `UnionType`, a special kind of type that indicates that the variable may hold any of a set of types of values. A variable of type `Union(Float64,Int64)` can hold values of type `Int64` or `Float64`; a value can only have one of those types. A `UnionType` joins any number of types (e.g., `UnionType(Float64, Int64, Int32)` joins three types). We're going to look for is `UnionType`d variables inside loops.
 
 Parsing code into a representative structure is a complicated business, and gets more complicated as the language grows. In this chapter, we'll be depending on internal data structures used by the compiler. This means that we don't have to worry about reading files or parsing them, but it does mean we have to work with data structures that are not in our control and that sometimes feel clumsy or ugly.
 
@@ -247,7 +247,7 @@ The structure we're interested in is inside the `Array`: it is an `Expr`. Julia 
 
 Now we can ask some questions about `e`.
 
-We can ask what properties an `Expr` has by using the `names` function. The `names` function, which works on any Julia value or type, returns an `Array` of names defined by that type (or the type of the value).
+We can ask what properties an `Expr` has by using the `names` function, which works on any Julia value or type. It returns an `Array` of names defined by that type (or the type of the value).
 
 ```julia
 julia> names(e)
@@ -385,7 +385,7 @@ You'll notice there's no for or while loop in the body. As the compiler transfor
 
 We're going to find loops by looking for `goto` expressions that jump backwards.
 
-We'll need to find the labels and gotos, and figure out which ones match. I'm going to give you the full implementation first. After the wall of code, we'll take it apart and examine the smaller pieces.
+We'll need to find the labels and gotos, and figure out which ones match. I'm going to give you the full implementation first. After the wall of code, we'll take it apart and examine the pieces.
 
 ```julia
 # This is a function for trying to detect loops in the body of a Method
@@ -541,7 +541,7 @@ end
   end
 ```
 
-The while loop goes through the guts of all the `Expr`s, recursively, until it's seen all the `Expr`s (and hopefully all the `SymbolNode`s). Every time the loop finds a `SymbolNode`, it adds it to the vector `symbols`.
+The while loop goes through the guts of all the `Expr`s, recursively. Every time the loop finds a `SymbolNode`, it adds it to the vector `symbols`.
 
 ```julia
   loose_types = SymbolNode[]
@@ -561,7 +561,7 @@ Now that we can do the check on an expression, we should make it easier to call 
 
 1. On a whole function; this will check each method of the given function.
 
-2. On a specific expression; this will work if the user extracts the results of `code_typed` themselves.
+2. On an expression; this will work if the user extracts the results of `code_typed` themselves.
 
 ```julia
 ## for a given Function, run checklooptypes on each Method
@@ -608,7 +608,7 @@ julia> checklooptypes(code_typed(foo,(Int,))[1])
 ```
 
 #### Pretty Printing
-I've skipped an implementation detail here: how did we get the results to print out to the REPL like that?
+I've skipped an implementation detail here: how did we get the results to print out to the REPL?
 
 First, I made some new types. `LoopResults` is the result of checking a whole function; it has the function name and the results for each method. `LoopResult` is the result of checking one method; it has the argument types and the loosely typed variables.
 

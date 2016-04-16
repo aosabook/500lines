@@ -1,8 +1,8 @@
 title: Making Your Own Image Filters
 author: Cate Huston
-
+<markdown>
 _Cate left the tech industry and spent a year finding her way back whilst building her passion project Show & Hide. She is Director of Mobile Engineering at Ride, speaks internationally on mobile development and engineering culture, co-curates Technically Speaking and is an advisor at Glowforge. Cate doesn’t exactly live in Colombia but she spends a lot of time there, and has lived and worked in the UK, Australia, Canada, China the United States, previously as an engineer at Google, an Extreme Blue intern at IBM, and a ski instructor. Cate blogs at [Accidentally in Code](http://www.catehuston.com/blog/) and is [\@catehstn](https://twitter.com/catehstn) on Twitter._
-
+</markdown>
 ## A Brilliant Idea (That Wasn’t All That Brilliant)
 
 When I was traveling in China I often saw series of four paintings showing the same
@@ -22,9 +22,9 @@ efficient way to lay out circles.
 
 I left this project for years, distracted by work, life, travel, talks.
 Eventually I returned to it, figured out how to calculate the dominant
-color, and finally [finished my
+color, and [finished my
 visualization](http://www.catehuston.com/blog/2013/09/02/visualising-a-photo-series/).
-And that is when I discovered that this idea wasn’t, in fact, brilliant.
+That is when I discovered that this idea wasn’t, in fact, brilliant.
 The progression wasn’t as clear as I hoped, the dominant color
 extracted wasn’t generally the most appealing shade, the creation took a long
 time (a couple of seconds per image), and it took hundreds of images to make
@@ -137,9 +137,9 @@ In \aosafigref{500l.imagefilters.animals}, we see a high-resolution picture of s
 MoMA in NYC. \aosafigref{500l.imagefilters.pixelanimals} is
 the same image blown up, but with just 24 x 32 pixels.
 
-\aosafigure[180pt]{image-filters-images/animals.jpg}{Blow-up animals at MoMA NY}{500l.imagefilters.animals}
+\aosafigure[220pt]{image-filters-images/animals.jpg}{Blow-up animals at MoMA NY}{500l.imagefilters.animals}
 
-\aosafigure[180pt]{image-filters-images/pixelanimals.jpg}{Blow-up animals, blown up}{500l.imagefilters.pixelanimals}
+\aosafigure[220pt]{image-filters-images/pixelanimals.jpg}{Blow-up animals, blown up}{500l.imagefilters.pixelanimals}
 
 See how it's so blurry? We call
 that _pixelation_, which means the image is too big for the number of pixels it
@@ -158,9 +158,12 @@ FFFCC2
 FFF5B7
 ```
 
+
 Hex colors are six characters long. The first two are the red value, the second
 two the green value, and the third two the blue value. Sometimes there are an
 extra two characters which are the alpha value. In this case `FFFAC4` means:
+
+\newpage
 
 - red = FF (hex) = 255 (base 10)
 - green = FA (hex) = 250 (base 10)
@@ -180,13 +183,12 @@ Some things we can do:
 - Reset the image.
 - Save the image we have made.
 
-\aosafigure[240pt]{image-filters-images/app.jpg}{The App}{500l.imagefilters.app}
+\aosafigure[266pt]{image-filters-images/app.jpg}{The App}{500l.imagefilters.app}
 
 Processing makes it simple to create a little
 application and do image manipulation;
 it has a very visual focus. We’ll work with the Java-based version, although Processing has now been ported
-to other languages (including Javascript which is awesome if you want to
-upload your apps to the Internet).
+to other languages.
 
 For this tutorial, I use Processing in Eclipse by adding `core.jar` to my build path. If
 you want, you can use the Processing IDE, which removes the need for a lot of
@@ -449,7 +451,7 @@ was to make an app, after all — not a unit testing framework for Processing!
 A class called `ImageState` forms the "model" of this application, removing as
 much logic from the class extending `PApplet` as possible, for better
 testability. It also makes for a cleaner design and separation of concerns:
-the `App` controls the interactions and the UI, not the details of the image
+the `App` controls the interactions and the UI, not the image
 manipulation.
 
 ## Do-It-Yourself Filters
@@ -624,7 +626,7 @@ The higher the range we use, the more distinct the hues in the picture will be.
 Using a smaller range will allow us to group together similar hues. Using a 360
 degree range, it’s unlikely that we will be able to tell the difference between
 a hue of 224 and a hue of 225, as the difference is very small. If we make the
-range one-third of that instead, 120, both these hues become 75 after rounding.
+range one-third of that, 120, both these hues become 75 after rounding.
 
 We can change the range of hues using `colorMode`. If we call `colorMode(HSB, 120)`
 we have just made our hue detection a bit less than half as exact as if we used
@@ -912,8 +914,7 @@ Finally, we have our simple container class, `HSBColor`. Note that it is
 immutable (once created, it cannot be changed). Immutable objects are better
 for thread safety (something we have no need of here!) but are also easier to
 understand and reason about. In general, I tend to make simple model classes
-immutable unless I find a good reason for them not to be, and in this case no
-such reason arose.
+immutable unless I find a good reason for them not to be.
 
 Some of you may know that there are already classes representing color in
 [Processing](https://www.processing.org/reference/color_datatype.html) and in
@@ -1171,6 +1172,8 @@ public class ColorHelperTest {
 }
 ```
 
+\newpage
+
 Notice that:
 
 - We use the `MockitoJUnit` runner.
@@ -1185,7 +1188,7 @@ Notice that:
 `ImageState` holds the current "state" of the image — the image itself, and the
 settings and filters that will be applied. We'll omit the full implementation
 of `ImageState` here, but we'll show how it can be tested. You can visit the source
-repository for this project to see the full implementation details.
+repository for this project to see the full details.
 
 ```java
 package com.catehuston.imagefilter.model;
@@ -1382,15 +1385,13 @@ Notice that:
 
 - We exposed a protected initialization method `set` for testing that helps us quickly get the system under test into a specific state.
 - We mock `PApplet`, `ColorHelper`, and `IFAImage` (created expressly for this purpose).
-- This time we use a helper method (`assertState()`) to simplify asserting the state of the image.
+- This time we use a helper (`assertState()`) to simplify asserting the state of the image.
 
 #### Measuring test coverage
 I use [EclEmma](http://www.eclemma.org/installation.html#marketplace) to
-measure test coverage within Eclipse. It can be installed from the Eclipse
-marketplace.
-
-Overall for the app we have 81% test coverage, with none of `ImageFilterApp`
-covered, 94.8% for `ImageState`, and 100% for `ColorHelper`.
+measure test coverage within Eclipse. Overall for the app we have 81% test
+coverage, with none of `ImageFilterApp` covered, 94.8% for `ImageState`, and
+100% for `ColorHelper`.
 
 ### ImageFilterApp
 This is where everything is tied together, but we want as little as possible
@@ -1487,7 +1488,6 @@ public class ImageFilterApp extends PApplet {
     y += 4 * SIDE_BAR_PADDING;
     fill(RGB_COLOR_RANGE);
     text(INSTRUCTIONS, x, y);
-
     updatePixels();
   }
 
@@ -1546,8 +1546,8 @@ Notice that:
 
 ## The Value of Prototyping
 In real world programming, we spend a lot of time on productionisation work.
-Making things look just so. Maintaining that 99.9%
-uptime. We spend more time hunting down corner cases than refining algorithms.
+Making things look just so. Maintaining 99.9%
+uptime. We spend more time on corner cases than refining algorithms.
 
 These constraints and requirements are important for our users. However there’s
 also space for freeing ourselves from them to play and explore.
@@ -1558,10 +1558,10 @@ had years of iOS experience, although I’d done little with CoreGraphics, but I
 don’t think even if I had had this idea initially, I would have been able to
 build it straight away on iOS. The platform forced me to operate in the RGB
 color space, and made it hard to extract the pixels from the image (hello, C).
-Memory and waiting was a major risk factor. 
+Memory and waiting was a major risk. 
 
 There were exhilarating moments,
-when it worked for the first time. When it first ran on my device… without
+when it worked for the first time. When it first ran on my device... without
 crashing. When I optimized memory usage by 66% and cut seconds off the runtime.
 And there were large periods of time locked away in a dark room, cursing
 intermittently.
@@ -1574,5 +1574,5 @@ long day shut away fighting with it and feeling like I had little to show for
 it I kept going… and hit an exhilarating moment and milestone the following
 morning.
 
-So, how do you extract the dominant color from an image? There’s an app for
+So, how do you find the dominant color in an image? There’s an app for
 that: [Show & Hide](http://showandhide.com).

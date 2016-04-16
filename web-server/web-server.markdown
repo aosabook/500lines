@@ -91,8 +91,8 @@ This is used when submitting data via web forms,
 when uploading files,
 and so on.
 There must be a blank line between the last header and the start of the body
-to signal the end of the headers;
-forgetting it is a common mistake.
+to signal the end of the headers.
+
 
 One header,
 called `Content-Length`,
@@ -654,7 +654,7 @@ Here,
 the helper method `index_path` constructs the path to the `index.html` file;
 putting it in the case handler prevents clutter in the main `RequestHandler`.
 `test` checks whether the path is a directory containing an `index.html` page,
-and `act` just asks the main request handler to serve that page.
+and `act` asks the main request handler to serve that page.
 
 The only change needed to `RequestHandler` is to add a `case_directory_index_file` object to our `Cases` list:
 
@@ -776,7 +776,7 @@ class case_cgi_file(object):
 
 The test is simple:
 does the file path end with `.py`? 
-If so, we tell `RequestHandler` to run this program.
+If so, `RequestHandler` runs this program.
 
 ```python 
     def run_cgi(self, full_path):
@@ -939,4 +939,4 @@ have allowed us to ignore the details of handling socket connections
 and parsing HTTP requests.
 
 These ideas are generally useful; 
-see if you can find the opportunity to use them in your own projects. 
+see if you can find ways to use them in your own projects. 

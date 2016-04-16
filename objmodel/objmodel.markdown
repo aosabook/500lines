@@ -91,7 +91,7 @@ implements the object model and the code that is used to write the methods used
 in the objects. In a real system, the two would often be implemented in
 different programming languages.
 
-Let us start with a simple test for reading and writing object fields.
+Let us start with a simple test for reading and writing object fields. \newpage
 
 ```python
 def test_read_write_field():
@@ -429,8 +429,7 @@ distinction between a method-based model and an attribute-based model. This is
 one of the core differences between Smalltalk, Ruby, and JavaScript on the one hand
 and Python and Lua on the other hand. 
 
-The method-based model has the calling of
-methods as the primitive operation of program execution:
+The method-based model has the method-calling as the primitive of program execution:
 
 ```python
 result = obj.f(arg1, arg2)
@@ -481,7 +480,7 @@ def test_bound_method():
     assert m(10) == 12
 ```
 
-While the setup of the classes is the same as the corresponding test for
+While the setup is the same as the corresponding test for
 method calls, the way that the methods are called is different. First, the
 attribute with the name of the method is looked up on the object. The result of
 that lookup operation is a *bound method*, an object that encapsulates both the
@@ -499,8 +498,8 @@ implementation. If the attribute is not found in the dictionary, it is looked
 for in the class. If it is found in the class, and the attribute is a callable,
 it needs to be turned into a bound method. To emulate a bound method we simply
 use a closure. In addition to changing ``Base.read_attr`` we can also change
-``Base.callmethod`` to use the new approach to calling methods to make sure the
-previous tests still pass.
+``Base.callmethod`` to use the new approach to calling methods to make sure all
+the tests still pass. \newpage
 
 ```python
 class Base(object):
@@ -630,7 +629,7 @@ def test_getattr():
 ```
 
 To pass these tests, the ``Base.read_attr`` and ``Base.write_attr`` methods
-need to be changed as follows:
+need to be changed:
 
 ``` python
 class Base(object):
@@ -685,7 +684,7 @@ The above test to provide automatic conversion between
 different temperature
 scales worked but was annoying to write, as the attribute name needed
 to be checked explicitly in the ``__getattr__`` and ``__setattr__`` methods. To
-get around that clumsiness, the *descriptor protocol* was introduced in
+get around this, the *descriptor protocol* was introduced in
 Python.
 
 While ``__getattr__`` and ``__setattr__`` are called on the object the attribute
@@ -697,7 +696,7 @@ the most important use case for the descriptor protocol in Python is the
 implementation of ``staticmethod``, ``classmethod`` and ``property``.
 
 In this subsection we will introduce the subset of the descriptor protocol which deals with binding objects. This is done using the special method ``__get__``,
-and is best explained with an example as a test:
+and is best explained with an example test:
 
 ```python
 def test_get():

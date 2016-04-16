@@ -6,7 +6,7 @@ author: Marina Samuel
 What if your computer could wash your dishes, do your laundry, cook you dinner,
 and clean your home? I think I can safely say that most people would be happy
 to get a helping hand! But what would it take for a computer to be able to
-perform these tasks, in exactly the same way that humans can? 
+perform these tasks in the same way that humans can? 
 
 The famous computer scientist Alan Turing proposed the Turing Test as a way to
 identify whether a machine could have intelligence indistinguishable from that
@@ -27,11 +27,11 @@ Facebook decides what to put in your news feed.
 One well known application of A.I. is Optical Character Recognition (OCR). An
 OCR system is a piece of software that can take images of handwritten
 characters as input and interpret them into machine readable text.  While you
-may not think twice when depositing a handwritten cheque into a bank machine
-that confirms the deposit value, there is some interesting work going on in the
-background. This chapter will examine a working example of a simple OCR system
-that recognizes numerical digits using an Artificial Neural Network (ANN). But
-first, let’s establish a bit more context.
+may not think twice when depositing a handwritten cheque into a bank machine ,
+there is some interesting work going on in the background. This chapter will
+examine a working example of a simple OCR system that recognizes numerical
+digits using an Artificial Neural Network (ANN). But first, let’s establish a
+bit more context.
 
 
 ## What is Artificial Intelligence?
@@ -59,8 +59,8 @@ patterns. The training data sets may be labelled, meaning the system’s expecte
 outputs are specified for given inputs, or unlabelled meaning expected outputs
 are not specified. Algorithms that train systems with unlabelled data are
 called _unsupervised_ algorithms and those that train with labelled data are
-called _supervised_. Although many ML algorithms and techniques exist for
-creating OCR systems, ANNs are one simple approach.
+called _supervised_. Many ML algorithms and techniques exist for
+creating OCR systems, of which ANNs are one approach.
 
 ## Artificial Neural Networks
 ### What Are ANNs?
@@ -289,9 +289,7 @@ do some simple math and decide which pixels need to be filled in.
 Now we’re getting closer to the juicy stuff! We need a function that prepares
 training data to be sent to the server. Here we have a relatively straight
 forward `train()` function that does some error checking on the data to be sent,
-adds it to `trainArray` and sends it off by calling `sendData()`. An interesting
-design worth noting here is the use of `trainingRequestCount`, `trainArray`,
-and `BATCH_SIZE`. 
+adds it to `trainArray` and sends it off by calling `sendData()`. 
 
 ```javascript
     train: function() {
@@ -317,19 +315,19 @@ and `BATCH_SIZE`.
         }
     },
 ```
-
-What’s happening here is that `BATCH_SIZE` is some pre-defined constant for how
-much training data a client will keep track of before it sends a batched
-request to the server to be processed by the OCR. The main reason to batch
-requests is to avoid overwhelming the server with many requests at once. If
-many clients exist (e.g. many users are on the `ocr.html` page training the
-system), or if another layer existed in the client that takes scanned drawn
-digits and translated them to pixels to train the network, a `BATCH_SIZE` of 1
-would result in many, unnecessary requests. This approach is good because it
-gives more flexibility to the client, however, in practice, batching should
-also take place on the server, when needed. A denial of service (DoS) attack
-could occur in which a malicious client purposely sends many requests to the
-server to overwhelm it so that it breaks down.
+An interesting design worth noting here is the use of `trainingRequestCount`,
+`trainArray`, and `BATCH_SIZE`.  What’s happening here is that `BATCH_SIZE` is
+some pre-defined constant for how much training data a client will keep track
+of before it sends a batched request to the server to be processed by the OCR.
+The main reason to batch requests is to avoid overwhelming the server with many
+requests at once. If many clients exist (e.g. many users are on the `ocr.html`
+page training the system), or if another layer existed in the client that takes
+scanned drawn digits and translated them to pixels to train the network, a
+`BATCH_SIZE` of 1 would result in many, unnecessary requests. This approach is
+good because it gives more flexibility to the client, however, in practice,
+batching should also take place on the server, when needed. A denial of service
+(DoS) attack could occur in which a malicious client purposely sends many
+requests to the server to overwhelm it so that it breaks down.
 
 We will also need a `test()` function. Similar to `train()`, it should do a
 simple check on the validity of the data and send it off. For `test()`,
@@ -571,9 +569,9 @@ design decisions for core functionality.
 
 #### Training via Backpropagation (`ocr.py`)
 
-The backpropagation algorithm, briefly mentioned earlier, is used to train our
-ANN. It consists of 4 main steps that are repeated for every sample in the
-training set, updating the ANN weights each time.
+We use the backpropagation algorithm to train our ANN. It consists of 4 main
+steps that are repeated for every sample in the training set, updating the ANN
+weights each time.
 
 First, we initialize the weights to small (between -1 and 1) random values. In
 our case, we initialize them to values between -0.06 and 0.06 and store them in

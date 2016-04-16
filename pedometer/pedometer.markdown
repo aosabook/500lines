@@ -5,7 +5,7 @@ _Dessy is an engineer by trade, an entrepreneur by passion, and a developer at h
 </markdown>
 ## A Perfect World
 
-Many software engineers reflecting on their training will remember having the pleasure of living in a very perfect world. We were taught to solve discrete problems, with defined parameters, in an ideal domain.
+Many software engineers reflecting on their training will remember having the pleasure of living in a very perfect world. We were taught to solve well-defined problems in idealized domains.
 
 Then we were thrown into the real world, with all of its complexities and challenges. It's messy, which makes it all the more exciting. When you can solve a real-life problem, with all of its quirks, you can build software that really helps people.
 
@@ -21,11 +21,11 @@ The rise of the mobile device brought with it a trend to collect more and more d
 
 ### What's an Accelerometer?
 
-An accelerometer is a piece of hardware that measures acceleration in the $x$, $y$, and $z$ directions. In today's mobile world, many people carry an accelerometer with them wherever they go, as it's built into almost all smartphones currently on the market. The $x$, $y$, and $z$ directions are relative to the phone.
+An accelerometer is a piece of hardware that measures acceleration in the $x$, $y$, and $z$ directions. Many people carry an accelerometer with them wherever they go, as it's built into almost all smartphones currently on the market. The $x$, $y$, and $z$ directions are relative to the phone.
 
 An accelerometer returns a *signal* in 3-dimensional space. A signal is a set of data points recorded over time. Each component of the signal is a time series representing acceleration in one of the $x$, $y$, or $z$ directions. Each point in a time series is the acceleration in that direction at a specific point in time. Acceleration is measured in units of g-force, or *g*. One *g* is equal to 9.8 $m/s^2$, the average acceleration due to gravity on Earth.
 
-\aosafigref{500l.pedometer.accelerationtotal} shows an example acceleration signal from an accelerometer with the three time series.
+\aosafigref{500l.pedometer.accelerationtotal} shows an example signal from an accelerometer with the three time series.
 
 \aosafigure[333pt]{pedometer-images/acceleration-total.png}{Example acceleration signal}{500l.pedometer.accelerationtotal}
 
@@ -37,7 +37,7 @@ When a person walks, they bounce slightly with each step. Just watch the top of 
 
 A person bounces up and down, in the vertical direction, with each step. If you are walking on Earth (or another big ball of mass floating in space) the bounce is conveniently in the same direction as gravity.
 
-We are going to count steps by using the accelerometer to count bounces up and down. Because the phone can rotate in any direction, we will take advantage of gravity to know which direction down is. **A pedometer can count steps by counting the number of bounces in the direction of gravity.**
+We are going to count steps by using the accelerometer to count bounces up and down. Because the phone can rotate in any direction, we will use gravity to know which direction down is. **A pedometer can count steps by counting the number of bounces in the direction of gravity.**
 
 Let's look at a person walking with an accelerometer-equipped smartphone in his or her shirt pocket (\aosafigref{500l.pedometer.walk1}).
 
@@ -166,7 +166,7 @@ total acceleration into user acceleration and gravitational acceleration!
 
 ### 2. Isolating User Acceleration in the Direction of Gravity
 
-$x_{u}(t)$, $y_{u}(t)$, and $z_{u}(t)$ include all movements of the user, not just movements in the direction of gravity. Our goal here is to end up with a 1-dimensional time series representing user acceleration in the direction of gravity. This time series will include portions of user acceleration in each of the directions.
+$x_{u}(t)$, $y_{u}(t)$, and $z_{u}(t)$ include all movements of the user, not just movements in the direction of gravity. Our goal here is to end up with a 1-dimensional time series representing user acceleration in the direction of gravity. This will include portions of user acceleration in each of the directions.
 
 Let's get to it. First, some linear algebra 101. Don't take that mathematician hat off just yet!
 
@@ -539,7 +539,7 @@ class Trial
 end
 ```
 
-All of the attribute readers in `Trial` are set in the initializer based on parameters passed in, as follows:
+All of the attribute readers in `Trial` are set in the initializer based on parameters passed in:
 
 * `name` is a name for the specific trial, to help differentiate between the different trials.
 * `rate` is the sampling rate of the accelerometer during the trial.
@@ -639,7 +639,7 @@ As long as we have a sampling rate, time is calculated by dividing the total num
 
 ### Tying It All Together With the Pipeline
 
-Our `Parser`, `Processor`, and `Analyzer` classes, while useful individually, are definitely better together. Our program will often use them to run through the pipeline we introduced earlier. Since the pipeline will need to be run frequently, we'll create a `Pipeline` class to run it for us.
+Our `Parser`, `Processor`, and `Analyzer` classes, while useful individually, are definitely better together. Our program will often use them to run through the pipeline we introduced earlier. Since the pipeline will need to be run frequently, we'll create a `Pipeline` class to run it for us. \newpage
 
 ```ruby
 class Pipeline
@@ -671,7 +671,7 @@ We use our now-familiar `run` pattern and supply `Pipeline` with accelerometer d
 
 ## Adding A Friendly Interface
 
-We're through the most labour intensive part of our program. Next, we'll build a web app to present the data in a format that is pleasing to a user. A web app naturally separates the data processing from the presentation of the data. Let's look at our app from a user's perspective before we dive into the code.
+We're through the most labour intensive part of our program. Next, we'll build a web app to present the data in a format that is pleasing to a user. A web app naturally separates the data processing from the presentation of the data. Let's look at our app from a user's perspective before the code.
 
 ### A User Scenario
 
@@ -747,15 +747,15 @@ end
 
 Let's look at each of the routes in `pedometer.rb` individually.
 
-#### get `/uploads`
+#### `GET /uploads`
 
 Navigating to `http://localhost:4567/uploads` sends an HTTP GET request to our app, triggering our `get '/uploads'` code. The code runs the pipeline for all of the uploads in the file system and renders the `uploads` view, which displays a list of the uploads, and a form to submit new uploads. If an error parameter is included, an error string is created, and the `uploads` view will display the error.
 
-#### get `/upload/*`
+#### `GET /upload/*`
 
 Clicking the **Detail** link for each upload sends an HTTP GET to `/upload` with the file path for that upload. The pipeline runs, and the `upload` view is rendered. The view displays the details of the upload, including the charts, which are created using a JavaScript library called HighCharts.
 
-#### post `/create`
+#### `POST /create`
 
 Our final route, an HTTP POST to `create`, is called when a user submits the form in the `uploads` view. The code block creates a new `Upload`, using the `params` hash to grab the values input by the user through the form, and redirects back to `/uploads`. If an error occurs in the creation process, the redirect to `/uploads` includes an error parameter to let the user know that something went wrong.
 

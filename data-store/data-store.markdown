@@ -122,7 +122,7 @@ will eventually consume all disk space. (You will shortly discover why this is t
 [PostgreSQL](http://www.postgresql.org/) calls this reclamation "vacuuming"
 (which makes old row space available for re-use),
 and [CouchDB](http://couchdb.apache.org/) calls it "compaction"
-(by rewriting the "live" parts of the data store into a new file,
+(by rewriting the "live" parts of the data into a new file,
 and atomically moving it over the old one).
 
 DBDB could be enhanced to add a compaction feature,
@@ -223,11 +223,9 @@ each class should have only one reason to change.
 
 ### Reading a Value
 
-We'll start with the simplest case:
-reading a value from the database.
-
-Let's see what happens
+We'll start with the simplest case: reading a value from the database. Let's see what happens
 when we try to get the value associated with key ``foo`` in ``example.db``:
+
 ```bash
 $ python -m dbdb.tool example.db get foo
 ```
@@ -286,7 +284,7 @@ class DBDB(object):
 
 We see right away that `DBDB` has a reference to an instance of `Storage`, but
 it also shares that reference with `self._tree`. Why? Can't `self._tree`
-completely manage access to the storage by itself? 
+manage access to the storage by itself? 
 
 The question of which objects "own" a resource is often an important one in a
 design, because it gives us hints about what changes might be unsafe. Let's
@@ -627,7 +625,7 @@ and write out the address of the root node.
 We know this last write is atomic because we store the disk address on a sector boundary.
 It's the very first thing in the file,
 so this is true regardless of sector size,
-and single-sector disk writes are guaranteed atomic by the disk hardware.
+and single-sector disk writes are guaranteed to be atomic by the disk hardware.
 
 Because the root node address has either the old or new value
 (never a bit of old and a bit of new),
@@ -771,7 +769,7 @@ The first tests ran against an in-memory version of the database,
 then I extended DBDB to persist to disk,
 and even later added the concept of NodeRefs.
 Most of the tests didn't have to change,
-which gave me confidence that things were still working as expected.
+which gave me confidence that things were still working.
 
 Respect the Single Responsibility Principle.
 Classes should have at most one reason to change.

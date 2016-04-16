@@ -78,8 +78,7 @@ operations and arguments to apply up to some number of steps. Because
 so many tests (typically billions) are executed, and because all
 possible configurations that a state can take are covered (albeit
 within the scope), this analysis tends to expose bugs more effectively
-than conventional testing (and is sometimes described not as "testing"
-but as "bounded verification").
+than conventional testing (and is sometimes described as "bounded verification").
 
 ### Simplifications
 
@@ -97,7 +96,7 @@ we cannot consider attacks in which a DNS binding changes during an
 interaction. In principle, though, it would be possible to extend our
 model to cover all these aspects, although it's in the very nature of
 security analysis that no model (even if it represents the entire
-codebase) can be guaranteed complete.
+codebase) can be guaranteed to be complete.
 
 ## Roadmap
 
@@ -120,7 +119,7 @@ new to Alloy, we recommend starting with the first three sections
 concepts of the modeling language. While you are making your way
 through the chapter, we also encourage you to play with the models in
 the Alloy Analyzer; run them, explore the generated scenarios, and try
-making modifications and seeing their effects. The tool is [freely
+making modifications and seeing their effects. It is [freely
 available for download](http://alloy.mit.edu).
 
 ## Model of the Web
@@ -290,7 +289,7 @@ signals a flaw in our model. Note that the resource returned from the
 request (`Resource1`) does not exist in the server. We neglected to
 specify an obvious fact about the server; namely, that every response
 to a request is a resource that the server stores. We can go back to
-our definition of `HttpRequest` and append the following constraint:
+our definition of `HttpRequest` and add a constraint:
 
 ```alloy
 abstract sig HttpRequest extends Call { ... }{
@@ -331,7 +330,7 @@ Note that while the DNS maps `Domain` to both `Server0` and
 `Server1` (in reality, this is a common practice for load balancing),
 only `Server1` maps `Path` to a resource object, causing
 `HttpRequest1` to result in an empty response: another error in our
-model. To fix this, we add an Alloy *fact* recording the assumption
+model. To fix this, we add an Alloy *fact* recording 
 that any two servers to which DNS maps a single host provide the same
 set of resources:
 
@@ -773,7 +772,7 @@ the attacker's server. Finally, as a client, the attacker may
 impersonate a normal user and send malicious requests to a server in
 an attempt to access the user's data. We do not consider attackers
 that eavesdrop on the connection between different network endpoints;
-although it is a considerable threat in practice, the SOP is not
+although it is a threat in practice, the SOP is not
 designed to prevent it, and thus it lies outside the scope of our model.
 
 ### Checking Properties

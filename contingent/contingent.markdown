@@ -67,11 +67,11 @@ but to extend that solution dramatically, to a far more demanding domain.
 
 The problem, again, is cross-referencing.
 Where do cross-references tend to emerge?
-In text documents, documentation, and printed books!
+In text documents, documentation, and printed books! \newpage
 
 ## The Problem: Building Document Systems
 
-Systems to rebuild formatted documents from source texts
+Systems to rebuild formatted documents from source 
 always seem to do too much work, or too little.
 
 They do too much work
@@ -190,7 +190,7 @@ will be exactly the same.
 You can run `diff`
 on the “before” and “after” versions of `index.html`
 to confirm that your small edit
-has had zero effect on the project front page —
+has had no effect on the front page —
 yet Sphinx made you wait while it was rebuilt anyway.
 
 You might not even notice the extra rebuild effort
@@ -209,7 +209,7 @@ But it turns out that Sphinx does something even worse:
 it sometimes does too little,
 leaving you with inconsistent output that could be noticed by users.
 
-To see one of Sphinx’s simplest failure modes,
+To see one of its simplest failures,
 first add a cross reference to the top of your API documentation:
 
 ```
@@ -383,8 +383,7 @@ Sets remember only whether a given value has been added,
 not how many times,
 and are therefore the go-to data structure
 for removing duplicates from a data stream.
-For example, the following two sets, once the language has built them,
-will each have three elements:
+For example, the following two sets will each have three elements:
 
 ```python
 {3, 4, 5}
@@ -563,8 +562,7 @@ classes simply repeat data structures that we have already seen:
 * A class instance is *implemented* as a dict.
 * A class instance is *used* like a mutable tuple.
 
-The class offers key lookup into its attribute dictionary
-through a prettier syntax,
+The class offers key lookup through a prettier syntax,
 where you get to say `graph.incoming`
 instead of `graph["incoming"]`.
 But, in practice, class instances are almost never used
@@ -957,7 +955,7 @@ to construct a graph of the relationships between all the tasks.
 ```
 
 A build system for the example given at the beginning of the chapter
-might involve a few basic tasks.
+might involve a few tasks.
 
 Our `read()` task will pretend to read the files from disk.
 Since we really defined the source text in variables,
@@ -990,7 +988,7 @@ and the rest of the content is considered the document's body.
 ```
 
 Because the format is so simple,
-the parser is a little silly, admittedly,
+the parser is a little silly, 
 but it illustrates the interpretive responsibilities
 that parsers are required to carry out.
 (Parsing in general is a very interesting subject
@@ -1091,7 +1089,7 @@ that transitively connects all the tasks
 required to produce the output,
 from reading the input file,
 to parsing and transforming the document,
-and rendering the result:
+and rendering it:
 
 \aosafigure[240pt]{contingent-images/figure3.png}{A task graph.}{500l.contingent.graph3}
 
@@ -1157,7 +1155,7 @@ The wrapper can access the original version of the function
 via the name `function`,
 calling it at the appropriate time.
 The body of the Contingent wrapper
-runs something like this:
+runs something like this: \newpage
 
 ```python
     def task(function):
@@ -1219,7 +1217,7 @@ Since each task gets surrounded by its own copy of the wrapper function,
 the mere invocation and execution of the normal stack of tasks
 will produce a graph of relationships as an invisible side effect.
 That is why we were careful to use the wrapper
-around every one of the processing steps we defined:
+around each processing step that we defined:
 
 ```python
     @task
@@ -1259,8 +1257,7 @@ The consequence of re-reading the `tutorial.txt` file
 and finding that its contents have changed
 is that we need to re-execute the `parse()` routine for that document.
 What happens if we render the entire set of documents?
-Will Contingent be able to learn the entire build process
-with its interrelationships?
+Will Contingent be able to learn the entire build process?
 
 ```python
 >>> for filename in 'index.txt', 'tutorial.txt', 'api.txt':
@@ -1351,7 +1348,7 @@ under the name `_` for use in the subsequent expression.)
 This recursive task of looking repeatedly for immediate consequences
 and only stopping when we arrive at tasks with no further consequences
 is a basic enough graph operation that it is supported directly
-by a method on the `Graph` class:
+by a method on the `Graph` class: \newpage
 
 ```python
 >>> # Secretly adjust pprint to a narrower-than-usual width:
@@ -1541,7 +1538,7 @@ and did not get re-invoked.
 
 There exist languages and programming methodologies
 under which Contingent would be a suffocating forest of tiny classes,
-with useless and verbose names given to every concept in the problem domain.
+with verbose names given to every concept in the problem domain.
 
 When programming Contingent in Python, however,
 we skipped the creation of a dozen possible classes 

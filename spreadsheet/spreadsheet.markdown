@@ -97,7 +97,7 @@ As shown in \aosafigref{500l.spreadsheet.nocss}, if we enable JS in the browser 
 
 ### HTML
 
-The first line in `index.html` declares that it’s written in HTML5 (`<!DOCTYPE html>`) with the UTF-8 encoding:
+The first line in `index.html` declares that it’s written in HTML5 with the UTF-8 encoding:
 
 ```html
 <!DOCTYPE html><html><head><meta charset="UTF-8">
@@ -210,7 +210,7 @@ The flowchart in \aosafigref{500l.spreadsheet.flowchart} shows the controller-wo
 
 \aosafigure[240pt]{spreadsheet-images/00-flowchart.png}{Controller-Worker Flowchart}{500l.spreadsheet.flowchart}
 
-Now let's walk through the code. In the first line, we request the JS model `$scope` object from AngularJS:
+Now let's walk through the code. In the first line, we request the AngularJS `$scope`:
 
 ```javascript
 angular.module('500lines', []).controller('Spreadsheet', function ($scope, $timeout) {
@@ -257,7 +257,7 @@ The [arrow function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Ref
     case 38: case 40: case 13: $timeout( ()=>{
 ```
 
-If it is, we use `$timeout` to schedule a change of cell focus after the current `ng-keydown` and `ng-change` handler. Because `$timeout` requires a function as argument, the `()=>{…}` syntax constructs a function to represent the focus-change logic, which starts by checking the direction of movement:
+If it is, we use `$timeout` to schedule a focus change after the current `ng-keydown` and `ng-change` handler. Because `$timeout` requires a function as argument, the `()=>{…}` syntax constructs a function to represent the focus-change logic, which starts by checking the direction of movement:
 
 ```javascript
       const direction = (which === 38) ? -1 : +1;
@@ -276,7 +276,7 @@ Next up, we retrieve the target element using the ID selector syntax (e.g. `"#A3
 
 We put an extra check on the result of `querySelector` because moving upward from **A1** will produce the selector `#A0`, which has no corresponding element, and so will not trigger a focus change — the same goes for pressing **DOWN** at the bottom row.
 
-Next, we define the `reset()` function so the reset button can restore the initial contents of the `sheet`:
+Next, we define the `reset()` function so the reset button can restore the contents of the `sheet`:
 
 ```javascript
   // Default sheet content, with some data cells and one formula cell.
@@ -317,9 +317,7 @@ With these properties in place, we can define the `calc()` function that trigger
     const json = angular.toJson( $scope.sheet );
 ```
 
-Here we first take a snapshot of the state of `sheet` and store it in the constant `json`, a JSON string.
-
-Next up, we construct a `promise` from [$timeout](https://docs.angularjs.org/api/ng/service/$timeout) that cancels the upcoming computation if it takes more than 99 milliseconds:
+Here we take a snapshot of the state of `sheet` and store it in the constant `json`, a JSON string. Next up, we construct a `promise` from [$timeout](https://docs.angularjs.org/api/ng/service/$timeout) that cancels the upcoming computation if it takes more than 99 milliseconds:
 
 ```javascript
     const promise = $timeout( ()=>{
@@ -365,7 +363,7 @@ With the handler in place, we can post the state of `sheet` to the worker, start
 There are three reasons for using a web worker to calculate formulas, instead of using the main JS thread for the task:
 
 * While the worker runs in the background, the user is free to continue interacting with the spreadsheet without getting blocked by computation in the main thread. 
-* Because we accept any JS expression in a formula, the worker provides a _sandbox_ that prevents formulas from interfering with the page that contains them, such as by popping out an `alert()` dialog.
+* Because we accept any JS expression in a formula, the worker provides a _sandbox_ that prevents formulas from interfering with the page that contains them, such as by popping out an `alert()` dialog box.
 * A formula can refer to any coordinates as variables. The other coordinates may contain another formula that might end in a cyclic reference. To solve this problem, we use the worker’s _global scope_ object `self`, and define these variables as _getter functions_ on `self` to implement the cycle-prevention logic.
 
 With these in mind, let’s take a look at the worker’s code.
@@ -384,11 +382,11 @@ In order to turn coordinates into global variables, we first iterate over each p
   for (const coord in sheet) {
 ```
 
-ES6 introduces `const` and `let` declares _block scoped_ constants and variables; `const coord` above means that functions defined in the loop would capture the specific value of `coord` in each iteration.
+ES6 introduces `const` and `let` declares _block scoped_ constants and variables; `const coord` above means that functions defined in the loop would capture the value of `coord` in each iteration.
 
 In contrast, `var coord` in earlier versions of JS would declare a _function scoped_ variable, and functions defined in each loop iteration would end up pointing to the same `coord` variable.
 
-Customarily, formula variables are case-insensitive and can optionally have a `$` prefix. Because JS variables are case-sensitive, we use two `map` calls to go over the four variable names for the same coordinate:
+Customarily, formula variables are case-insensitive and can optionally have a `$` prefix. Because JS variables are case-sensitive, we use `map` to go over the four variable names for the same coordinate:
 
 ```javascript
     // Four variable names pointing to the same coordinate: A1, a1, $A1, $a1
@@ -469,7 +467,7 @@ Other kinds of errors are stored in `errs[coord]`:
         }
 ```
 
-In case of errors, the value of `vals[coord]` will remain `NaN` because the assignment did not complete.
+In case of errors, the value of `vals[coord]` will remain `NaN` because the assignment did not finish executing.
 
 Finally, the `get` accessor returns the calculated value stored in `vals[coord]`, which must be a number, a Boolean value, or a string:
 
@@ -561,8 +559,8 @@ This chapter aims to demonstrate new concepts in ES6, so we use the [Traceur com
 
 If you prefer to work directly with the 2010 edition of JS, the [as-javascript-1.8.5](https://audreyt.github.io/500lines/spreadsheet/as-javascript-1.8.5/) directory has **main.js** and **worker.js** written in the style of ES5; the [source code](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-javascript-1.8.5) is line-by-line comparable to the ES6 version with the same line count.
 
-For people preferring a cleaner syntax, the [as-livescript-1.3.0](https://audreyt.github.io/500lines/spreadsheet/as-livescript-1.3.0/) directory uses [LiveScript](http://livescript.net/) instead of ES6 to write **main.ls** and **worker.ls**; the [source code](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-livescript-1.3.0) is 20 lines shorter than the JS version.
+For people preferring a cleaner syntax, the [as-livescript-1.3.0](https://audreyt.github.io/500lines/spreadsheet/as-livescript-1.3.0/) directory uses [LiveScript](http://livescript.net/) instead of ES6 to write **main.ls** and **worker.ls**; it is [20 lines shorter](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-livescript-1.3.0) than the JS version.
 
-Building on the LiveScript language, the [as-react-livescript](https://audreyt.github.io/500lines/spreadsheet/as-react-livescript/) directory uses the [ReactJS](https://facebook.github.io/react/) framework; the [source code](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-react-livescript) is 10 lines more than the AngularJS equivalent, but runs considerably faster.
+Building on the LiveScript language, the [as-react-livescript](https://audreyt.github.io/500lines/spreadsheet/as-react-livescript/) directory uses the [ReactJS](https://facebook.github.io/react/) framework; [it is 10 lines more longer](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-react-livescript) than the AngularJS equivalent, but runs considerably faster.
 
 If you are interested in translating this example to alternate JS languages, send a [pull request](https://github.com/audreyt/500lines/pulls) — I’d love to hear about it!

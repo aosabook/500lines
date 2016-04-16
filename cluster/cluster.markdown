@@ -412,6 +412,7 @@ class Acceptor(Role):
 ```
 
 #### Replica
+\label{sec.cluster.replica}
 
 The ``Replica`` class is the most complicated role class, as it has a few closely related responsibilities:
 
@@ -650,7 +651,7 @@ class Leader(Role):
 
 The leader creates a scout role when it wants to become active, in response to receiving a ``Propose`` when it is inactive (\aosafigref{500l.cluster.leaderscout}.)
 The scout sends (and re-sends, if necessary) a ``Prepare`` message, and collects ``Promise`` responses until it has heard from a majority of its peers or until it has been preempted.
-It communicates the result back to the leader with an ``Adopted`` or ``Preempted`` message, respectively.
+It communicates back to the leader with ``Adopted`` or ``Preempted``, respectively.
 
 \aosafigure[240pt]{cluster-images/leaderscout.png}{Scout}{500l.cluster.leaderscout}
 
@@ -710,7 +711,7 @@ class Scout(Role):
 The leader creates a commander role for each slot where it has an active proposal (\aosafigref{500l.cluster.leadercommander}.)
 Like a scout, a commander sends and re-sends ``Accept`` messages and waits for a majority of acceptors to reply with ``Accepted``, or for news of its preemption.
 When a proposal is accepted, the commander broadcasts a ``Decision`` message to all nodes.
-It responds to the leader with either ``Decided`` or ``Preempted``.
+It responds to the leader with ``Decided`` or ``Preempted``.
 
 \aosafigure[240pt]{cluster-images/leadercommander.png}{Commander}{500l.cluster.leadercommander}
 
@@ -769,7 +770,7 @@ The solution was to ensure that local messages are always delivered, as is the c
 
 When a node joins the cluster, it must determine the current cluster state before it can participate.
 The bootstrap role handles this by sending ``Join`` messages to each peer in turn until it receives a ``Welcome``.
-Bootstrap's communication diagram is shown above in the "Replica" section.
+Bootstrap's communication diagram is shown above in \aosasecref{sec.cluster.replica}.
 
 An early version of the implementation started each node with a full set of roles (replica, leader, and acceptor), each of which began in a "startup" phase, waiting for information from the ``Welcome`` message.
 This spread the initialization logic around every role, requiring separate testing of each one.
@@ -933,7 +934,7 @@ Since removing items from a heap is inefficient, cancelled timers are left in pl
 Message transmission uses the timer functionality to schedule a later delivery of the message at each node, using a random simulated delay.
 We again use ``functools.partial`` to set up a future call to the destination node's ``receive`` method with appropriate arguments.
 
-Running the simulation just involves popping timers from the heap and executing them if they have not been cancelled and if the destination node is still active.
+Running the simulation just involves popping timers from the heap and executing them if they have not been cancelled and if the destination node is still active. \newpage 
 
 ```python
 
@@ -950,10 +951,7 @@ class Timer(object):
 
     def cancel(self):
         self.cancelled = True
-    
-```
 
-```python
 
 class Network(object):
     PROP_DELAY = 0.03
@@ -1024,7 +1022,7 @@ The most important debugging feature in Cluster is a *deterministic* simulator.
 Unlike a real network, it will behave exactly the same way on every run, given the same seed for the random number generator.
 This means that we can add additional debugging checks or output to the code and re-run the simulation to see the same failure in more detail.
 
-Of course, much of that detail is in the messages sent and received by the different nodes in the cluster, so those are automatically logged in their entirety.
+Of course, much of that detail is in the messages exchanged by the nodes in the cluster, so those are automatically logged in their entirety.
 That logging includes the role class sending or receiving the message, as well as the simulated timestamp injected via the ``SimTimeLogger`` class.
 
 ```python
@@ -1046,7 +1044,7 @@ This meant that once a decision was handled on one node, all other nodes saw it 
 Even with this serious bug, the cluster produced correct results for several transactions before deadlocking.
 
 Assertions are an important tool to catch this sort of error early.
-Assertions should include any invariants from the algorithm design, but when the code doesn't behave as we expect, asserting our expectations is a great way to see where things go astray.
+Assertions should include any invariants from the algorithm design, but when the code doesn't behave as we expect, asserting our expectations is a great way to see where things go astray. 
 
 ```python
 
@@ -1077,11 +1075,11 @@ There are a few active schools of thought in this area, but the approach we've t
 This agrees nicely with the role model, where each role has a specific purpose and can operate in isolation from the others, resulting in a compact, self-sufficient class.
 
 Cluster is written to maximize that isolation: all communication between roles takes place via messages, with the exception of creating new roles.
-For the most part, then, roles can be tested by sending messages to them and observing their responses.
+For the most part, then, roles can be tested by sending messages to them and observing their responses. \newpage
 
 #### Unit Testing
 
-The unit tests for Cluster (all of which are availble in the book's Github repository) are simple and short:
+The unit tests for Cluster are simple and short:
 
 ```python
 
@@ -1140,7 +1138,7 @@ Neither test checks that those formats match.
 
 One approach to fixing this issue is to make the interfaces self-enforcing.
 In Cluster, the use of named tuples and keyword arguments avoids any disagreement over messages' attributes.
-Because the only interaction between role classes is via messages, this covers a substantial proportion of the interface.
+Because the only interaction between role classes is via messages, this covers a large part of the interface.
 
 For specific issues such as the format of ``accepted_proposals``, both the real and test data can be verified using the same function, in this case ``verifyPromiseAccepted``.
 The tests for the acceptor use this method to verify each returned ``Promise``, and the tests for the scout use it to verify every fake ``Promise``.
@@ -1256,14 +1254,14 @@ This seemingly simple change introduced a great deal of complexity:
 * properly serializing multiple competing view changes, and
 * communicating view information between the leader and replica.
 
-The result was far too large for this book!
+The result was far too large for this book! \newpage
 
 ## References
 
 In addition to the original Paxos paper and Lamport's follow-up "Paxos Made Simple"[^simple], our implementation added extensions that were informed by several other resources. The role names were taken from "Paxos Made Moderately Complex"[^complex]. "Paxos Made Live"[^live] was helpful regarding snapshots in particular, and "Paxos Made Practical"[^practical] described view changes (although not of the type described here.) Liskov's "From Viewstamped Replication to Byzantine Fault Tolerance"[^tolerance] provided yet another perspective on view changes. Finally, a [Stack Overflow discussion](http://stackoverflow.com/questions/21353312/in-part-time-parliament-why-does-using-the-membership-from-decree-n-3-work-to) was helpful in learning how members are added and removed from the system.
 
 [^simple]: L. Lamport, "Paxos Made Simple," ACM SIGACT News (Distributed Computing Column) 32, 4 (Whole Number 121, December 2001) 51-58.
-[^complex]: R. Van Renesse and D. Altinbuken, "Paxos Made Moderately Complex," ACM Computing Survey 47, 3, Article 42 (February 2015)
+[^complex]: R. Van Renesse and D. Altinbuken, "Paxos Made Moderately Complex," ACM Comp. Survey 47, 3, Article 42 (Feb. 2015)
 [^live]: T. Chandra, R. Griesemer, and J. Redstone, "Paxos Made Live - An Engineering Perspective," Proceedings of the twenty-sixth annual ACM symposium on Principles of distributed computing (PODC '07). ACM, New York, NY, USA, 398-407. 
 [^practical]: http://www.scs.stanford.edu/~dm/home/papers/paxos.pdf
 [^tolerance]: B. Liskov, "From Viewstamped Replication to Byzantine Fault Tolerance," In *Replication*, Springer-Verlag, Berlin, Heidelberg 121-149 (2010)
