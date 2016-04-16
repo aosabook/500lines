@@ -24,7 +24,7 @@ _(Also available in [English](https://github.com/audreyt/500lines/blob/master/sp
 
 現在讓我們在瀏覽器中打開 <http://audreyt.github.io/500lines/spreadsheet/>：
 
-![初始畫面](./images/01-initial.png)
+![初始畫面](./spreadsheet-images/01-initial.png)
 
 ### 基本概念
 
@@ -37,15 +37,15 @@ _(Also available in [English](https://github.com/audreyt/500lines/blob/master/sp
 
 點擊 `3920` 來移動焦點（focus）到 **E1**，會出現顯示公式的輸入框（input box）：
 
-![輸入框](./images/02-input.png)
+![輸入框](./spreadsheet-images/02-input.png)
 
 現在把選取焦點移到 **A1** ，將內容變更（change）為 `1`，使 **E1** 的數值重新計算（recalculate）成 `2047`：
 
-![已變更的內容](./images/03-changed.png)
+![已變更的內容](./spreadsheet-images/03-changed.png)
 
 按 **輸入鍵（ENTER）** 以設定焦點至 **A2**，並變更其內容為 `=Date()`，然後按 **跳格鍵（TAB）**，變更 **B2** 的內容為 `=alert()`，然後再按 **跳格鍵** 以移動焦點至 `C2`：
 
-![公式錯誤](./images/04-error.png)
+![公式錯誤](./spreadsheet-images/04-error.png)
 
 以上展示了公式的計算結果可以是數字（**E1** 中的 `2047`）、文字（**A2** 顯示的目前時間，向左對齊），或者是錯誤（error，如 **B2** 中的紅色字母，置中對齊）。
 
@@ -62,13 +62,13 @@ _(Also available in [English](https://github.com/audreyt/500lines/blob/master/sp
 * 按下 `↻` 按鈕沒有任何反應。
 * 按 **跳格鍵** 或點擊第一列的內容時，仍然會顯示可編輯的輸入框。
 
-![停用 JavaScript](./images/05-nojs.png)
+![停用 JavaScript](./spreadsheet-images/05-nojs.png)
 
 當我們停用動態互動功能（JS）時，內容結構（HTML）和展示風格（CSS）依然持續生效。如果網頁文件能夠在 JS 和 CSS 同時停用的情況下，繼續保持可用，就表示它遵守「漸進增強」（progressive enhancement）原則，讓內容能接觸到最廣的使用者群。
 
 由於我們的試算表是應用網頁，並沒有伺服器端的程式碼，所以我們必須依賴 JS 來提供所需要的邏輯。然而，即使 CSS 沒有完全獲得支援，比如說在螢幕閱讀器和文字模式的瀏覽器裡，程式依然能正常運作。
 
-![停用 CSS](./images/06-nocss.png)
+![停用 CSS](./spreadsheet-images/06-nocss.png)
 
 如同以上畫面顯示，如果我們在瀏覽器中啟用 JS ，但轉而停用 CSS 的話，效果如下：
 
@@ -80,7 +80,7 @@ _(Also available in [English](https://github.com/audreyt/500lines/blob/master/sp
 
 以下的架構圖描繪 HTML 和 JS 元件之間的各式連結：
 
-![架構圖](./images/00-architecture.png)
+![架構圖](./spreadsheet-images/00-architecture.png)
 
 為了理解這張圖，讓我們按照瀏覽器載入的次序，逐一檢視四份原始程式碼檔案：
 
@@ -199,7 +199,7 @@ _(Also available in [English](https://github.com/audreyt/500lines/blob/master/sp
 
 控制層和工作層之間的互動詳情，可以參考這張流程圖：
 
-![控制層和工作層之間的互動](./images/00-flowchart.png)
+![控制層和工作層之間的互動](./spreadsheet-images/00-flowchart.png)
 
 現在來看程式碼。在第一行程式裡，我們向 AngularJS 要求 `$scope` 物件，來定義 JS 模型：
 
