@@ -555,7 +555,7 @@ What we would like `define-handler` to do here is:
     - Validate that `room` is a string no longer than 16 characters, `name` is
       a string of between 1 and 64 characters (inclusive) and that `message`
       is a string of between 5 and 256 characters (also inclusive).
-4. After the response has been returned, close the channel.
+3. After the response has been returned, close the channel.
 
 While we could write Lisp functions to do all of these things, and then manually assemble the pieces ourselves, a more common approach is to use a Lisp facility called `macros` to _generate_ the Lisp code for us. This allows us to concisely express what we want our DSL to do, without having to maintain a lot of code to do it. You can think of a macro as an "executable template" that will be expanded into Lisp code at runtime.
 
