@@ -1,4 +1,4 @@
-title: An Event-driven Web Framework
+title: An Event-Driven Web Framework
 author: Leo Zovic
 
 In 2013, I decided to write a [web-based game prototyping tool](https://github.com/Inaimathi/deal) for card and board games called _House_. In these types of games, it is common for one player to wait for another player to make a move; however, when the other player finally does take action, we would like for the waiting player to be notified of the move quickly thereafter.
@@ -7,29 +7,29 @@ This is a problem that turns out to be more complicated than it first seems. In 
 
 ## The Basics of HTTP Servers
 
-At the simplest level, an HTTP exchange is a single request followed by a single response. A _client_ sends a request, which includes a resource identifier, an HTTP version tag, some headers and some parameters. The _server_ parses that request, figures out what to do about it, and sends a response which includes the same HTTP version tag, a response code, some headers and a request body. (For more on this, see \aosachapref{s:web-server}.)
+At the simplest level, an HTTP exchange is a single request followed by a single response. A _client_ sends a request, which includes a resource identifier, an HTTP version tag, some headers and some parameters. The _server_ parses that request, figures out what to do about it, and sends a response which includes the same HTTP version tag, a response code, some headers and a response body. (For more on this, see \aosachapref{s:web-server}.)
 
-Notice that, in this description, the server responds to a request from a specific client. In our case, we want each player to be updated about _any_ moves as soon as they happen, rather than only getting notifications when their own move is made. This means we need the server to _push_ messages to clients without first receiving a request for the information [^polling].
+Notice that, in this description, the server responds to a request from a specific client. In our case, we want each player to be updated about _any_ moves as soon as they happen, rather than only getting notifications when their own move is made. This means we need the server to _push_ messages to clients without first receiving a request for the information.[^polling]
 
 [^polling]: One solution to this problem is to force the clients to _poll_ the server. That is, each client would periodically send the server a request asking if anything has changed. This can work for simple applications, but in this chapter we're going to focus on the solutions available to you when this model stops working.
 
 There are several standard approaches to enabling server push over HTTP.
 
-### Comet/Longpoll
+### Comet/Long Poll
 
-The "longpoll" technique has the client send the server a new request as soon as it receives a response. Instead of fulfilling that request right away, the server waits on a subsequent event to respond. This is a bit of a semantic distinction, since the client is still taking action on the users' behalf on every update.
+The "long poll" technique has the client send the server a new request as soon as it receives a response. Instead of fulfilling that request right away, the server waits on a subsequent event to respond. This is a bit of a semantic distinction, since the client is still taking action on the users' behalf on every update.
 
-### Server-sent Events (SSE)
+### Server-Sent Events (SSE)
 
-Server-sent events require that the client initiates a connection and then keeps it open. The server periodically writes new data to the connection without closing it, and the client interprets incoming new messages as they arrive rather than waiting for the response connection to terminate. This is a bit more efficient than the Comet/Longpoll approach because each message doesn't have to incur the overhead of new HTTP headers.
+Server-sent events require that the client initiates a connection and then keeps it open. The server periodically writes new data to the connection without closing it, and the client interprets incoming new messages as they arrive rather than waiting for the response connection to terminate. This is a bit more efficient than the Comet/long poll approach because each message doesn't have to incur the overhead of new HTTP headers.
 
-### Websockets
+### WebSockets
 
-Websockets are a communication protocol built on top of HTTP. The server and client open up an HTTP conversation, then perform a handshake and protocol escalation. The end result is that they're still communicating over TCP/IP, but they're not using HTTP to do it at all. The advantage this has over SSEs is that you can customize the protocol for efficiency.
+WebSockets are a communication protocol built on top of HTTP. The server and client open up an HTTP conversation, then perform a handshake and protocol escalation. The end result is that they're still communicating over TCP/IP, but they're not using HTTP to do it at all. The advantage this has over SSEs is that you can customize the protocol for efficiency.
 
 ### Long-Lived Connections
 
-These three approaches are quite different from one another, but they all share an important characteristic: They all depend on long-lived connections. Longpolling depends on the server keeping requests around until new data is available, SSEs keep an open stream between client and server to which data is periodically written, and Websockets change the protocol a particular connection is speaking, but leave it open.
+These three approaches are quite different from one another, but they all share an important characteristic: they all depend on long-lived connections. Long polling depends on the server keeping requests around until new data is available, SSEs keep an open stream between client and server to which data is periodically written, and WebSockets change the protocol a particular connection is using, but leave it open.
 
 To see why this might cause problems for your average HTTP server, let's consider how the underlying implementation might work.
 
@@ -38,36 +38,36 @@ To see why this might cause problems for your average HTTP server, let's conside
 
 A single HTTP server processes many requests concurrently. Historically, many HTTP servers have used a _thread-per-request_ architecture. That is, for each incoming request, the server creates a thread to do the work necessary to respond.
 
-Since each of these connections is intended to be short-lived, we don't need many threads executing in parallel to handle them all. This model also simplifies the _implementation_ of the server by enabling the server programmer to write code as if there were only one connection being handled at at any given time. It also gives us the freedom to clean up failed or "zombie" connections and their associated resources by killing the corresponding thread and letting the garbage collector do its job.
+Since each of these connections is intended to be short-lived, we don't need many threads executing in parallel to handle them all. This model also simplifies the _implementation_ of the server by enabling the server programmer to write code as if there were only one connection being handled at any given time. It also gives us the freedom to clean up failed or "zombie" connections and their associated resources by killing the corresponding thread and letting the garbage collector do its job.
 
-The key observation is that an HTTP server hosting a "traditional" web application that has $N$ concurrent users might only need to handle a very small fraction of $N$ requests _in parallel_ to succeed. For the type of interactive application that we are trying to build in our initial problem statement, $N$ users of our application will almost certainly require the application to maintain at least $N$ connections in parallel at once.
+The key observation is that an HTTP server hosting a "traditional" web application that has $N$ concurrent users might only need to handle a very small fraction of $N$ requests _in parallel_ to succeed. For the type of interactive application that we are trying to build, $N$ users will almost certainly require the application to maintain at least $N$ connections in parallel, at once.
 
-The consequence of keeping long-lived connections around is that we're going to want either:
+The consequence of keeping long-lived connections around is that we'll need either:
 
-- A platform where threads are "cheap" enough that we can use large numbers of them at once
-- A server architecture that can handle many connections with a single thread
+- A platform where threads are "cheap" enough that we can use large numbers of them at once.
+- A server architecture that can handle many connections with a single thread.
 
-There are programming environments such as [Racket](http://racket-lang.org/), [Erlang](http://www.erlang.org/), and [Haskell](http://hackage.haskell.org/package/base-4.7.0.1/docs/Control-Concurrent.html) that do provide thread-like constructs that are "lightweight" enough to consider the first option. This approach requires the programmer to explicitly deal with synchronization issues, which are going to be much more prevalent in a system where connections are open for a long time and likely all competing for similar resources. Specifically, if we have some sort of central data shared by several users simltaneously, we will need to coordinate reads and writes of that data in some way.
+There are programming environments such as [Racket](http://racket-lang.org/), [Erlang](http://www.erlang.org/), and [Haskell](http://hackage.haskell.org/package/base-4.7.0.1/docs/Control-Concurrent.html) that provide thread-like constructs that are "lightweight" enough to consider the first option. This approach requires the programmer to explicitly deal with synchronization issues, which are going to be much more prevalent in a system where connections are open for a long time and likely all competing for similar resources. Specifically, if we have some sort of central data shared by several users simultaneously, we will need to coordinate reads and writes of that data in some way.
 
-If we don't have cheap threads at our disposal or we are unwilling to work with explicit synchronization, we must consider having a single thread handle many connections[^mn]. In this model, our single thread is going to be handling tiny "slices" of many requests all at once, switching between them as efficiently as it possibly can. This system architecture pattern is most commonly referred to as _event-driven_ or _event-based_[^eventbased].
+If we don't have cheap threads at our disposal or we are unwilling to work with explicit synchronization, we must consider having a single thread handle many connections.[^mn] In this model, our single thread is going to be handling tiny "slices" of many requests all at once, switching between them as efficiently as it possibly can. This system architecture pattern is most commonly referred to as _event-driven_ or _event-based_.[^eventbased]
 
 [^mn]: We could consider a more general system that handles $N$ concurrent users with $M$ threads for some configurable value of $M$; in this model, the $N$ connections are said to be _multiplexed_ across the $M$ threads. In this chapter, we are going to focus on writing a program where $M$ is fixed at 1; however, the lessons learned here should be partially applicable to the more general model.
 
 [^eventbased]: This nomenclature is a bit confusing, and has its origin in early operating-systems research. It refers to how communication is done between multiple concurrent processes. In a thread-based system, communication is done through a synchronized resource such as shared memory. In an event-based system, processes generally communicate through a queue where they post items that describe what they have done or what they want done, which is maintained by our single thread of execution. Since these items generally describe desired or past actions, they are referred to as 'events'.
 
-Since we are only managing a single thread, we don't have to worry as much about protecting shared resources from simultaneous access. However, we do have a unique problem of our own in this model. Since our single thread is working on all in-flight requests at once, we must make sure that it __never blocks__. Blocking on any connection blocks the entire server from making progress on any other request. We have to be able to move on to another client if the current one can't be serviced further, and we need to be able to do so in a manner that doesn't throw out all of the work done so far[^crawler].
+Since we are only managing a single thread, we don't have to worry as much about protecting shared resources from simultaneous access. However, we do have a unique problem of our own in this model. Since our single thread is working on all in-flight requests at once, we must make sure that it __never blocks__. Blocking on any connection blocks the entire server from making progress on any other request. We have to be able to move on to another client if the current one can't be serviced further, and we need to be able to do so in a manner that doesn't throw out all of the work done so far.[^crawler]
 
 [^crawler]: See \aosachapref{s:crawler} for another take on this problem. 
 
-While it is uncommon for a programmer to explicitly tell a thread to stop working, many common operations carry a risk of blocking. Because threads are so prevalent and reasoning about asychronousity is a heavy burden on the programmer, many languages and their frameworks assume that blocking on IO is a desirable property. This makes it very easy to block somewhere _by accident_. Luckily, Common Lisp does provide us with a minimal set of asynchronous IO primitives which we can build on top of.
+While it is uncommon for a programmer to explicitly tell a thread to stop working, many common operations carry a risk of blocking. Because threads are so prevalent, and reasoning about asynchronicity is a heavy burden on the programmer, many languages and their frameworks assume that blocking on I/O is a desirable property. This makes it very easy to block somewhere _by accident_. Luckily, Common Lisp does provide us with a minimal set of asynchronous I/O primitives which we can build on top of.
 
-### Architectural decisions
+### Architectural Decisions
 
 Now that we've studied the background of this problem, we've arrived at the point where we need to make informed decisions about _what_ we are building.
 
 At the time I started thinking about this project, Common Lisp didn't have a complete green-thread implementation, and the [standard portable threading library](http://common-lisp.net/project/bordeaux-threads/) doesn't qualify as "really REALLY cheap". The options amounted to either picking a different language, or building an event-driven web server for my purpose. I chose the latter.
 
-In addition to the server architecture, we also need to choose which of the 3 server-push approaches to use. The use-case we are considering (an interactive multiplayer board game) requires frequent updates to each client, but relatively sparse requests _from_ each client, which fits the SSE approach to pushing updates, so we'll go with this.
+In addition to the server architecture, we also need to choose which of the three server-push approaches to use. The use-case we are considering (an interactive multiplayer board game) requires frequent updates to each client, but relatively sparse requests _from_ each client, which fits the SSE approach to pushing updates, so we'll go with this.
 
 Now that we've motivated our architectural decision and decided on a mechanism for simulating bidirectional communication between clients and server, let's get started on building our web framework. We'll start by building a relatively "dumb" server first, and then we'll extend it into a web-application framework that lets us focus on _what_ our heavily-interactive program needs to do, and not _how_ it is doing it.
 
@@ -100,15 +100,15 @@ In this loop, we have:
 - a server socket that listens for incoming connections;
 - a structure to store connections/buffers;
 - an infinite loop waiting for new handshakes or incoming data on an existing connection;
-- cleanup clauses to prevent dangling sockets that are unexpectedly killed (e.g. by an interrupt)
+- cleanup clauses to prevent dangling sockets that are unexpectedly killed (e.g. by an interrupt).
 
-If you haven't written a Common Lisp program before, this code block requires some explanation. What we have written here is a _method definition_. While Lisp is popularly known as a functional language, it also has its own system for object-oriented programming called "The Common Lisp Object System", which is usually abbreviated as "CLOS"[^CLOSpronounce].
+If you haven't written a Common Lisp program before, this code block requires some explanation. What we have written here is a _method definition_. While Lisp is popularly known as a functional language, it also has its own system for object-oriented programming called "The Common Lisp Object System", which is usually abbreviated as "CLOS".[^CLOSpronounce]
 
 [^CLOSpronounce]: Pronounced "kloss", "see-loss" or "see-lows", depending on who you talk to.
 
 ### CLOS and Generic Functions
 
-In CLOS, instead of focusing on classes and methods, we instead write [_generic functions_](http://www.gigamonkeys.com/book/object-reorientation-generic-functions.html) that are implemented as collections of _methods_. In this model, methods don't _belong_ to classes, they _specialize on_ types[^juliachap]. The `start` method we just wrote is a unary method where the argument `port` is _specialized on_ the type `integer`. This means that we could have several implementations of `start` where `port` varies in type, and the runtime will select which implementation to use depending on the type of `port` when `start` is called.
+In CLOS, instead of focusing on classes and methods, we write [_generic functions_](http://www.gigamonkeys.com/book/object-reorientation-generic-functions.html) that are implemented as collections of _methods_. In this model, methods don't _belong to_ classes, they _specialize on_ types.[^juliachap] The `start` method we just wrote is a unary method where the argument `port` is _specialized on_ the type `integer`. This means that we could have several implementations of `start` where `port` varies in type, and the runtime will select which implementation to use depending on the type of `port` when `start` is called.
 
 [^juliachap]: The Julia programming language takes a similar approach to object-oriented programming; you can learn more about it in \aosachapref{s:static-analysis}.
 
@@ -117,7 +117,7 @@ More generally, methods can specialize on more than one argument. When a `method
 - dispatches on the type of its arguments to figure out which method body should be run, and
 - runs the appropriate function.
 
-### Processing sockets
+### Processing Sockets
 
 We'll see another generic function at work in `process-ready`, which was called earlier from our event loop. It processes a ready socket with one of two methods, depending on the type of socket we are handling.
 
@@ -204,11 +204,12 @@ The basis of our approach to processing connections without blocking is the libr
 ```
 
 When `buffer!` is called on a `buffer`, it:
+
 - increments the `tries` count, so that we can evict "needy" buffers in `process-ready`;
 - loops to read characters from the input stream, and
 - returns the last character it read if it has read all of the available input.
-- It also tracks any `\r\n\r\n` sequences so that we can later detect complete requests.
-- Finally, any error results it returns an `:eof` to signal that `process-ready` should discard this particular connection.
+
+It also tracks any `\r\n\r\n` sequences so that we can later detect complete requests. Finally, if any error results, it returns an `:eof` to signal that `process-ready` should discard this particular connection.
 
 The `buffer` type is a CLOS [_class_](http://www.gigamonkeys.com/book/object-reorientation-classes.html). Classes in CLOS let us define a type with fields called `slots`. We don't see the behaviours associated with `buffer` on the class definition, because (as we've already learned), we do that using generic functions like `buffer!`.
 
@@ -229,7 +230,7 @@ Our `buffer` class has seven slots:
 
 - `tries`, which keeps count of how many times we've tried reading into this buffer
 - `contents`, which contains what we've read so far
-- `bi-stream`, which a hack around some of those Common Lisp-specific, non-blocking-IO annoyances I mentioned earlier
+- `bi-stream`, which a hack around some of those Common Lisp-specific, non-blocking-I/O annoyances I mentioned earlier
 - `total-buffered`, which is a count of chars we've read so far
 - `started`, which is a timestamp that tells us when we created this buffer
 - `request`, which will eventually contain the request we construct from buffered data
@@ -246,7 +247,7 @@ Now that we've seen how we incrementally assemble full requests from bits of dat
        (error! +404+ socket)))
 ```
 
-This method adds another layer of error handling so that if the request is old, big, or needy, we can send a `400` response to indicate that the client provided us with some bad or slow data. However, if any _other_ error happens here, it's because the programer made a mistake defining a _handler_, which should be treated as a `500` error. This will inform the client that something went wrong on the server a result of their legitimate request.
+This method adds another layer of error handling so that if the request is old, big, or needy, we can send a `400` response to indicate that the client provided us with some bad or slow data. However, if any _other_ error happens here, it's because the programer made a mistake defining a _handler_, which should be treated as a `500` error. This will inform the client that something went wrong on the server as a result of their legitimate request.
 
 If the request is well-formed, we do the tiny and obvious job of looking up the requested resource in the `*handlers*` table. If we find one, we `funcall` `it`, passing along the client `socket` as well as the parsed request parameters. If there's no matching handler in the `*handlers*` table, we instead send along a `404` error. The handler system will be part of our full-fledged _web framework_, which we'll discuss in a later section.
 
@@ -260,7 +261,7 @@ We still haven't seen how requests are parsed and interpreted from one of our bu
 	    (parse str))))
 ```
 
-This high-level method delegates to a specialization of `parse` that works with plain strings or to `parse-params` that interprets the buffer contents as HTTP parameters. These are called depending on how much of the request we've already processed; the final `parse` happens when we already have a partial `request` saved in the given `buffer`, at which point we're only looking to parse the request body.
+This high-level method delegates to a specialization of `parse` that works with plain strings, or to `parse-params` that interprets the buffer contents as HTTP parameters. These are called depending on how much of the request we've already processed; the final `parse` happens when we already have a partial `request` saved in the given `buffer`, at which point we're only looking to parse the request body.
 
 
 ```lisp
@@ -289,17 +290,17 @@ This high-level method delegates to a specialization of `parse` that works with 
      collect (cons (->keyword name) (or val ""))))
 ```
 
-In the `parse` method specializing on `string`, we transform the content into usable pieces. We do this on strings instead of working directly with buffers because this makes it easier to test the actual parsing code in an environment like an interpreter or REPL.
+In the `parse` method specializing on `string`, we transform the content into usable pieces. We do so on strings instead of working directly with buffers because this makes it easier to test the actual parsing code in an environment like an interpreter or REPL.
 
 The parsing process is:
 
-1. split on `"\\r?\\n"`
-2. split the first line of that on `" "` to get the request type (`POST`, `GET`, etc)/URI path/http-version
-3. assert that we're dealing with an `HTTP/1.1` request
-4. split the URI path on `"?"`, which gives us plain resource separate from any potential `GET` parameters
-5. make a new `request` instance with the resource in place
-6. populate that `request` instance with each split header line
-7. set that `request`s parameters to the result of parsing our `GET` parameters
+1. Split on `"\\r?\\n"`.
+2. Split the first line of that on `" "` to get the request type (`POST`, `GET`, etc)/URI path/http-version.
+3. Assert that we're dealing with an `HTTP/1.1` request.
+4. Split the URI path on `"?"`, which gives us plain resource separate from any potential `GET` parameters.
+5. Make a new `request` instance with the resource in place.
+6. Populate that `request` instance with each split header line.
+7. Set that `request`s parameters to the result of parsing our `GET` parameters.
 
 As you might expect by now, `request` is an instance of a CLOS class:
 
@@ -397,11 +398,11 @@ In `publish!`, we call `write!` to actually write an `sse` to a socket. We'll al
 
 This version of `write!` takes a `response` and a `usocket` named `sock`, and writes content to a stream provided by `sock`. We locally define the function `write-ln` which takes some number of sequences, and writes them out to the stream followed by a `crlf`. This is for readability; we could instead have called `write-sequence`/`crlf` directly. 
 
-Note that we're doing the "Must. Not. BLOCK." thing again. While writes are likely to be buffered and are at lower risk of blocking than reads, we still don't want our server to grind to a halt if something goes wrong here. If the write takes more than `.2` seconds[^timeout], we just move on (throwing out the current socket) rather than waiting any longer.
+Note that we're doing the "Must not block" thing again. While writes are likely to be buffered and are at lower risk of blocking than reads, we still don't want our server to grind to a halt if something goes wrong here. If the write takes more than 0.2 seconds[^timeout], we just move on (throwing out the current socket) rather than waiting any longer.
 
-[^timeout]: `with-timeout` has different implementations on different Lisps. In some environments, it may create another thread or process to monitor the one that invoked it. While we'd only be creating at most one of these at a time, it is a relatively heavyweight operation to be performing per-write. We'd potentially want to consider an alternative approach in those environments.
+[^timeout]: `with-timeout` has different implementations on different Lisps. In some environments, it may create another thread or process to monitor the one that invoked it. While we'd only be creating at most one of these at a time, it is a relatively heavyweight operation to be performing per-write. We might want to consider an alternative approach in those environments.
 
-Writing an `SSE` out is conceptually similar to, but mechanically different from writing out a `response`:
+Writing an `SSE` out is conceptually similar to, but mechanically different from, writing out a `response`:
 
 ```lisp
 (defmethod write! ((res sse) (socket usocket))
@@ -415,7 +416,7 @@ Writing an `SSE` out is conceptually similar to, but mechanically different from
         (values)))))
 ```
 
-This is simpler than working with full HTTP responses since the SSE message standard doesn't specify `CRLF` line-endings, so we can get away with a single `format` call. The `~@[...~]` blocks are _conditional directives_, which allow us to gracefully handle `nil` slots. For example, if `(id res)` is non-nil, we'll output `id: <the id here> `, otherwise we will ignore the directive entirely. The payload of our incremental update `data` is the only required slot of `sse`, so we can include it without worrying about it being `nil`. And again, we're not waiting around for _too_ long. After `.2` seconds, we'll time out and move on to the next thing if the write hasn't completed by then.
+This is simpler than working with full HTTP responses since the SSE message standard doesn't specify `CRLF` line-endings, so we can get away with a single `format` call. The `~@[`...`~]` blocks are _conditional directives_, which allow us to gracefully handle `nil` slots. For example, if `(id res)` is non-nil, we'll output `id: <the id here> `, otherwise we will ignore the directive entirely. The payload of our incremental update `data` is the only required slot of `sse`, so we can include it without worrying about it being `nil`. And again, we're not waiting around for _too_ long. After 0.2 seconds, we'll time out and move on to the next thing if the write hasn't completed by then.
 
 ### Error Responses
 
@@ -529,7 +530,7 @@ One of the concerns I had in mind when writing House was that, like any applicat
 	    (:button :id "send" "Send")))))
 ```
 
-While we are still working with Lisp code, this interface is starting to look almost like a _declarative language_, in which we state _what_ we want our handlers to validate without thinking too much about _how_ they are going to do it. What we are doing is building a _domain-specific language_ (DSL) for handler functions; that is, we are creating a specific convention and syntax that allows us to concisely express exactly what we want our handlers to validate. This approach of building a small language to solve your problem at hand is frequently used by Lisp programmers, and it is a useful technique that can be used in other programming languages.
+While we are still working with Lisp code, this interface is starting to look almost like a _declarative language_, in which we state _what_ we want our handlers to validate without thinking too much about _how_ they are going to do it. What we are doing is building a _domain-specific language_ (DSL) for handler functions; that is, we are creating a specific convention and syntax that allows us to concisely express exactly what we want our handlers to validate. This approach of building a small language to solve the problem at hand is frequently used by Lisp programmers, and it is a useful technique that can be applied in other programming languages.
 
 ### A DSL for Handlers
 
@@ -548,9 +549,13 @@ Now that we have a loose specification for how we want our handler DSL to look, 
 What we would like `define-handler` to do here is:
 
 1. Bind the action `(publish! ...)` to the URI `/send-message` in the handlers table.
-2. When a request to this URI is made, ensure that the HTTP parameters `room`, `name` and `message` were included, and
-3. validate that `room` is a string no longer than 16 characters, `name` is a string of between 1 and 64 characters (inclusive) and finally that `message` is a string of between 5 and 256 characters (also inclusive).
-4. After the response has been returned, close the channel.
+2. When a request to this URI is made: 
+    - Ensure that the HTTP parameters `room`, `name` and `message` were
+      included.
+    - Validate that `room` is a string no longer than 16 characters, `name` is
+      a string of between 1 and 64 characters (inclusive) and that `message`
+      is a string of between 5 and 256 characters (also inclusive).
+3. After the response has been returned, close the channel.
 
 While we could write Lisp functions to do all of these things, and then manually assemble the pieces ourselves, a more common approach is to use a Lisp facility called `macros` to _generate_ the Lisp code for us. This allows us to concisely express what we want our DSL to do, without having to maintain a lot of code to do it. You can think of a macro as an "executable template" that will be expanded into Lisp code at runtime.
 
@@ -604,7 +609,7 @@ Our macro has already saved us a bit of typing by substituting our `send-message
        (setf (gethash ,uri *handlers*) ,handler))))
 ```
 
-The binding happens in the last line; `(setf (gethash ,uri *handlers*) ,handler)`, which is what hash-table assignments look like in Common Lisp (modulo the commas, which are part of our macro.) Note that the `assert` is outside of the quoted area, which means that it'll be run as soon as the macro is _called_ rather than when its result is evaluated.
+The binding happens in the last line: `(setf (gethash ,uri *handlers*) ,handler)`, which is what hash-table assignments look like in Common Lisp (modulo the commas, which are part of our macro). Note that the `assert` is outside of the quoted area, which means that it'll be run as soon as the macro is _called_ rather than when its result is evaluated.
 
 When we further expand our expansion of the `send-message` `define-handler` above, we get:
 
@@ -623,7 +628,7 @@ When we further expand our expansion of the `send-message` `define-handler` abov
 		    `((:NAME ,@NAME) (:MESSAGE ,@MESSAGE)))))))
 ```
 
-This is starting to look more like a custom implementation of what we would have written to marshal a request from a URI to a handler function had we written it all ourselves. But we didn't have to!
+This is starting to look more like a custom implementation of what we would have written to marshal a request from a URI to a handler function, had we written it all ourselves. But we didn't have to!
 
 We still have `make-closing-handler` left to go in our expansion. Here is its definition:
 
@@ -642,7 +647,7 @@ We still have `make-closing-handler` left to go in our expansion. Here is its de
 	  (socket-close sock)))))
 ```
 
-So making a closing-handler involves making a `lambda`, which is just what you call anonymous functions in Common Lisp. We also set up an interior scope that makes a `response` out of the `body` argument we're passing in, `write!`s that to the requesting socket, then closes it. The remaining question is, what is `arguments`?
+So making a closing-handler involves making a `lambda`, which is just what you call anonymous functions in Common Lisp. We also set up an interior scope that makes a `response` out of the `body` argument we're passing in, performs a `write!` to the requesting socket, then closes it. The remaining question is, what is `arguments`?
 
 ```lisp
 (defun arguments (args body)
@@ -676,7 +681,7 @@ Welcome to the hard part. `arguments` turns the validators we registered with ou
 	     `((:name . ,name) (:message . ,message)))))
 ```
 
-into an "unrolled" sequence of checks needed to validate the request:
+...as an "unrolled" sequence of checks needed to validate the request:
 
 ```lisp
 (LAMBDA (SOCK #:COOKIE?1111 SESSION PARAMETERS)
@@ -782,11 +787,11 @@ HOUSE>
 
 We've been using forms like `aif` and `awhen` without understanding how they work, so let's take some time to explore them now.
 
-Recall that Lisp code is itself represented as a tree. That's what the parentheses are for; they show us how leaves and branches fit together. If we step back to what we were doing in the previous section, `make-closing-handler` calls a function called `arguments` to generate part of the Lisp tree its constructing, which in turn calls some tree-manipulating helper functions, including `arg-exp`, to generate its return value.
+Recall that Lisp code is itself represented as a tree. That's what the parentheses are for; they show us how leaves and branches fit together. If we step back to what we were doing in the previous section, `make-closing-handler` calls a function called `arguments` to generate part of the Lisp tree it's constructing, which in turn calls some tree-manipulating helper functions, including `arg-exp`, to generate its return value.
 
-That is, we've built a small system that takes a Lisp expression as input, produces a different Lisp expression as output. Possibly the simplest way of conceptualizing this is as a simple Common Lisp to Common Lisp compiler that is specialized to the problem at hand.
+That is, we've built a small system that takes a Lisp expression as input, and produces a different Lisp expression as output. Possibly the simplest way of conceptualizing this is as a simple Common–Lisp-to-Common–Lisp compiler that is specialized to the problem at hand.
 
-A widely used classification of such compilers are called _anaphoric macros_. This term comes from the linguistic concept of an _anaphor_, which is the use of one word as a substitute for a group of words that preceded it. `aif` and `awhen` are anaphoric macros, and they're the only ones that I tend to often use. There are many more availabile in the [`anaphora` package](http://www.cliki.net/Anaphora).
+A widely used classification of such compilers is as _anaphoric macros_. This term comes from the linguistic concept of an _anaphor_, which is the use of one word as a substitute for a group of words that preceded it. `aif` and `awhen` are anaphoric macros, and they're the only ones that I tend to often use. There are many more availabile in the [`anaphora` package](http://www.cliki.net/Anaphora).
 
 As far as I know, anaphoric macros were first defined by Paul Graham in an [OnLisp chapter](http://dunsmor.com/lisp/onlisp/onlisp_18.html). The use case he gives is a situation where you want to do some sort of expensive or semi-expensive check, then do something conditionally on the result. In the above context, we're using `aif` to do a check the result of an `alist` traversal.
 
@@ -800,7 +805,7 @@ As far as I know, anaphoric macros were first defined by Paul Graham in an [OnLi
 
 This takes the `cdr` of looking up the symbol `:room` in the association list `parameters`. If that returns a non-nil value, `uri-decode` it, otherwise throw an error of the type `http-assertion-error`.
 
-In other words, the above is equivalent to
+In other words, the above is equivalent to:
 
 ```lisp
 (let ((it (cdr (assoc :room parameters))))
@@ -827,7 +832,7 @@ a particular, necessary type."))
 (defmethod type-expression (parameter type) nil)
 ```
 
-This is a generic function that generates new tree structures (coincidentally Lisp code), rather than just a function. The only thing the above tells you is that by default, a `type-expression` is `NIL`. Which is to say, we don't have one. If we encounter a `NIL`, we use the raw output of `arg-exp`, but that doesn't tell us much about the most common case. To see that, lets take a look at a built-in (to `:house`) `define-http-type` expression.
+This is a generic function that generates new tree structures (coincidentally Lisp code), rather than just a function. The only thing the above tells you is that by default, a `type-expression` is `NIL`. Which is to say, we don't have one. If we encounter a `NIL`, we use the raw output of `arg-exp`, but that doesn't tell us much about the most common case. To see that, let's take a look at a built-in (to `:house`) `define-http-type` expression.
 
 ```lisp
 (define-http-type (:integer)
@@ -843,7 +848,7 @@ HOUSE> (type-expression 'blah :integer)
 HOUSE>
 ```
 
-`define-http-handler`[^readable] is one of the exported symbols for our framework. This lets our application programmers define their own types to simplify parsing above the handful of "builtins" that we give them (`:string`, `:integer`, `:keyword`, `:json`, `:list-of-keyword` and `:list-of-integer`.)
+`define-http-handler`[^readable] is one of the exported symbols for our framework. This lets our application programmers define their own types to simplify parsing above the handful of "builtins" that we give them (`:string`, `:integer`, `:keyword`, `:json`, `:list-of-keyword` and `:list-of-integer`).
 
 ```lisp
 (defmacro define-http-type ((type) &key type-expression type-assertion)
@@ -859,9 +864,9 @@ HOUSE>
 
 [^readable]: This macro is difficult to read because it tries hard to make its output human-readable, by expanding `NIL`s away using `,@` where possible.
 
-It works by creating `type-expression` and `type-assertion` method definitions for the type being defined. We could let users of our framewokr do this manually without much trouble; however, adding this extra level of indirection gives us, the framework programmers, the freedom to change _how_ types are implemented without forcing our users to re-write their specifications. This isn't just an academic consideration; I've personally made radical changes to this part of the system when first building it, and was pleased to find that I had to make very few edits to the applications that depended on it.
+It works by creating `type-expression` and `type-assertion` method definitions for the type being defined. We could let users of our framework do this manually without much trouble; however, adding this extra level of indirection gives us, the framework programmers, the freedom to change _how_ types are implemented without forcing our users to re-write their specifications. This isn't just an academic consideration; I've personally made radical changes to this part of the system when first building it, and was pleased to find that I had to make very few edits to the applications that depended on it.
 
-Lets take a look at the expansion of that integer definition to see how it works in detail:
+Let's take a look at the expansion of that integer definition to see how it works in detail:
 
 ```lisp
 (LET ((#:TP1288 :INTEGER))
@@ -887,7 +892,7 @@ immediately after conversion. Use it to restrict
 (defmethod type-assertion (parameter type) nil)
 ```
 
-Here's what this one outputs
+Here's what this one outputs:
 
 ```lisp
 HOUSE> (type-assertion 'blah :integer)
