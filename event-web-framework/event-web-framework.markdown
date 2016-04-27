@@ -73,9 +73,17 @@ Now that we've motivated our architectural decision and decided on a mechanism f
 
 ## Building an Event-Driven Web Server
 
+Most programs that use a single process to manage concurrent streams of work
+use a pattern called an _event loop_. Let's look at what an event loop for our
+web server might look like.
+
 ### The Event Loop
 
-The core of every event-driven program is the _event loop_, which looks something like this:
+Our event loop needs to:
+
+- listen for incoming connections;
+- handle all new handshakes or incoming data on existing connections;
+- clean up dangling sockets that are unexpectedly killed (e.g. by an interrupt)
 
 ```lisp
 (defmethod start ((port integer))
@@ -94,13 +102,6 @@ The core of every event-driven program is the _event loop_, which looks somethin
 	 do (loop while (socket-close c)))
       (loop while (socket-close server)))))
 ```
-
-In this loop, we have:
-
-- a server socket that listens for incoming connections;
-- a structure to store connections/buffers;
-- an infinite loop waiting for new handshakes or incoming data on an existing connection;
-- cleanup clauses to prevent dangling sockets that are unexpectedly killed (e.g. by an interrupt).
 
 If you haven't written a Common Lisp program before, this code block requires some explanation. What we have written here is a _method definition_. While Lisp is popularly known as a functional language, it also has its own system for object-oriented programming called "The Common Lisp Object System", which is usually abbreviated as "CLOS".[^CLOSpronounce]
 
