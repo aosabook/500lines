@@ -17,7 +17,7 @@ There are several standard approaches to enabling server push over HTTP.
 
 ### Comet/Long Poll
 
-The "long poll" technique has the client send the server a new request as soon as it receives a response. Instead of fulfilling that request right away, the server waits on a subsequent event to respond. This is a bit of a semantic distinction, since the client is still taking action on the users' behalf on every update.
+The "long poll" technique has the client send the server a new request as soon as it receives a response. Instead of fulfilling that request right away, the server waits on a subsequent event to respond. This is a bit of a semantic distinction, since the client is still taking action on every update.
 
 ### Server-Sent Events (SSE)
 
@@ -55,7 +55,7 @@ If we don't have cheap threads at our disposal or we are unwilling to work with 
 
 [^eventbased]: This nomenclature is a bit confusing, and has its origin in early operating-systems research. It refers to how communication is done between multiple concurrent processes. In a thread-based system, communication is done through a synchronized resource such as shared memory. In an event-based system, processes generally communicate through a queue where they post items that describe what they have done or what they want done, which is maintained by our single thread of execution. Since these items generally describe desired or past actions, they are referred to as 'events'.
 
-Since we are only managing a single thread, we don't have to worry as much about protecting shared resources from simultaneous access. However, we do have a unique problem of our own in this model. Since our single thread is working on all in-flight requests at once, we must make sure that it __never blocks__. Blocking on any connection blocks the entire server from making progress on any other request. We have to be able to move on to another client if the current one can't be serviced further, and we need to be able to do so in a manner that doesn't throw out all of the work done so far.[^crawler]
+Since we are only managing a single thread, we don't have to worry as much about protecting shared resources from simultaneous access. However, we do have a unique problem of our own in this model. Since our single thread is working on all in-flight requests at once, we must make sure that it __never blocks__. Blocking on any connection blocks the entire server from making progress on any other request. We have to be able to move on to another client if the current one can't be serviced further, and we need to be able to do so in a manner that doesn't throw out the work done so far.[^crawler]
 
 [^crawler]: See \aosachapref{s:crawler} for another take on this problem. 
 
@@ -176,8 +176,8 @@ This is more involved than the first case. We:
 
 1. Get the buffer associated with this socket, or create it if it doesn't exist yet;
 2. Read output into that buffer, which happens in the call to `buffer!`;
-3. If that read got us an `:eof`, it means the other side hung up, so we discard the socket _and_ its buffer;
-4. Otherwise, we check if the buffer is one of `complete?`, `too-big?`, `too-old?` or `too-needy?`. If it's any of them, we remove it from the connections table and return the appropriate HTTP response.
+3. If that read got us an `:eof`, the other side hung up, so we discard the socket _and_ its buffer;
+4. Otherwise, we check if the buffer is one of `complete?`, `too-big?`, `too-old?` or `too-needy?`. If so, we remove it from the connections table and return the appropriate HTTP response.
 
 This is the first time we're seeing I/O in our event loop. In our discussion in \aosasecref{sec.eventsweb.serverarch}, we mentioned that we have to be very careful about I/O in an event-driven system, because we could accidentally block our single thread. So, what do we do here to ensure that this doesn't happen? We have to explore our implementation of `buffer!` to find out exactly how this works.
 
@@ -210,7 +210,7 @@ When `buffer!` is called on a `buffer`, it:
 - loops to read characters from the input stream, and
 - returns the last character it read if it has read all of the available input.
 
-It also tracks any `\r\n\r\n` sequences so that we can later detect complete requests. Finally, if any error results, it returns an `:eof` to signal that `process-ready` should discard this particular connection.
+It also tracks any `\r\n\r\n` sequences so that we can later detect complete requests. Finally, if any error results, it returns an `:eof` to signal that `process-ready` should discard this connection.
 
 The `buffer` type is a CLOS [_class_](http://www.gigamonkeys.com/book/object-reorientation-classes.html). Classes in CLOS let us define a type with fields called `slots`. We don't see the behaviours associated with `buffer` on the class definition, because (as we've already learned), we do that using generic functions like `buffer!`.
 
@@ -262,7 +262,7 @@ We still haven't seen how requests are parsed and interpreted from one of our bu
 	    (parse str))))
 ```
 
-This high-level method delegates to a specialization of `parse` that works with plain strings, or to `parse-params` that interprets the buffer contents as HTTP parameters. These are called depending on how much of the request we've already processed; the final `parse` happens when we already have a partial `request` saved in the given `buffer`, at which point we're only looking to parse the request body.
+This high-level method delegates to a specialization of `parse` that works with plain strings, or to `parse-params` that interprets the buffer contents as HTTP parameters. These are called depending on how much of the request we've already processed; the final `parse` happens when we already have a partial `request` saved in the `buffer`, at which point we're only looking to parse the request body.
 
 
 ```lisp
@@ -298,7 +298,7 @@ The parsing process is:
 1. Split on `"\\r?\\n"`.
 2. Split the first line of that on `" "` to get the request type (`POST`, `GET`, etc)/URI path/http-version.
 3. Assert that we're dealing with an `HTTP/1.1` request.
-4. Split the URI path on `"?"`, which gives us plain resource separate from any potential `GET` parameters.
+4. Split the URI path on `"?"`, which gives us plain resource separate from any `GET` parameters.
 5. Make a new `request` instance with the resource in place.
 6. Populate that `request` instance with each split header line.
 7. Set that `request`s parameters to the result of parsing our `GET` parameters.
@@ -403,7 +403,7 @@ Note that we're doing the "Must not block" thing again. While writes are likely 
 
 [^timeout]: `with-timeout` has different implementations on different Lisps. In some environments, it may create another thread or process to monitor the one that invoked it. While we'd only be creating at most one of these at a time, it is a relatively heavyweight operation to be performing per-write. We might want to consider an alternative approach in those environments.
 
-Writing an `SSE` out is conceptually similar to, but mechanically different from, writing out a `response`:
+Writing an `SSE` out is conceptually similar to writing out a `response`:
 
 ```lisp
 (defmethod write! ((res sse) (socket usocket))
@@ -478,7 +478,7 @@ And with that, we have an event-driven web server that can respond to HTTP reque
 
 ## Extending the Server Into a Web Framework
 
-We have now built a reasonably functional web server that will move requests, responses, and messages to and from clients. The actual work of any web application hosted by this server is done by delegating to handler functions, which were introduced in \aosasecref{sec.eventsweb.handlerfunc} but left underspecified there.
+We have now built a reasonably functional web server that will move requests, responses, and messages to and from clients. The actual work of any web application hosted by this server is done by delegating to handler functions, which were introduced in \aosasecref{sec.eventsweb.handlerfunc} but left underspecified.
 
 The interface between our server and the hosted application is an important one, because it dictates how easily application programmers can work with our infrastructure. Ideally, our handler interface would map parameters from a request to a function that does the real work:
 
@@ -763,7 +763,7 @@ In the previous section, we briefly touched on three expressions that we're usin
 
 #### arg-exp
 
-`arg-exp` takes an argument symbol and creates an `aif` expression that checks for the presence of a parameter.
+`arg-exp` takes a symbol and creates an `aif` expression that checks for the presence of a parameter.
 
 ```lisp
 (defun arg-exp (arg-sym)
