@@ -1,58 +1,47 @@
 \begin{aosachapter}{Introduction}{s:intro}{Michael DiBernardo}
 
-It's commonplace to say that
-computer hardware is now so fast
-that most developers don't have to worry about performance. 
-In fact,
-Douglas Crockford declined to write a chapter for this book for that reason:
+This is the fourth volume in the \emph{Architecture of Open Source Applications}
+series, and the first to not feature the word `architecture' anywhere in the
+title. 
 
-\begin{quote}
-If I were to write a chapter, it would be about anti-performance:
-most effort spent in pursuit of performance is wasted.
-I don't think that is what you are looking for.
-\end{quote}
+The first three volumes in the series were about big problems that big programs
+had to solve. For an engineer who is early in their career, it may be a
+challenge to understand and build upon programs that are much bigger than a
+few thousand lines of code; so, while big problems can be interesting to
+read about, they can also be challenging to learn from.
 
-\noindent
-Donald Knuth made the same point thirty years ago:
+\emph{500 Lines or Less} focuses on the design decisions that programmers make
+in the small when they are building something new. The programs you will read
+in this book were all written from scratch for this purpose, although several
+of them were inspired by larger projects that the authors had worked on before.
 
-\begin{quote}
-We should forget about small efficiencies, say about 97\% of the time:
-premature optimization is the root of all evil.
-\end{quote}
+Before reading each chapter, we encourage you to first think about
+how you might solve the problem yourself. What design considerations
+or constraints do you think the author is going to consider important? What
+abstractions do you expect to see? How do you think the problem is going to be decomposed?
+Then, when reading the chapter, try to identify what surprised you. It is our
+hope that you will learn more by doing this than by simply reading through each
+chapter from beginning to end.
 
-\noindent
-but between mobile devices with limited power and memory,
-and data analysis projects that need to process terabytes,
-a growing number of developers \emph{do} need to make their code faster,
-their data structures smaller,
-and their response times shorter.
-However,
-while hundreds of textbooks explain the basics of operating systems,
-networks,
-computer graphics,
-and databases,
-few (if any) explain how to find and fix things
-in real applications
-that are simply too damn slow.
+Writing a useful program in fewer than 500 lines of source code without
+resorting to cheap tricks is a challenging exercise in itself; writing one to
+be read for pedagogical purposes when neatly rendered in a printed book is even
+tougher. As such, the editors have occasionally taken liberties with some of
+the source formatting when porting it into the book. The original
+source for each chapter can be found in the \url{src} subdirectory of project folder. 
 
-This collection of case studies is our attempt to fill that gap.
-Each chapter is written by real developers
-who have had to make an existing system faster
-or who had to design something to be fast in the first place.
-They cover many different kinds of software and performance goals;
-what they have in common is a detailed understanding of what actually happens when,
-and how the different parts of large applications fit together.
-Our hope is that this book will---like its predecessor \emph{The Architecture of Open Source Applications}---help
-you become a better developer
-by letting you look over these experts' shoulders.
+We hope that the experiences of the authors in this book will help you grow out
+of your comfort zone in your own programming practice. 
 
-\hspace{6cm} --- Tavish Armstrong
+\hspace{6cm} --- Michael DiBernardo
+
+\newpage
 
 \section*{Contributors}
 
-\hspace{\parindent} \emph{Michael DiBernardo (editorial)}: TODO.
+\hspace{\parindent} \emph{Michael DiBernardo (editorial)}: Michael DiBernardo is an engineer and director of delivery at Wave, and a past PyCon Canada chair. He writes at \url{mikedebo.ca}.
 
-\hspace{\parindent} \emph{Amy Brown (editorial)}: Amy Brown is a freelance editor based in Toronto. She specializes in science and academic editing, and working with self-publishing authors. She co-edited the \emph{Architecture of Open Source Applications} books with Greg Wilson. When she's not editing, she likes to sing and read.
+\emph{Amy Brown (editorial)}: Amy Brown is a freelance editor based in Toronto. She specializes in science and academic editing, and working with self-publishing authors. She co-edited the \emph{Architecture of Open Source Applications} books with Greg Wilson. When she's not editing, she likes to sing and read.
 
 \emph{Dethe Elza (Blockcode)}: Dethe is a geek dad, aesthetic programmer, mentor, and creator of the Waterbear visual programming tool. He co-hosts the Vancouver Maker Education Salons and wants to fill the world with robotic origami rabbits. 
 
@@ -60,19 +49,19 @@ by letting you look over these experts' shoulders.
 
 \emph{Dustin J. Mitchell (Cluster)}: Dustin is an open source software developer and release engineer at Mozilla. He has worked on projects as varied as a host configuration system in Puppet, a Flask-based web framework, unit tests for firewall configurations, and a continuous integration framework in Twisted Python. 
 
-\emph{Daniel Rocco (Contingent)}: Daniel loves Python, coffee, craft, stout, object and system design, bourbon, teaching, trees, and Latin guitar. Thrilled that he gets to write Python for a living, he is always on the lookout for opportunities to learn from others in the community, and to contribute by sharing knowledge. He is a frequent speaker at PyAtl on introductory topics, testing, design, and shiny things; he loves seeing the spark of wonder and delight in people's eyes when someone shares a novel, surprising, or beautiful idea. Daniel lives in Atlanta with a microbiologist and four aspiring rocketeers.
+\emph{Daniel Rocco (Contingent)}: Daniel loves Python, coffee, craft, stout, object and system design, bourbon, teaching, trees, and Latin guitar. Thrilled that he gets to write Python for a living, he is always on the lookout for opportunities to learn from others in the community, and to contribute by sharing knowledge. He is a frequent speaker at PyAtl on introductory topics, testing, design, and shiny things; he loves seeing the spark of delight in people's eyes when someone shares a surprising or beautiful idea. Daniel lives in Atlanta with a microbiologist and four aspiring rocketeers.
 
 \emph{Brandon Rhodes (Contingent)}: Brandon Rhodes started using Python in the late 1990s, and for 17 years has maintained the PyEphem library for amateur astronomers. He works at Dropbox, has taught Python programming courses for corporate clients, consulted on projects like the New England Wildflower Society's ``Go Botany'' Django site, and will be the chair of the PyCon conference in 2016 and 2017. Brandon believes that well-written code is a form of literature, that beautifully formatted code is a work of graphic design, and that correct code is one of the most transparent forms of thought.
 
 \emph{A. Jesse Jiryu Davis (Crawler)}: Jesse is a staff engineer at MongoDB in New York. He wrote Motor, the async MongoDB Python driver, and he is the lead developer of the MongoDB C Driver and a member of the PyMongo team. He contributes to asyncio and Tornado. He writes at \url{emptysqua.re}.
 
-\emph{Guido van Rossum (Crawler)}: Guido is the creator of Python, one of the major programming languages on and off the web. The Python community refers to him as the BDFL (Benevolent Dictator For Life), a title straight from a Monty Python skit.  Guido's home on the web is \url{www.python.org/~guido/}.
+\emph{Guido van Rossum (Crawler)}: Guido is the creator of Python, one of the major programming languages on and off the web. The Python community refers to him as the BDFL (Benevolent Dictator For Life), a title straight from a Monty Python skit. 
 
 \emph{Dann Toliver (Dagoba)}: Dann enjoys building things, like programming languages, databases, distributed systems, communities of smart friendly humans, and pony castles with his two year old.
 
 \emph{Taavi Burns (DBDB)}: As the newest bass (and sometimes tenor) in Countermeasure, Taavi strives to break the mould\ldots sometimes just by ignoring its existence. This is certainly true through the diversity of workplaces in his career: IBM (doing C and Perl), FreshBooks (all the things), Points.com (doing Python), and now at PagerDuty (doing Scala).  Aside from that—when not gliding along on his Brompton folding bike—you might find him playing Minecraft with his son or engaging in parkour (or rock climbing, or other adventures) with his wife. He knits continental.
 
-\emph{Leo Zovic}: TODO
+\emph{Leo Zovic}: Leo is a Ruby/Go developer at 500px. He likes programming, and learning new programming languages. 
 
 \emph{Dr.\@ Christian Muise (Flow shop)}: Dr.\@ Muise is a Research Fellow with the Model-based Embedded and Robotic Systems group at MIT's Computer Science and Artificial Intelligence Laboratory. He is interested in a variety of topics including AI, data-driven projects, mapping, graph theory, and data visualization, as well as celtic music, carving, soccer, and coffee.
 
@@ -86,7 +75,7 @@ by letting you look over these experts' shoulders.
 
 \emph{Carl Friedrich Bolz (Object model)}: Carl is a researcher at King's College London and is broadly interested in the implementation and optimization of all kinds of dynamic languages. He is one of the core authors of PyPy/RPython and has worked on implementations of Prolog, Racket, Smalltalk, PHP and Ruby. 
 
-\emph{Marina Samuel (OCR)}: TODO
+\emph{Marina Samuel (OCR)}: Marina is an engineer at Mozilla and a current MSc student in Applied Computing (Artifical Intelligence) at the University of Toronto. She hopes to one day build robots that will take over the planet.
 
 \emph{Dessy Daskalov (Pedometer)}: Dessy is an engineer by trade, an entrepreneur by passion, and a developer at heart. She's currently the CTO and co-founder of Nudge Rewards. When she’s not busy building product with her team, she can be found teaching others to code, attending or hosting a Toronto tech event, and online at \url{dessydaskalov.com} and \url{@dess_e}.
 
@@ -106,12 +95,11 @@ by letting you look over these experts' shoulders.
 
 \emph{Greg Wilson (Web server)}: Greg is the founder of Software Carpentry, a crash course in computing skills for scientists and engineers.  He has worked for 30 years in both industry and academia, and is the author or editor of several books on computing, including the 2008 Jolt Award winner \emph{Beautiful Code} and the first two volumes of \emph{The Architecture of Open Source Applications}. Greg received a PhD in Computer Science from the University of Edinburgh in 1993.
 
+\newpage 
+
 \section*{Acknowledgments}
 
-This book would not exist without the help of Amy Brown and Greg Wilson,
-who asked me to edit the book and convinced me that it was possible.
-I'm also grateful to Tony Arkles for his help in the earlier stages of editing,
-and to our technical reviewers:
+The \emph{Architecture of Open Source Applications} series would not exist without the hard work of Amy Brown and Greg Wilson. This particular book would not have been possible without the incredible efforts of our army of technical reviewers:
  
 \begin{multicols}{3}
 \noindent Amber Yust \\
@@ -172,13 +160,9 @@ Stefan Turalski \\
 William Lachance \\
 \end{multicols}
 
-\newpage  %% to rescue widowed line "A small army". 
+\noindent Chris Seaton, John Morrissey, and Natalie Black deserve extended thanks for going above and beyond in their technical reviewing. The quantity and depth of their reviews was instrumental in moving the book forward at several sticking points.
 
-\noindent Special thanks to Chris Seaton, John Morrissey, and Natalie Black for going above and beyond in their technical reviewing. The quantity and depth of their reviews was instrumental in moving the book forward at several sticking points.
-
-Amy Brown, Bruno Kinoshita, and Danielle Pham deserve special thanks
-for their help with the book's build process and graphics.
-
+We are very grateful to PagerDuty for their financial support. 
 
 \section*{Contributing}
 
