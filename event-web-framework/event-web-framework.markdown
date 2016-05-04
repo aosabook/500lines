@@ -1,5 +1,8 @@
 title: An Event-Driven Web Framework
 author: Leo Zovic
+<markdown>
+_Leo (better known online as inaimathi) is a recovering Graphic Designer who has professionally written Scheme, Common Lisp, Erlang, Javascript, Haskell, Clojure, Go, Python, PHP and C. He currently blogs about programming, plays board games and works at a Ruby-based startup in Toronto, Ontario._
+</markdown>
 
 In 2013, I decided to write a [web-based game prototyping tool](https://github.com/Inaimathi/deal) for card and board games called _House_. In these types of games, it is common for one player to wait for another player to make a move; however, when the other player finally does take action, we would like for the waiting player to be notified of the move quickly thereafter.
 
