@@ -346,7 +346,7 @@ This lower-level API is composed of the following four accessor functions:
 ```clojure
 (defn entity-at
    ([db ent-id] (entity-at db (:curr-time db) ent-id))
-   ([db ts ent-id] (stored-entity (get-in db [:layers ts :storage]) ent-id)))
+   ([db ts ent-id] (get-entity (get-in db [:layers ts :storage]) ent-id)))
 
 (defn attr-at
    ([db ent-id attr-name] (attr-at db ent-id attr-name (:curr-time db)))
