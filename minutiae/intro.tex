@@ -1,30 +1,30 @@
 \begin{aosachapter}{Introduction}{s:intro}{Michael DiBernardo}
 
 This is the fourth volume in the \emph{Architecture of Open Source Applications}
-series, and the first to not feature the word `architecture' anywhere in the
+series, and the first to not feature the words `open source applications' anywhere in the
 title. 
 
 The first three volumes in the series were about big problems that big programs
-had to solve. For an engineer who is early in their career, it may be a
+have to solve. For an engineer who is early in their career, it may be a
 challenge to understand and build upon programs that are much bigger than a
-few thousand lines of code; so, while big problems can be interesting to
+few thousand lines of code, so, while big problems can be interesting to
 read about, they can also be challenging to learn from.
 
 \emph{500 Lines or Less} focuses on the design decisions that programmers make
-in the small when they are building something new. The programs you will read
-in this book were all written from scratch for this purpose, although several
-of them were inspired by larger projects that the authors had worked on before.
+in the small when they are building something new. The programs you will read about
+in this book were all written from scratch for this purpose (although several
+of them were inspired by larger projects that the authors had worked on previously).
 
 Before reading each chapter, we encourage you to first think about
-how you might solve the problem yourself. What design considerations
+how you might solve the problem. What design considerations
 or constraints do you think the author is going to consider important? What
 abstractions do you expect to see? How do you think the problem is going to be decomposed?
 Then, when reading the chapter, try to identify what surprised you. It is our
 hope that you will learn more by doing this than by simply reading through each
 chapter from beginning to end.
 
-Writing a useful program in fewer than 500 lines of source code without
-resorting to cheap tricks is a challenging exercise in itself; writing one to
+Writing a useful program in fewer than 500 lines of source code---without
+resorting to cheap tricks---is a challenging exercise in itself; writing one to
 be read for pedagogical purposes when neatly rendered in a printed book is even
 tougher. As such, the editors have occasionally taken liberties with some of
 the source formatting when porting it into the book. The original
@@ -41,7 +41,7 @@ of your comfort zone in your own programming practice.
 
 \hspace{\parindent} \emph{Michael DiBernardo (editorial)}: Michael DiBernardo is an engineer and director of delivery at Wave, and a past PyCon Canada chair. He writes at \url{mikedebo.ca}.
 
-\emph{Amy Brown (editorial)}: Amy Brown is a freelance editor based in Toronto. She specializes in science and academic editing, and working with self-publishing authors. She co-edited the \emph{Architecture of Open Source Applications} books with Greg Wilson. When she's not editing, she likes to sing and read.
+\emph{Amy Brown (editorial)}: Amy Brown is a freelance editor based in Toronto. She specializes in science and academic editing, and working with self-publishing authors. She co-edited the \emph{Architecture of Open Source Applications} books with Greg Wilson. 
 
 \emph{Dethe Elza (Blockcode)}: Dethe is a geek dad, aesthetic programmer, mentor, and creator of the Waterbear visual programming tool. He co-hosts the Vancouver Maker Education Salons and wants to fill the world with robotic origami rabbits. 
 
@@ -57,21 +57,21 @@ of your comfort zone in your own programming practice.
 
 \emph{Guido van Rossum (Crawler)}: Guido is the creator of Python, one of the major programming languages on and off the web. The Python community refers to him as the BDFL (Benevolent Dictator For Life), a title straight from a Monty Python skit. 
 
-\emph{Dann Toliver (Dagoba)}: Dann enjoys building things, like programming languages, databases, distributed systems, communities of smart friendly humans, and pony castles with his two year old.
+\emph{Dann Toliver (Dagoba)}: Dann enjoys building things, like programming languages, databases, distributed systems, communities of smart friendly humans, and pony castles with his two-year-old.
 
 \emph{Taavi Burns (DBDB)}: As the newest bass (and sometimes tenor) in Countermeasure, Taavi strives to break the mould\ldots sometimes just by ignoring its existence. This is certainly true through the diversity of workplaces in his career: IBM (doing C and Perl), FreshBooks (all the things), Points.com (doing Python), and now at PagerDuty (doing Scala).  Aside from that—when not gliding along on his Brompton folding bike—you might find him playing Minecraft with his son or engaging in parkour (or rock climbing, or other adventures) with his wife. He knits continental.
 
 \emph{Leo Zovic}: Leo (better known online as inaimathi) is a recovering Graphic Designer who has professionally written Scheme, Common Lisp, Erlang, Javascript, Haskell, Clojure, Go, Python, PHP and C. He currently blogs about programming, plays board games and works at a Ruby-based startup in Toronto, Ontario.
 
-\emph{Dr.\@ Christian Muise (Flow shop)}: Dr.\@ Muise is a Research Fellow with the Model-based Embedded and Robotic Systems group at MIT's Computer Science and Artificial Intelligence Laboratory. He is interested in a variety of topics including AI, data-driven projects, mapping, graph theory, and data visualization, as well as celtic music, carving, soccer, and coffee.
+\emph{Dr.\@ Christian Muise (Flow shop)}: Dr.\@ Muise is a Research Fellow with the Model-based Embedded and Robotic Systems group at MIT's Computer Science and Artificial Intelligence Laboratory. He is interested in a variety of topics including AI, data-driven projects, mapping, graph theory, and data visualization, as well as Celtic music, carving, soccer, and coffee.
 
-\emph{Yoav Rubin (CircleDB)}: Yoav is a Senior Software Engineer at Microsoft, and prior to that was a Research Staff Member and a Master Inventor at IBM Research. He works now in the domain of data security in the cloud, and in the past his work focused on developing cloud or web based development environments. Yoav holds an M.Sc.\ in Medical Research in the field of Neuroscience and B.Sc in Information Systems Engineering. 
+\emph{Yoav Rubin (CircleDB)}: Yoav is a Senior Software Engineer at Microsoft, and prior to that was a Research Staff Member and a Master Inventor at IBM Research. He works now in the domain of data security in the cloud, and in the past his work focused on developing cloud- or web-based development environments. Yoav holds an MSc in Medical Research in the field of Neuroscience and BSc in Information Systems Engineering. 
 
-\emph{Cate Huston (Image filters)}: Cate is a developer and entrepreneur focused on mobile. She’s lived and worked in the UK, Australia, Canada, China and the United States, as an engineer at Google, an Extreme Blue intern at IBM, and a ski instructor. Cate speaks internationally on mobile development and her writing has been published on sites as varied as Lifehacker, The Daily Beast, The Eloquent Woman and Model View Culture. She co-curates Technically Speaking, blogs at Accidentally in Code and is \url{@catehstn} on Twitter.
+\emph{Cate Huston (Image filters)}: Cate is a developer and entrepreneur focused on mobile. She’s lived and worked in the UK, Australia, Canada, China and the United States, as an engineer at Google, an Extreme Blue intern at IBM, and a ski instructor. Cate speaks internationally on mobile development, and her writing has been published on sites as varied as Lifehacker, The Daily Beast, The Eloquent Woman and Model View Culture. She co-curates Technically Speaking, blogs at Accidentally in Code and is \url{@catehstn} on Twitter.
 
-\emph{Allison Kaptur (Interpreter)}: Allison is an engineer at Dropbox, where she helps maintain one of the largest networks of Python clients in the world. Before Dropbox, she was a facilitator at the Recurse Center, a writers retreat for programmers in New York. She's spoken at PyCon North America about Python internals and loves weird bugs.
+\emph{Allison Kaptur (Interpreter)}: Allison is an engineer at Dropbox, where she helps maintain one of the largest networks of Python clients in the world. Before Dropbox, she was a facilitator at the Recurse Center, a writers' retreat for programmers in New York. She's spoken at PyCon North America about Python internals, and loves weird bugs.
 
-\emph{Erick Dransch (Modeller)}: Erick is a software developer and 2D and 3D computer graphics enthusiast. He has worked on video games, 3D special effects software, and computer aided design tools. If it involves simulating reality, chances are he'd like to learn more about it. You can find him online at \url{erickdransch.com}.
+\emph{Erick Dransch (Modeller)}: Erick is a software developer and 2D and 3D computer graphics enthusiast. He has worked on video games, 3D special effects software, and computer-aided design tools. If it involves simulating reality, chances are he'd like to learn more about it. You can find him online at \url{erickdransch.com}.
 
 \emph{Carl Friedrich Bolz (Object model)}: Carl is a researcher at King's College London and is broadly interested in the implementation and optimization of all kinds of dynamic languages. He is one of the core authors of PyPy/RPython and has worked on implementations of Prolog, Racket, Smalltalk, PHP and Ruby. 
 
@@ -83,13 +83,13 @@ of your comfort zone in your own programming practice.
 
 \emph{Santiago Perez (Same-origin policy)}: Santiago is a PhD student in the Software Design Group at MIT. He received his SM in Computer Science from MIT (2015), and an undergraduate degree from ITBA (2011). He used to work at Google, developing frameworks and tools to make engineers more productive (2012). He currently spends most of his time thinking about design and version control.
 
-\emph{Daniel Jackson (Same-origin policy)}: Daniel is a professor in the Department of Electrical Engineering and Computer Science at MIT, and leads the Software Design Group in the Computer Science and Artificial Intelligence Laboratory. He received an MA from Oxford University (1984) in Physics, and his SM (1988) and PhD (1992) in Computer Science from MIT. He was a software engineer for Logica UK Ltd. (1984-1986), Assistant Professor of Computer Science at Carnegie Mellon University (1992-1997), and has been at MIT since 1997. He has broad interests in software engineering, especially in development methods, design and specification, formal methods, and safety critical systems.
+\emph{Daniel Jackson (Same-origin policy)}: Daniel is a professor in the Department of Electrical Engineering and Computer Science at MIT, and leads the Software Design Group in the Computer Science and Artificial Intelligence Laboratory. He received an MA from Oxford University (1984) in Physics, and his SM (1988) and PhD (1992) in Computer Science from MIT. He was a software engineer for Logica UK Ltd. (1984-1986), Assistant Professor of Computer Science at Carnegie Mellon University (1992-1997), and has been at MIT since 1997. He has broad interests in software engineering, especially in development methods, design and specification, formal methods, and safety-critical systems.
 
-\emph{Jessica B. Hamrick (Sampler)}: Jess is a Ph.D. student at UC Berkeley where she studies human cognition by combining probabilistic models from machine learning with behavioral experiments from cognitive science. In her spare time, Jess is a core contributor to IPython and Jupyter. She also holds a B.S. and M.Eng. in Computer Science from MIT.
+\emph{Jessica B. Hamrick (Sampler)}: Jess is a PhD student at UC Berkeley where she studies human cognition by combining probabilistic models from machine learning with behavioral experiments from cognitive science. In her spare time, Jess is a core contributor to IPython and Jupyter. She also holds a BS and MEng in Computer Science from MIT.
 
 \emph{Audrey Tang (Spreadsheet)}: A self-educated programmer and translator, Audrey works with Apple as an independent contractor on cloud service localization and natural language technologies. Audrey has previously designed and led the first working Perl 6 implementation, and served in computer language design committees for Haskell, Perl 5, and Perl 6. Currently Audrey is a full-time g0v contributor and leads Taiwan’s first e-Rulemaking project.
 
-\emph{Leah Hanson (Static analysis)}: Leah Hanson is a proud alumni of Hacker School and loves helping people learn about Julia. She blogs at \url{blog.leahhanson.us} and tweets at \url{@astrieanna}.
+emph{Leah Hanson (Static analysis)}: Leah Hanson is a proud alum of Hacker School and loves helping people learn about Julia. She blogs at \url{blog.leahhanson.us} and tweets at \url{@astrieanna}.
 
 \emph{Ned Batchelder (Template engine)}: Ned is a software engineer with a long career, currently working at edX to build open source software to educate the world.  He's the maintainer of coverage.py, an organizer of Boston Python, and has spoken at many PyCons.  He blogs at \url{nedbatchelder.com}. He once had dinner at the White House.
 
@@ -112,7 +112,7 @@ Ben Trofatter \\
 Borys Pierov \\
 Carise Fernandez \\
 Charles	Stanhope \\
-Chris Atlee \\
+Chris AtLee \\
 Chris Seaton \\
 Cyryl Płotnicki-Chudyk \\
 Dan Langer \\
