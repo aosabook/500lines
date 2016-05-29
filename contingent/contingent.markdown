@@ -1292,8 +1292,7 @@ indicating that Contingent was able to
 discover the connections between the various tasks
 needed to build our documents.
 
-\aosafigure[240pt]{contingent-images/figure4.png}{The complete set of relationships
-   between our input files and our HTML outputs.}{500l.contingent.graph4}
+\aosafigure[240pt]{contingent-images/figure4.png}{The complete set of relationships between our input files and our HTML outputs.}{500l.contingent.graph4}
 
 By watching one task invoke another
 through the `task` wrapper machinery,
