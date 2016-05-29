@@ -9,7 +9,11 @@ _(This chapter is also available in [Simplified Chinese](http://qingyunha.github
 
 Byterun is a Python interpreter implemented in Python. Through my work on Byterun, I was surprised and delighted to discover that the fundamental structure of the Python interpreter fits easily into the 500-line size restriction. This chapter will walk through the structure of the interpreter and give you enough context to explore it further. The goal is not to explain everything there is to know about interpreters&mdash;like so many interesting areas of programming and computer science, you could devote years to developing a deep understanding of the topic.
 
-Byterun was written by Ned Batchelder and myself, building on the work of Paul Swartz. Its structure is similar to the primary implementation of Python, CPython, so understanding Byterun will help you understand interpreters in general and the CPython interpreter in particular. (If you don't know which Python you're using, it's probably CPython.) Despite its short length, Byterun is capable of running most simple Python programs.
+Byterun was written by Ned Batchelder and myself, building on the work of Paul Swartz. Its structure is similar to the primary implementation of Python, CPython, so understanding Byterun will help you understand interpreters in general and the CPython interpreter in particular. (If you don't know which Python you're using, it's probably CPython.) Despite its short length, Byterun is capable of running most simple Python programs[^versions].
+
+[^versions]: This chapter is based on bytecode produced by Python 3.5 or
+earlier, as there were some changes to the bytecode specification in Python
+3.6. 
 
 ### A Python Interpreter
 
