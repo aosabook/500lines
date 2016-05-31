@@ -28,6 +28,7 @@ I recommend using `virtualenv <https://virtualenv.pypa.io/en/latest/>`_
 when installing dependencies:
 
 ::
+
     500lines/data-store$ virtualenv env
     500lines/data-store$ source env/bin/activate
     (env)500lines/data-store$ pip install -r requirements.txt
