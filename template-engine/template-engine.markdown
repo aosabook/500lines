@@ -673,7 +673,7 @@ template, the loop variables:
 ```
 <!-- [[[end]]] -->
 
-Later we'll see how these get used to help contruct the prologue of our
+Later we'll see how these get used to help construct the prologue of our
 function. First, we'll use the CodeBuilder class we wrote earlier to start to
 build our compiled function:
 
