@@ -224,8 +224,8 @@ sig Cookie {
 ```
 
 Each cookie is scoped with a set of domains; this captures the fact
-that a cookie can apply to "*.mit.edu", which would include all
-domains with the suffix "mit.edu".
+that a cookie can apply to `*.mit.edu`, which would include all
+domains with the suffix `mit.edu`.
 
 Finally, we can put this all together to construct a model of HTTP
 requests:

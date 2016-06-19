@@ -811,7 +811,7 @@ the address of the dispatcher.
 
 ### Control Flow Diagram
 
-\aosafigref{500l.ci.controlflow} is overview diagram of this system. This
+\aosafigref{500l.ci.controlflow} is an overview diagram of this system. This
 diagram assumes that all three files \newline (`repo_observer.py`,
 `dispatcher.py` and `test_runner.py`) are already running, and describes the
 actions each process takes when a new commit is made.

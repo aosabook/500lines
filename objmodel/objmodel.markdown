@@ -91,7 +91,7 @@ implements the object model and the code that is used to write the methods used
 in the objects. In a real system, the two would often be implemented in
 different programming languages.
 
-Let us start with a simple test for reading and writing object fields. \newpage
+Let us start with a simple test for reading and writing object fields.
 
 ```python
 def test_read_write_field():
@@ -245,7 +245,7 @@ metaclass of every class.
 
 \aosafigure[240pt]{objmodel-images/inheritance.png}{Inheritance}{500l.objmodel.inheritance}
 
-Now the first test passes. The second test checks that reading and writing attributes works on classes as well. It's easy to write, and passes immediately. 
+Now the first test passes. The second test checks that reading and writing attributes works on classes as well. It's easy to write, and passes immediately. \newpage
 
 ```python
 def test_read_write_field_class():
@@ -499,7 +499,7 @@ for in the class. If it is found in the class, and the attribute is a callable,
 it needs to be turned into a bound method. To emulate a bound method we simply
 use a closure. In addition to changing ``Base.read_attr`` we can also change
 ``Base.callmethod`` to use the new approach to calling methods to make sure all
-the tests still pass. \newpage
+the tests still pass.
 
 ```python
 class Base(object):
@@ -859,7 +859,7 @@ a different map, which ``next_map`` computes. The method uses the ``next_maps``
 dictionary to cache already created maps. That way, objects that have the same
 layout also end up using the same ``Map`` object.
 
-\aosafigure[240pt]{objmodel-images/maptransition.png}{Map transitions}{500l.objmodel.maptransition}
+\aosafigure[166pt]{objmodel-images/maptransition.png}{Map transitions}{500l.objmodel.maptransition}
 
 The ``Instance`` implementation that uses maps looks like this:
 
