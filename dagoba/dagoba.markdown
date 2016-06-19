@@ -924,7 +924,7 @@ There are a couple of tradeoffs with this approach: one is that spatial performa
 
 This second point isn't usually an issue, because of the phase separation between when our compiler runs its optimizations and when all the thunking occurs at runtime. In our case we don't have that advantage: because we're using method chaining to implement a fluent interface [^fluentinterface] if we also use thunks to achieve laziness we would thunk each new method as it is called, which means by the time we get to `run()` we have only a thunk as our input, and no way to optimize our query.
 
-[^fluentinterface]: Method chaining lets us write `g.v('Thor').in().out().run()` instead of the six lines of non-fluent JS required accomplish the same thing.
+[^fluentinterface]: Method chaining lets us write `g.v('Thor').in().out().run()` instead of the six lines of non-fluent JS required to accomplish the same thing.
 
 Interestingly, our fluent interface hides another difference between our query language and regular programming languages. The query `g.v('Thor').in().out().run()` could be rewritten as `run(out(in(v(g, 'Thor'))))` if we weren't using method chaining. In JS we would first process `g` and `'Thor'`, then `v`, then `in`, `out` and `run`, working from the inside out. In a language with non-strict semantics we would work from the outside in, processing each consecutive nested layer of arguments only as needed.
 
