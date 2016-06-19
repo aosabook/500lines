@@ -93,11 +93,11 @@ children = function(x) { return E.reduce(
   function(acc, e) { return ~x.indexOf(e[0]) ? acc.concat(e[1]) : acc }, [] )}
 ```
 
-Now we can say something like: 
+Now we can say something like:
 
 ```javascript
     children(children(children(parents(parents(parents([8]))))))
-``` 
+```
 
 It reads backwards and gets us lost in silly parens, but is otherwise pretty close to what we wanted. Take a minute to look at the code. Can you see any ways to improve it?
 
@@ -508,7 +508,7 @@ produces output in one-to-one correspondence with the grandchildren:
 
 ```javascript
     g.v('Thor').in().in().out().out().unique().run()
-``` 
+```
 
 The pipetype implementation:
 
@@ -924,7 +924,7 @@ There are a couple of tradeoffs with this approach: one is that spatial performa
 
 This second point isn't usually an issue, because of the phase separation between when our compiler runs its optimizations and when all the thunking occurs at runtime. In our case we don't have that advantage: because we're using method chaining to implement a fluent interface [^fluentinterface] if we also use thunks to achieve laziness we would thunk each new method as it is called, which means by the time we get to `run()` we have only a thunk as our input, and no way to optimize our query.
 
-[^fluentinterface]: Method chaining lets us write `g.v('Thor').in().out().run()` instead of a series of statements that accomplish the same thing.
+[^fluentinterface]: Method chaining lets us write `g.v('Thor').in().out().run()` instead of the six lines of non-fluent JS required accomplish the same thing.
 
 Interestingly, our fluent interface hides another difference between our query language and regular programming languages. The query `g.v('Thor').in().out().run()` could be rewritten as `run(out(in(v(g, 'Thor'))))` if we weren't using method chaining. In JS we would first process `g` and `'Thor'`, then `v`, then `in`, `out` and `run`, working from the inside out. In a language with non-strict semantics we would work from the outside in, processing each consecutive nested layer of arguments only as needed.
 
@@ -1331,7 +1331,7 @@ after the query transformers have all run. We could run the `times` transformer 
 
 ```javascript
     g.v('Thor').out().all().out().all().out().all().run()
-``` 
+```
 
 Then run the `all` transformer and have it transform each `all` into a uniquely labeled `as`, and put a `merge` after the last `as`.
 
