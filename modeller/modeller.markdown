@@ -159,7 +159,7 @@ To convert a vector $v$ from one coordinate space to another, we multiply by a t
 Some common transformation matrices are translations, scaling, and rotations.
 
 ### Model, World, View, and Projection Coordinate Spaces
-\aosafigure[240pt]{modeller-images/newtranspipe.png}{Transformation Pipeline }{500l.modeller.newtranspipe}
+\aosafigure[250pt]{modeller-images/newtranspipe.png}{Transformation Pipeline}{500l.modeller.newtranspipe}
 
 To draw an item to the screen, we need to convert between a few different coordinate spaces.
 

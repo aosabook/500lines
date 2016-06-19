@@ -1381,7 +1381,7 @@ public class ImageStateTest {
 }
 ```
 
-Notice that:
+\newpage Notice that:
 
 - We exposed a protected initialization method `set` for testing that helps us quickly get the system under test into a specific state.
 - We mock `PApplet`, `ColorHelper`, and `IFAImage` (created expressly for this purpose).
