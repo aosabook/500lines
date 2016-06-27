@@ -141,7 +141,7 @@ We will access the storage via a simple _protocol_, which will make it possible 
    (drop-entity [storage entity]))
 ```
 
-And here's our in-memory implementation of the protocol, which uses a map as the store:
+\noindent And here's our in-memory implementation of the protocol, which uses a map as the store:
 
 ```clojure
 (defrecord InMemory [] Storage

@@ -359,7 +359,7 @@ with some formatting placeholders:
 '''
 ```
 
-and the method that fills this in is:
+\noindent and the method that fills this in is:
 
 ```python
     def create_page(self):
@@ -606,7 +606,7 @@ class case_always_fail(object):
         raise ServerException("Unknown object '{0}'".format(handler.path))
 ```
 
-and here's how we construct the list of case handlers
+\noindent and here's how we construct the list of case handlers
 at the top of the `RequestHandler` class:
 
 ```python 
@@ -876,7 +876,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.wfile.write(content)
 ```
 
-while the parent class for our case handlers is:
+\noindent while the parent class for our case handlers is:
 
 ```python 
 class base_case(object):
@@ -901,7 +901,7 @@ class base_case(object):
         assert False, 'Not implemented.'
 ```
 
-and the handler for an existing file
+\noindent and the handler for an existing file
 (just to pick an example at random) is:
 
 ```python 

@@ -1218,7 +1218,7 @@ and it is the responsibility of the receiving document to
 _additionally_ check the `srcOrigin` parameter to ensure that the
 message is coming from a trustworthy document. Unfortunately, in
 practice, many sites omit this check, enabling a malicious document to
-inject bad content as part of a `PostMessage` [^postMessageStudy].
+inject bad content as part of a `PostMessage`[^postMessageStudy].
 
 However, the omission of the origin check may not simply be the result
 of programmer ignorance. Implementing an appropriate check on an incoming
@@ -1301,7 +1301,7 @@ resource on the server. This access pattern is appropriate if the
 resource is considered public and accessible to anyone. However, it
 turns out that many sites use "\*" as the default value even for
 private resources, inadvertently allowing malicious scripts to access
-them through CORS requests [^corsStudy].
+them through CORS requests[^corsStudy].
 
 Why would a developer ever use the wildcard? It turns out that
 specifying the allowed origins can be tricky, since it may not be

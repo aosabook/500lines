@@ -250,6 +250,7 @@ brace-hashes:
 In broad strokes, the template engine will have two main phases: _parsing_ the template, and then _rendering_ the template.
 
 Rendering the template specifically involves:
+
 * Managing the dynamic context, the source of the data
 * Executing the logic elements
 * Implementing dot access and filter execution
@@ -767,13 +768,13 @@ this:
 buffered.append("'hello'")
 ```
 
-which will mean that our compiled Python function will have this line:
+\noindent which will mean that our compiled Python function will have this line:
 
 ```python
 append_result('hello')
 ```
 
-which will add the string `hello` to the rendered output of the template. We have multiple levels of abstraction here which can be difficult to keep straight. The compiler uses \newline `buffered.append("'hello'")`, which creates `append_result('hello')` in the compiled Python function, which when run, appends `hello` to the template result.
+\noindent which will add the string `hello` to the rendered output of the template. We have multiple levels of abstraction here which can be difficult to keep straight. The compiler uses \newline `buffered.append("'hello'")`, which creates `append_result('hello')` in the compiled Python function, which when run, appends `hello` to the template result.
 
 Back to our Templite class. As we parse control structures, we want to check
 that they are properly nested.  The `ops_stack` list is a stack of strings:
@@ -1117,7 +1118,7 @@ expression.  Our template expressions can be as simple as a single name:
 {{user_name}}
 ```
 
-or can be a complex sequence of attribute accesses and filters:
+\noindent or can be a complex sequence of attribute accesses and filters:
 
 ```
 {{user.name.localized|upper|escape}}

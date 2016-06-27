@@ -701,7 +701,7 @@ the digit predicted by the ANN.
 Many resources are available online that go into greater detail on the
 implementation of backpropagation. One good resource is from a [course by the
 University of
-Williamette](http://www.willamette.edu/~gorr/classes/cs449/backprop.html). It
+Willamette](http://www.willamette.edu/~gorr/classes/cs449/backprop.html). It
 goes over the steps of backpropagation and then explains how it can be
 translated into matrix form. While the amount of computation using matrices is
 the same as using loops, the benefit is that the code is simpler and easier to

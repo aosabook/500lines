@@ -11,9 +11,9 @@ _[Dann](https://twitter.com/dann) enjoys building things, like programming langu
 > "What went forth to the ends of the world to traverse not itself, God, the sun, Shakespeare, a commercial traveller, having itself traversed in reality itself becomes that self."
 > &mdash;James Joyce
 
-A long time ago, when the world was still young, all data walked happily in single file. If you wanted your data to jump over a fence, you just set the fence down in its path and each datum jumped it in turn. Punch cards in, punch cards out. Life was easy and programming was a breeze.
+\noindent A long time ago, when the world was still young, all data walked happily in single file. If you wanted your data to jump over a fence, you just set the fence down in its path and each datum jumped it in turn. Punch cards in, punch cards out. Life was easy and programming was a breeze.
 
-Then came the random access revolution, and data grazed freely across the hillside. Herding data became a serious concern: if you can access any piece of data at any time, how do you know which one to pick next? Techniques were developed for corralling the data by forming links between items [^items], marshaling groups of units into formation through their linking assemblage. Questioning data meant picking a sheep and pulling along everything connected to it.
+Then came the random access revolution, and data grazed freely across the hillside. Herding data became a serious concern: if you can access any piece of data at any time, how do you know which one to pick next? Techniques were developed for corralling the data by forming links between items[^items], marshaling groups of units into formation through their linking assemblage. Questioning data meant picking a sheep and pulling along everything connected to it.
 
 Later programmers departed from this tradition, imposing a set of rules on how data would be aggregated[^relationaltheory]. Rather than tying disparate data directly together they would cluster by content, decomposing data into bite-sized pieces, collected in pens and collared with name tags. Questions were posed declaratively, resulting in accumulating pieces of partially decomposed data (a state the relationalists refer to as "normal") into a frankencollection returned to the programmer.
 
@@ -28,7 +28,7 @@ The distributed revolution changed everything, again. Data broke free of spacial
 
 ## Take One
 
-Within this chapter we're going to build a graph database[^dagoba]. As we build it we're going to explore the problem space, generate multiple solutions for our design decisions, compare those solutions to understand the tradeoffs between them, and finally choose the right solution for our system. A higher-than-usual precedence is put on code compactness, but the process will otherwise mirror that used by software professionals since time immemorial. The purpose of this chapter is to teach this process. And to build a graph database.[^purpose]
+Within this chapter we're going to build a graph database[^dagoba]. As we build it we're going to explore the problem space, generate multiple solutions for our design decisions, compare those solutions to understand the tradeoffs between them, and finally choose the right solution for our system. A higher-than-usual precedence is put on code compactness, but the process will otherwise mirror that used by software professionals since time immemorial. The purpose of this chapter is to teach this process. And to build a graph database[^purpose].
 
 [^dagoba]: This database started life as a library for managing Directed Acyclic Graphs, or DAGs. Its name "Dagoba" was originally intended to come with a silent 'h' at the end, an homage to the swampy fictional planet, but reading the back of a chocolate bar one day we discovered the sans-h version refers to a place for silently contemplating the connections between things, which seems even more fitting.
 
@@ -105,7 +105,7 @@ We're treating the edges as a global variable, which means we can only ever have
 
 We're also not using the vertices at all. What does that tell us? It implies that everything we need is in the edges array, which in this case is true: the vertex values are scalars, so they exist independently in the edges array. If we want to answer questions like "What is Freyja's connection to the Valkyries?" we'll need to add more data to the vertices, which means making them compound values, which means the edges array should reference vertices instead of copying their value.
 
-The same holds true for our edges: they contain an "in" vertex and an "out" vertex [^vertexnote], but no elegant way to incorporate additional information. We'll need that to answer questions like "How many stepparents did Loki have?" or "How many children did Odin have before Thor was born?"
+The same holds true for our edges: they contain an "in" vertex and an "out" vertex[^vertexnote], but no elegant way to incorporate additional information. We'll need that to answer questions like "How many stepparents did Loki have?" or "How many children did Odin have before Thor was born?"
 
 You don't have to squint very hard to tell that the code for our two selectors looks very similar, which suggests there may be a deeper abstraction from which they spring.
 
@@ -145,7 +145,7 @@ Dagoba.graph = function(V, E) {                 // the factory
 }
 ```
 
-We'll accept two optional arguments: a list of vertices and a list of edges. JavaScript is rather lax about parameters, so all named parameters are optional and default to `undefined` if not supplied [^optionalparams]. We will often have the vertices and edges before building the graph and use the V and E parameters, but it's also common to not have those at creation time and to build the graph up programmatically [^graphbuilding].
+We'll accept two optional arguments: a list of vertices and a list of edges. JavaScript is rather lax about parameters, so all named parameters are optional and default to `undefined` if not supplied[^optionalparams]. We will often have the vertices and edges before building the graph and use the V and E parameters, but it's also common to not have those at creation time and to build the graph up programmatically[^graphbuilding].
 
 [^optionalparams]: It's also lax in the other direction: all functions are variadic, and all arguments are available by position via the `arguments` object, which is almost like an array but not quite. ("Variadic" is a fancy way of saying a function has indefinite arity. "A function has indefinite arity" is a fancy way of saying it takes a variable number of variables.)
 
@@ -176,7 +176,7 @@ Dagoba.G.addVertex = function(vertex) {         // accepts a vertex-like object
 }
 ```
 
-If the vertex doesn't already have an `_id` property we assign it one using our autoid. [^autoid] If the `_id` already exists on a vertex in our graph then we reject the new vertex. Wait, when would that happen? And what exactly is a vertex?
+If the vertex doesn't already have an `_id` property we assign it one using our autoid.[^autoid] If the `_id` already exists on a vertex in our graph then we reject the new vertex. Wait, when would that happen? And what exactly is a vertex?
 
 [^autoid]: Why can't we just use `this.vertices.length` here?
 
@@ -414,12 +414,14 @@ There are a couple of common ways of determining this: in a statically typed sys
 
 [^referencecounter]: Most modern JS runtimes employ generational garbage collectors, and the language is intentionally kept at arm's length from the engine's memory management to curtail a source of programmatic non-determinism.
 
-JavaScript doesn't have either of these facilities, but we can get almost the same effect if we're really, really disciplined. Which we will be. For now. \newpage
+JavaScript doesn't have either of these facilities, but we can get almost the same effect if we're really, really disciplined. Which we will be. For now. 
 
 
 #### In-N-Out
 
 Walking the graph is as easy as ordering a burger. These two lines set up the `in` and `out` pipetypes for us.
+
+\newpage 
 
 ```javascript
 Dagoba.addPipetype('out', Dagoba.simpleTraversal('out'))
@@ -467,11 +469,14 @@ In this case, with a dozen or so pipetypes, the right choice seems to be to styl
 
 #### Property
 
-Let's pause for a moment to consider an example query based on the three pipetypes we've seen. We can ask for Thor's grandparents like this: `g.v('Thor').out('parent').out('parent').run()` [^runnote]. But what if we wanted their names?
+Let's pause for a moment to consider an example query based on the three pipetypes we've seen. We can ask for Thor's grandparents like this[^runnote]: 
 
 [^runnote]: The `run()` at the end of the query invokes the interpreter and returns results.
 
-We could put a map on the end of that:
+```javascript
+g.v('Thor').out('parent').out('parent').run()
+``` 
+But what if we wanted their names? We could put a map on the end of that:
 
 ```javascript
 g.v('Thor').out('parent').out('parent').run()

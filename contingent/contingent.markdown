@@ -1155,17 +1155,15 @@ The wrapper can access the original version of the function
 via the name `function`,
 calling it at the appropriate time.
 The body of the Contingent wrapper
-runs something like this: \newpage
+runs something like this:
 
 ```python
     def task(function):
         @wraps(function)
         def wrapper(*args):
             task = Task(wrapper, args)
-
             if self.task_stack:
                 self._graph.add_edge(task, self.task_stack[-1])
-
             self._graph.clear_inputs_of(task)
             self._task_stack.append(task)
             try:
@@ -1347,7 +1345,7 @@ under the name `_` for use in the subsequent expression.)
 This recursive task of looking repeatedly for immediate consequences
 and only stopping when we arrive at tasks with no further consequences
 is a basic enough graph operation that it is supported directly
-by a method on the `Graph` class: \newpage
+by a method on the `Graph` class:
 
 ```python
 >>> # Secretly adjust pprint to a narrower-than-usual width:

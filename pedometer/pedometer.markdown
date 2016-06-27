@@ -216,7 +216,7 @@ When bumpiness occurs at our threshold, we can mistakenly count too many steps f
 
 \aosafigure[333pt]{pedometer-images/acceleration-filtered.png}{Tweaked peaks}{500l.pedometer.accelerationfiltered}
 
-In accounting for these four scenarios, we've managed to bring our messy $a(t)$ fairly close to our ideal sine wave (\aosafigref{500l.pedometer.accelerationfiltered}), allowing us to count steps.
+\noindent In accounting for these four scenarios, we've managed to bring our messy $a(t)$ fairly close to our ideal sine wave (\aosafigref{500l.pedometer.accelerationfiltered}), allowing us to count steps.
 
 ### Recap
 

@@ -543,7 +543,7 @@ input:focus + div { white-space: nowrap; }
 
 ## Conclusion
 
-Since this book is _500 Lines or Less_, a web spreadsheet in 99 lines is a minimal example — please feel free to experiment and extend it in any direction you’d like.
+Since this book is _500 Lines or Less_, a web spreadsheet in 99 lines is a minimal example&mdash;please feel free to experiment and extend it in any direction you’d like.
 
 Here are some ideas, all easily reachable in the remaining space of 401 lines:
 
@@ -563,4 +563,4 @@ For people preferring a cleaner syntax, the [as-livescript-1.3.0](https://audrey
 
 Building on the LiveScript language, the [as-react-livescript](https://audreyt.github.io/500lines/spreadsheet/as-react-livescript/) directory uses the [ReactJS](https://facebook.github.io/react/) framework; [it is 10 lines more longer](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-react-livescript) than the AngularJS equivalent, but runs considerably faster.
 
-If you are interested in translating this example to alternate JS languages, send a [pull request](https://github.com/audreyt/500lines/pulls) — I’d love to hear about it!
+If you are interested in translating this example to alternate JS languages, send a [pull request](https://github.com/audreyt/500lines/pulls)&mdash;I’d love to hear about it!

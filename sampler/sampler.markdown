@@ -244,7 +244,7 @@ as well).
 Before we get into the rest of the class, let's go over
 two points related to the constructor.
 
-#### Descriptive vs. Mathematic Variable Names
+#### Descriptive versus Mathematic Variable Names
 
 Usually, programmers are encouraged to use descriptive variable names:
 for example, it would be considered better practice to use the names
@@ -333,10 +333,10 @@ numbers come from. We create it as follows:
 >>> rso = np.random.RandomState(230489)
 ```
 
-where the number passed to the `RandomState` constructor is the *seed*
-for the random number generator. As long as we instantiate it with the
-same seed, a `RandomState` object will produce the same "random"
-numbers in the same order, thus ensuring replicability:
+\noindent where the number passed to the `RandomState` constructor is the
+*seed* for the random number generator. As long as we instantiate it with the
+same seed, a `RandomState` object will produce the same "random" numbers in the
+same order, thus ensuring replicability:
 
 ```python
 >>> rso.rand()
