@@ -91,7 +91,7 @@ def main(chapters=[], epub=False, pdf=False, html=False, mobi=False, pandoc_epub
         './web-server/web-server-images',
         ]
 
-    run('cp -r minutiae/ tex')
+    run('cp -r minutiae/pdf/ tex')
 
     with open('tex/500L.tex', 'w') as out:
         with open('tex/500L.template.tex') as template:
@@ -131,11 +131,11 @@ def main(chapters=[], epub=False, pdf=False, html=False, mobi=False, pandoc_epub
         for imgpath in image_paths:
             # This is silly but oh well
             run('cp -a {imgpath} html/content/pages/'.format(imgpath=imgpath))
+        run('cp minutiae/html/introduction.md html/content/pages/.')
         build_html(process_chapters)
         for imgpath in image_paths:
             # So you thought that was silly? Lemme show ya
             run('cp -a {imgpath} html/output/pages/'.format(imgpath=imgpath))
-
 
 def build_pdf():
     os.chdir('tex')
@@ -194,7 +194,7 @@ def build_mobi():
 def build_html(chapter_markdowns):
     run('mkdir -p html/content/pages')
     temp = 'python _build/preprocessor.py --chapter {chap} --html-refs --output={md}.1 --latex {md}'
-    temp2 = 'pandoc --csl=minutiae/ieee.csl --mathjax -t html -f markdown+citations -o html/content/pages/{basename}.md {md}.1'
+    temp2 = 'pandoc --csl=minutiae/pdf/ieee.csl --mathjax -t html -f markdown+citations -o html/content/pages/{basename}.md {md}.1'
     temp3 = './_build/fix_html_title.sh html/content/pages/{basename}.md'
     for i, markdown in enumerate(chapter_markdowns):
         basename = os.path.splitext(os.path.split(markdown)[1])[0]

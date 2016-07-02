@@ -15,7 +15,7 @@ FTP_TARGET_DIR=/
 SSH_HOST=aosabook.org
 SSH_PORT=22
 SSH_USER=aosabook
-SSH_TARGET_DIR=/home/aosabook/www/en/500L
+SSH_TARGET_DIR=/home/aosabook/aosabook.org/en/500L
 
 S3_BUCKET=my_s3_bucket
 
