@@ -7,7 +7,7 @@ exception of LaTeX on OS X (common practice seems to be installing
 [MacTex](https://tug.org/mactex/) via the pkg installer.)
 
 ## Base instructions:
-- Install [Python 2.7](https://www.python.org/download/releases/2.7.8/). 
+- Install [Python 2.7](https://www.python.org/downloads/). 
 - You may want to use [virtualenv](https://virtualenv.pypa.io/en/stable/) to
   isolate your Python build environment for 500Lines.
   [pyenv](https://github.com/yyuu/pyenv) is a simple way to manage this:
