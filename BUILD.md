@@ -34,7 +34,7 @@ exception of LaTex on OS X (common practice seems to be installing
 Warning: the ePub version of 500Lines is an "unsupported product"; the print
 and code formatting is poor, raw LaTeX is displayed in several places, the code
 is difficult to read, and images have not been optimized for the format.
-However, if you really want 500Lines in your favorite eReader, this is one way
+However, if you really want 500Lines in your favorite reader, this is one way
 to do it.
 
 - `python build.py --epub --pandoc-epub`
