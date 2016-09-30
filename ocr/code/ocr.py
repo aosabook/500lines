@@ -93,7 +93,8 @@ class OCRNeuralNetwork:
         y2 = self.sigmoid(y2)
 
         results = y2.T.tolist()[0]
-        return results.index(max(results))
+        # get the max value's index from the result which is the digit we predict
+        return max(enumerate(results), key = lambda x: x[1])[0]
 
     def save(self):
         if not self._use_file:
