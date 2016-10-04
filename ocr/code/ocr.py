@@ -1,12 +1,8 @@
-import csv
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import numpy as np
-from numpy import matrix
-from math import pow
 from collections import namedtuple
 import math
-import random
 import os
 import json
 
