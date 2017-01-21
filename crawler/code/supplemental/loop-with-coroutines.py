@@ -18,9 +18,6 @@ class Future:
         self.result = None
         self._callbacks = []
 
-    def result(self):
-        return self.result
-
     def add_done_callback(self, fn):
         self._callbacks.append(fn)
 
