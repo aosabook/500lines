@@ -102,8 +102,8 @@ class Fetcher:
         concurrency_achieved = max(concurrency_achieved, len(urls_todo))
 
         sock = socket.socket()
-        yield from connect(sock, ('xkcd.com', 80))
-        get = 'GET {} HTTP/1.0\r\nHost: xkcd.com\r\n\r\n'.format(self.url)
+        yield from connect(sock, ('aosabook.org', 80))
+        get = 'GET {} HTTP/1.0\r\nHost: aosabook.org\r\n\r\n'.format(self.url)
         sock.send(get.encode('ascii'))
         self.response = yield from read_all(sock)
 
@@ -132,9 +132,13 @@ class Fetcher:
             if parts.scheme not in ('', 'http', 'https'):
                 continue
             host, port = urllib.parse.splitport(parts.netloc)
-            if host and host.lower() not in ('xkcd.com', 'www.xkcd.com'):
+            if host and host.lower() not in ('aosabook.org',
+                                             'www.aosabook.org'):
                 continue
             defragmented, frag = urllib.parse.urldefrag(parts.path)
+            if defragmented == '':
+                defragmented = '/'
+
             if defragmented not in urls_seen:
                 urls_todo.add(defragmented)
                 urls_seen.add(defragmented)

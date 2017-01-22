@@ -29,14 +29,14 @@ class Fetcher:
         self.sock = socket.socket()
         self.sock.setblocking(False)
         try:
-            self.sock.connect(('xkcd.com', 80))
+            self.sock.connect(('aosabook.org', 80))
         except BlockingIOError:
             pass
         selector.register(self.sock.fileno(), EVENT_WRITE, self.connected)
 
     def connected(self, key, mask):
         selector.unregister(key.fd)
-        get = 'GET {} HTTP/1.0\r\nHost: xkcd.com\r\n\r\n'.format(self.url)
+        get = 'GET {} HTTP/1.0\r\nHost: aosabook.org\r\n\r\n'.format(self.url)
         self.sock.send(get.encode('ascii'))
         selector.register(key.fd, EVENT_READ, self.read_response)
 
@@ -79,9 +79,12 @@ class Fetcher:
             if parts.scheme not in ('', 'http', 'https'):
                 continue
             host, port = urllib.parse.splitport(parts.netloc)
-            if host and host.lower() not in ('xkcd.com', 'www.xkcd.com'):
+            if host and host.lower() not in ('aosabook.org',
+                                             'www.aosabook.org'):
                 continue
             defragmented, frag = urllib.parse.urldefrag(parts.path)
+            if defragmented == '':
+                defragmented = '/'
             links.add(defragmented)
 
         return links

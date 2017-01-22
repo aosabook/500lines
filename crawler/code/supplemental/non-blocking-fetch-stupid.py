@@ -4,11 +4,11 @@ import socket
 sock = socket.socket()
 sock.setblocking(False)
 try:
-    sock.connect(('xkcd.com', 80))
+    sock.connect(('aosabook.org', 80))
 except BlockingIOError:
     pass
 
-request = 'GET /353/ HTTP/1.0\r\nHost: xkcd.com\r\n\r\n'
+request = 'GET /en/index.html HTTP/1.0\r\nHost: aosabook.org\r\n\r\n'
 encoded = request.encode('ascii')
 
 while True:
