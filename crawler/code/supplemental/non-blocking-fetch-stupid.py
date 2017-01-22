@@ -19,3 +19,19 @@ while True:
         pass
 
 print('sent')
+
+response = b''
+chunk = b''
+
+while True:
+    try:
+        chunk = sock.recv(4096)
+    except OSError:
+        continue
+
+    if chunk:
+        response += chunk
+    else:
+        break
+
+print('Got {} bytes'.format(len(response)))
