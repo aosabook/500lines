@@ -4,4 +4,4 @@
 #
 # Install this package with "python3 -m pip install -r requirements.txt".
 
-aiohttp>=0.21
+aiohttp>=1.2
