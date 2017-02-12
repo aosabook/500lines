@@ -247,6 +247,6 @@ class Templite(object):
                 value = getattr(value, dot)
             except AttributeError:
                 value = value[dot]
-            if callable(value):
-                value = value()
+        if callable(value):
+            value = value()
         return value
