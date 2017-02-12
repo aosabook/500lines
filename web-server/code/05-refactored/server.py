@@ -106,7 +106,7 @@ class case_directory_no_index_file(base_case):
             page = self.Listing_Page.format('\n'.join(bullets))
             handler.send_content(page)
         except OSError as msg:
-            msg = "'{0}' cannot be listed: {1}".format(self.path, msg)
+            msg = "'{0}' cannot be listed: {1}".format(full_path, msg)
             handler.handle_error(msg)
 
     def test(self, handler):
