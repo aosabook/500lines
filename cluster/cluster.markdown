@@ -853,7 +853,7 @@ class Seed(Role):
 
 The requester role manages a request to the distributed state machine.
 The role class simply sends ``Invoke`` messages to the local replica until it receives a corresponding ``Invoked``.
-See the "Replica" section, above, for this role's communication diagram.
+See the \aosasecref{sec.cluster.replica} section, above, for this role's communication diagram.
 
 ```python
 class Requester(Role):
