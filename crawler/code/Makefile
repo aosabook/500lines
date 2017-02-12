@@ -1,4 +1,5 @@
-PYTHON3=python3.4
+# Use whichever Python 3 is default on your system or in your virtualenv.
+PYTHON3=python3
 test:
 	$(PYTHON3) crawl.py -q what-if.xkcd.com
 

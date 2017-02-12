@@ -21,13 +21,13 @@ We can hasten this process by downloading many pages concurrently. As the crawle
 
 ## The Traditional Approach
 
-How do we make the crawler concurrent? Traditionally we would create a thread pool. Each thread would be in charge of downloading one page at a time over a socket. For example, to download a page from `xkcd.com`:
+How do we make the crawler concurrent? Traditionally we would create a thread pool. Each thread would be in charge of downloading one page at a time over a socket. For example, to download a page from `aosabook.org`, the site for the Architecture of Open Source Applications books:
 
 ```python
 def fetch(url):
     sock = socket.socket()
-    sock.connect(('xkcd.com', 80))
-    request = 'GET {} HTTP/1.0\r\nHost: xkcd.com\r\n\r\n'.format(url)
+    sock.connect(('aosabook.org', 80))
+    request = 'GET {} HTTP/1.0\r\nHost: aosabook.org\r\n\r\n'.format(url)
     sock.send(request.encode('ascii'))
     response = b''
     chunk = sock.recv(4096)
@@ -60,7 +60,7 @@ before we begin to connect to the server:
 sock = socket.socket()
 sock.setblocking(False)
 try:
-    sock.connect(('xkcd.com', 80))
+    sock.connect(('aosabook.org', 80))
 except BlockingIOError:
     pass
 ```
@@ -70,7 +70,7 @@ Irritatingly, a non-blocking socket throws an exception from `connect`, even whe
 Now our crawler needs a way to know when the connection is established, so it can send the HTTP request. We could simply keep trying in a tight loop:
 
 ```python
-request = 'GET {} HTTP/1.0\r\nHost: xkcd.com\r\n\r\n'.format(url)
+request = 'GET {} HTTP/1.0\r\nHost: aosabook.org\r\n\r\n'.format(url)
 encoded = request.encode('ascii')
 
 while True:
@@ -95,7 +95,7 @@ selector = DefaultSelector()
 sock = socket.socket()
 sock.setblocking(False)
 try:
-    sock.connect(('xkcd.com', 80))
+    sock.connect(('aosabook.org', 80))
 except BlockingIOError:
     pass
 
@@ -162,7 +162,7 @@ We begin by calling `Fetcher.fetch`:
         self.sock = socket.socket()
         self.sock.setblocking(False)
         try:
-            self.sock.connect(('xkcd.com', 80))
+            self.sock.connect(('aosabook.org', 80))
         except BlockingIOError:
             pass
             
@@ -175,8 +175,8 @@ We begin by calling `Fetcher.fetch`:
 The `fetch` method begins connecting a socket. But notice the method returns before the connection is established. It must return control to the event loop to wait for the connection. To understand why, imagine our whole application was structured so:
 
 ```python
-# Begin fetching http://xkcd.com/353/
-fetcher = Fetcher('/353/')
+# Begin fetching http://aosabook.org/en/index.html
+fetcher = Fetcher('/en/index.html')
 fetcher.fetch()
 
 while True:
@@ -195,7 +195,7 @@ Here is the implementation of `connected`:
     def connected(self, key, mask):
         print('connected!')
         selector.unregister(key.fd)
-        request = 'GET {} HTTP/1.0\r\nHost: xkcd.com\r\n\r\n'.format(self.url)
+        request = 'GET {} HTTP/1.0\r\nHost: aosabook.org\r\n\r\n'.format(self.url)
         self.sock.send(request.encode('ascii'))
         
         # Register the next callback.
@@ -258,8 +258,8 @@ Let us explain what we mean by that. Consider how simply we fetched a URL on a t
 # Blocking version.
 def fetch(url):
     sock = socket.socket()
-    sock.connect(('xkcd.com', 80))
-    request = 'GET {} HTTP/1.0\r\nHost: xkcd.com\r\n\r\n'.format(url)
+    sock.connect(('aosabook.org', 80))
+    request = 'GET {} HTTP/1.0\r\nHost: aosabook.org\r\n\r\n'.format(url)
     sock.send(request.encode('ascii'))
     response = b''
     chunk = sock.recv(4096)
@@ -493,7 +493,7 @@ class Fetcher:
         self.sock = socket.socket()
         self.sock.setblocking(False)
         try:
-            self.sock.connect(('xkcd.com', 80))
+            self.sock.connect(('aosabook.org', 80))
         except BlockingIOError:
             pass
         selector.register(self.sock.fileno(),
@@ -512,7 +512,7 @@ The `fetch` method begins connecting a socket, then registers the callback, `con
         sock = socket.socket()
         sock.setblocking(False)
         try:
-            sock.connect(('xkcd.com', 80))
+            sock.connect(('aosabook.org', 80))
         except BlockingIOError:
             pass
 
@@ -549,8 +549,8 @@ class Task:
 
         next_future.add_done_callback(self.step)
 
-# Begin fetching http://xkcd.com/353/
-fetcher = Fetcher('/353/')
+# Begin fetching http://aosabook.org/en/index.html
+fetcher = Fetcher('/en/index.html')
 Task(fetcher.fetch())
 
 loop()
@@ -795,7 +795,7 @@ We collect the workers' shared state in a crawler class, and write the main logi
 ```python
 loop = asyncio.get_event_loop()
 
-crawler = crawling.Crawler('http://xkcd.com',
+crawler = crawling.Crawler('http://aosabook.org',
                            max_redirect=10)
 
 loop.run_until_complete(crawler.crawl())
@@ -924,14 +924,14 @@ We promised to explain why the items in the queue are pairs, like:
 
 ```python
 # URL to fetch, and the number of redirects left.
-('http://xkcd.com/353', 10)
+('http://aosabook.org/en', 10)
 ```
 
 New URLs have ten redirects remaining. Fetching this particular URL results in a redirect to a new location with a trailing slash. We decrement the number of redirects remaining, and put the next location in the queue:
 
 ```python
 # URL with a trailing slash. Nine redirects left.
-('http://xkcd.com/353/', 9)
+('http://aosabook.org/en/', 9)
 ```
 
 The `aiohttp` package we use would follow redirects by default and give us the final response. We tell it not to, however, and handle redirects in the crawler, so it can coalesce redirect paths that lead to the same destination: if we have already seen this URL, it is in ``self.seen_urls`` and we have already started on this path from a different entry point:

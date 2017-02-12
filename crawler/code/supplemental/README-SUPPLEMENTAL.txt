@@ -1,7 +1,7 @@
 Authors: A. Jesse Jiryu Davis
 Project: Web crawler
 Requirements:
-  * Python 3.3 or 3.4
+  * Python 3.3 or later
 
 Illustrations of an async web crawler built upon:
 
