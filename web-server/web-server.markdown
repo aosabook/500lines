@@ -547,9 +547,8 @@ Here's a rewrite of the `do_GET` method:
 
             # Figure out how to handle it.
             for case in self.Cases:
-                handler = case()
-                if handler.test(self):
-                    handler.act(self)
+                if case.test(self):
+                    case.act(self)
                     break
 
         # Handle errors.
