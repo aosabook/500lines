@@ -1,12 +1,8 @@
-import csv
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import numpy as np
-from numpy import matrix
-from math import pow
 from collections import namedtuple
 import math
-import random
 import os
 import json
 
@@ -93,7 +89,8 @@ class OCRNeuralNetwork:
         y2 = self.sigmoid(y2)
 
         results = y2.T.tolist()[0]
-        return results.index(max(results))
+        # get the max value's index from the result which is the digit we predict
+        return max(enumerate(results), key = lambda x: x[1])[0]
 
     def save(self):
         if not self._use_file:
