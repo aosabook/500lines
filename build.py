@@ -121,8 +121,8 @@ def main(chapters=[], epub=False, pdf=False, html=False, mobi=False, pandoc_epub
         build_epub(process_chapters, pandoc_epub)
 
     if mobi and not epub:
-        print 'Cannot build .mobi; depends on .epub.'
-        print 'Use --epub --mobi to build .mobi file.'
+        print('Cannot build .mobi; depends on .epub.')
+        print('Use --epub --mobi to build .mobi file.')
     elif mobi:
         build_mobi()
 
@@ -161,7 +161,7 @@ def build_epub(chapter_markdowns, pandoc_epub):
     cmd = '{pandoc} --chapters -S -f markdown+mmd_title_block --highlight-style=kate -o 500L.epub epubtitle.txt introduction.markdown {markdowns}'
     if pandoc_epub:
         run(cmd.format(pandoc=pandoc_path, markdowns=' '.join(basenames)))
-        print cmd.format(pandoc=pandoc_path, markdowns=' '.join(basenames))
+        print(cmd.format(pandoc=pandoc_path, markdowns=' '.join(basenames)))
 #    import subprocess as sp
 #    output = ' '.join(open('image-list.txt').read().splitlines())
 #    print 'zip 500L.epub META-INF mimetype nav.xhtml toc.ncx stylesheet.css content.opf ' + output
@@ -224,7 +224,7 @@ def preprocessor_command(chapter_markdown):
     temp = 'python _build/preprocessor.py --output=tex/{basename}.markdown --markdown {md}'
     basename = getbasename(chapter_markdown)
     result = temp.format(basename=basename, md=chapter_markdown)
-    print result
+    print(result)
     return (result, basename)
 
 
@@ -238,23 +238,23 @@ def pandoc_cmd(chapter_markdown):
     result = envoy.run(cmd)
     new_chapter_markdown = basename + '.markdown'
     if result.status_code != 0:
-        print result.std_err
+        print(result.std_err)
     else:
-        print result.std_out
+        print(result.std_out)
     result = envoy.run(_pandoc_cmd(new_chapter_markdown))
     if result.status_code != 0:
-        print result.std_err
+        print(result.std_err)
     else:
-        print result.std_out
+        print(result.std_out)
     result2 = envoy.run(postprocessor_command(basename))
     return result2
 
 
 def run(cmd):
-    print cmd
+    print(cmd)
     result = envoy.run(cmd)
-    print result.std_out
-    print result.std_err
+    print(result.std_out)
+    print(result.std_err)
     return result
 
 
