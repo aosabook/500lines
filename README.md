@@ -439,4 +439,12 @@ Technical Reviewers
     <td>Stefan Turalski</td>
     <td>William Lachance</td>
   </tr>
+  <tr>
+    <td>Audrey Tang</td>
+    <td>g0v.tw, Socialtext, Apple</td>
+    <td>spreadsheet</td>
+    <td>@audreyt</td>
+    <td>@audreyt</td>
+    <td>audreyt@audreyt.org</td>
+  </tr>
 </table>
