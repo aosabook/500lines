@@ -128,7 +128,7 @@ and sends it to her browser.
 Each time her browser sends the cookie back,
 the server uses it to look up information about what the user is doing.
 
-The second thing we need to know about HTTP 
+The second thing we need to know about HTTP
 is that a URL can be supplemented with parameters
 to provide even more information.
 For example,
@@ -181,7 +181,7 @@ print 'content length:', response.headers['content-length']
 print response.text
 ```
 
-``` 
+```
 status code: 200
 content length: 61
 <html>
@@ -447,7 +447,7 @@ to read and return the contents.
 This method just reads the file
 and uses our existing `send_content` to send it back to the client:
 
-```python 
+```python
     def handle_file(self, full_path):
         try:
             with open(full_path, 'rb') as reader:
@@ -468,7 +468,7 @@ To finish off this class,
 we need to write the error handling method
 and the template for the error reporting page:
 
-```python 
+```python
     Error_Page = """\
         <html>
         <body>
@@ -494,7 +494,7 @@ it doesn't know that the request actually failed.
 In order to make that clear,
 we need to modify `handle_error` and `send_content` as follows:
 
-```python 
+```python
     # Handle unknown objects.
     def handle_error(self, msg):
         content = self.Error_Page.format(path=self.path, msg=msg)
@@ -547,7 +547,7 @@ Here's a rewrite of the `do_GET` method:
 
             # Figure out how to handle it.
             for case in self.Cases:
-                handler = case()
+                handler = case
                 if handler.test(self):
                     handler.act(self)
                     break
@@ -609,7 +609,7 @@ class case_always_fail(object):
 \noindent and here's how we construct the list of case handlers
 at the top of the `RequestHandler` class:
 
-```python 
+```python
 class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     '''
     If the requested path maps to a file, that file is served.
@@ -658,7 +658,7 @@ and `act` asks the main request handler to serve that page.
 
 The only change needed to `RequestHandler` is to add a `case_directory_index_file` object to our `Cases` list:
 
-```python 
+```python
     Cases = [case_no_file(),
              case_existing_file(),
              case_directory_index_file(),
@@ -696,7 +696,7 @@ For now,
 let's add a method to `RequestHandler` to generate a directory listing,
 and call that from the case handler's `act`:
 
-```python 
+```python
 class case_directory_no_index_file(object):
     '''Serve listing for a directory without an index.html page.'''
 
@@ -724,7 +724,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def list_dir(self, full_path):
         try:
             entries = os.listdir(full_path)
-            bullets = ['<li>{0}</li>'.format(e) 
+            bullets = ['<li>{0}</li>'.format(e)
                 for e in entries if not e.startswith('.')]
             page = self.Listing_Page.format('\n'.join(bullets))
             self.send_content(page)
@@ -762,7 +762,7 @@ print '''\
 In order to get the web server to run this program for us,
 we add this case handler:
 
-```python 
+```python
 class case_cgi_file(object):
     '''Something runnable.'''
 
@@ -775,10 +775,10 @@ class case_cgi_file(object):
 ```
 
 The test is simple:
-does the file path end with `.py`? 
+does the file path end with `.py`?
 If so, `RequestHandler` runs this program.
 
-```python 
+```python
     def run_cgi(self, full_path):
         cmd = "python " + full_path
         child_stdin, child_stdout = os.popen2(cmd)
@@ -878,7 +878,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
 \noindent while the parent class for our case handlers is:
 
-```python 
+```python
 class base_case(object):
     '''Parent for case handlers.'''
 
@@ -904,7 +904,7 @@ class base_case(object):
 \noindent and the handler for an existing file
 (just to pick an example at random) is:
 
-```python 
+```python
 class case_existing_file(base_case):
     '''File exists.'''
 
@@ -938,5 +938,5 @@ just as the authors of the `BaseHTTPRequestHandler` class
 have allowed us to ignore the details of handling socket connections
 and parsing HTTP requests.
 
-These ideas are generally useful; 
-see if you can find ways to use them in your own projects. 
+These ideas are generally useful;
+see if you can find ways to use them in your own projects.
