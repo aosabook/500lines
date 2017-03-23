@@ -16,7 +16,7 @@ from numpy.linalg import norm, inv
 
 from interaction import Interaction
 from primitive import init_primitives, G_OBJ_PLANE
-from node import Sphere, Cube, SnowFigure
+from node import Sphere, Cube, SnowFigure, SquarePyramid, TrianglePyramid, Cylinder, Cone, IceCreamCone
 from scene import Scene
 
 
@@ -42,7 +42,7 @@ class Viewer(object):
         self.inverseModelView = numpy.identity(4)
         self.modelView = numpy.identity(4)
 
-        glEnable(GL_CULL_FACE)
+        glDisable(GL_CULL_FACE)
         glCullFace(GL_BACK)
         glEnable(GL_DEPTH_TEST)
         glDepthFunc(GL_LESS)
@@ -74,6 +74,30 @@ class Viewer(object):
 
         hierarchical_node = SnowFigure()
         hierarchical_node.translate(-2, 0, -2)
+        self.scene.add_node(hierarchical_node)
+
+        squarePyramid_node = SquarePyramid()
+        squarePyramid_node.translate(2, 0, -2)
+        squarePyramid_node.color_index = 4
+        self.scene.add_node(squarePyramid_node)
+
+        trianglePyramid_node = TrianglePyramid()
+        trianglePyramid_node.translate(0, 0, -2)
+        trianglePyramid_node.color_index = 2
+        self.scene.add_node(trianglePyramid_node)
+
+        cylinder_node = Cylinder()
+        cylinder_node.translate(2, 0, 0)
+        cylinder_node.color_index = 5
+        self.scene.add_node(cylinder_node)
+    
+        cone_node = Cone()
+        cone_node.translate(-2, 0, 0)
+        cone_node.color_index = 6
+        self.scene.add_node(cone_node)
+
+        hierarchical_node = IceCreamCone()
+        hierarchical_node.translate(0, 0, 2)
         self.scene.add_node(hierarchical_node)
 
     def init_interaction(self):

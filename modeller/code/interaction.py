@@ -95,6 +95,16 @@ class Interaction(object):
             self.trigger('place', 'cube', x, y)
         elif key == 'f':
             self.trigger('place', 'figure', x, y)
+        elif key == 'p':
+            self.trigger('place', 'squarePyramid', x, y)
+        elif key == 't':
+            self.trigger('place', 'trianglePyramid', x, y)
+        elif key == 'y':
+            self.trigger('place', 'cylinder', x, y)
+        elif key == 'o':
+            self.trigger('place', 'cone', x, y)
+        elif key == 'i':
+            self.trigger('place', 'iceCreamCone', x, y)
         elif key == GLUT_KEY_UP:
             self.trigger('scale', up=True)
         elif key == GLUT_KEY_DOWN:

@@ -3,7 +3,7 @@ from OpenGL.GL import glCallList, glColor3f, glMaterialfv, glMultMatrixf, glPopM
                       GL_EMISSION, GL_FRONT
 import numpy
 
-from primitive import G_OBJ_CUBE, G_OBJ_SPHERE
+from primitive import G_OBJ_CUBE, G_OBJ_SPHERE, G_OBJ_SQUAREPYRAMID, G_OBJ_TRIANGLEPYRAMID, G_OBJ_CYLINDER, G_OBJ_CONE,         				G_OBJ_REVERSECONE
 from aabb import AABB
 from transformation import scaling, translation
 import color
@@ -92,6 +92,41 @@ class Cube(Primitive):
         self.call_list = G_OBJ_CUBE
 
 
+class SquarePyramid(Primitive):
+    """ Classic 5-sided Pyramid primitive"""
+    def __init__(self):
+        super(SquarePyramid, self).__init__()
+        self.call_list = G_OBJ_SQUAREPYRAMID
+
+
+class TrianglePyramid(Primitive):
+    """ 4-sided Pyramid primitive"""
+    def __init__(self):
+        super(TrianglePyramid, self).__init__()
+        self.call_list = G_OBJ_TRIANGLEPYRAMID
+
+
+class Cylinder(Primitive):
+    """Cylinder primitive"""
+    def __init__(self):
+        super(Cylinder, self).__init__()
+        self.call_list = G_OBJ_CYLINDER
+
+
+class Cone(Primitive):
+    """Cone primitive"""
+    def __init__(self):
+        super(Cone, self).__init__()
+        self.call_list = G_OBJ_CONE
+
+
+class RCone(Primitive):
+    """Upside down Cone primitive"""
+    def __init__(self):
+        super(RCone, self).__init__()
+        self.call_list = G_OBJ_REVERSECONE
+
+
 class HierarchicalNode(Node):
     def __init__(self):
         super(HierarchicalNode, self).__init__()
@@ -113,4 +148,23 @@ class SnowFigure(HierarchicalNode):
         self.child_nodes[2].scaling_matrix = numpy.dot(self.scaling_matrix, scaling([0.7, 0.7, 0.7]))
         for child_node in self.child_nodes:
             child_node.color_index = color.MIN_COLOR
+        self.aabb = AABB([0.0, 0.0, 0.0], [0.5, 1.1, 0.5])
+
+
+class IceCreamCone(HierarchicalNode):
+    def __init__(self):
+        super(IceCreamCone, self).__init__()
+        self.child_nodes = [RCone(), Sphere(), Sphere(), Sphere()]
+        self.child_nodes[0].translate(0, -0.3, 0)
+        self.child_nodes[0].scaling_matrix = numpy.dot(self.scaling_matrix, scaling([0.8, 0.8, 0.8]))
+        self.child_nodes[0].color_index = 10
+        self.child_nodes[1].translate(0, 0.15, 0)
+        self.child_nodes[1].scaling_matrix = numpy.dot(self.scaling_matrix, scaling([0.75, 0.75, 0.75]))
+        self.child_nodes[1].color_index = color.MAX_COLOR
+        self.child_nodes[2].translate(0, 0.45, 0)
+        self.child_nodes[2].scaling_matrix = numpy.dot(self.scaling_matrix, scaling([0.65, 0.65, 0.65]))
+        self.child_nodes[2].color_index = color.MIN_COLOR
+        self.child_nodes[3].translate(0, 0.8, 0)
+        self.child_nodes[3].scaling_matrix = numpy.dot(self.scaling_matrix, scaling([0.2, 0.2, 0.2]))
+        self.child_nodes[3].color_index = 3
         self.aabb = AABB([0.0, 0.0, 0.0], [0.5, 1.1, 0.5])
