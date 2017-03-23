@@ -12,6 +12,8 @@ Prerequisites
 * A virtualenv with:
     * pip install -I pyopengl
     * pip install -I numpy
+    * pip install -I wsgire
+    * sudo apt-get install freeglut3-dev
     
 
 Running
@@ -34,6 +36,21 @@ Right click rotates the screen.
 
 'S' places a sphere at the mouse cursor
 
+'F' places a snow figure at the mouse cursor
+
+'P' places a square pyramid at the mouse cursor
+
+'T' places a triangular pyramid at the mouse cursor
+
+'Y' places a cylinder at the mouse cursor
+
+'O' places a cone at the mouse cursor
+
+'I' places an ice cream cone at the mouse cursor
+
+To change color: Select object and use the right/left arrow keys to browse through colors.
+
+To change size: Select object and use the up/down arrow keys
 
 Code Structure
 -------------
