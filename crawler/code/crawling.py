@@ -128,7 +128,11 @@ class Crawler:
         content_type = None
         encoding = None
         body = yield from response.read()
-
+        if isinstance(response.url, str):
+            resp_url = response.url
+        else:
+            resp_url = response.url.scheme + '://' + \
+            response.url.host + response.url.path
         if response.status == 200:
             content_type = response.headers.get('content-type')
             pdict = {}
@@ -147,13 +151,13 @@ class Crawler:
                     LOGGER.info('got %r distinct urls from %r',
                                 len(urls), response.url)
                 for url in urls:
-                    normalized = urllib.parse.urljoin(response.url, url)
+                    normalized = urllib.parse.urljoin(resp_url, url)
                     defragmented, frag = urllib.parse.urldefrag(normalized)
                     if self.url_allowed(defragmented):
                         links.add(defragmented)
 
         stat = FetchStatistic(
-            url=response.url,
+            url=resp_url,
             next_url=None,
             status=response.status,
             exception=None,
