@@ -123,7 +123,7 @@ def serve():
     # Create a thread to check the runner pool
     def runner_checker(server):
         def manage_commit_lists(runner):
-            for commit, assigned_runner in server.dispatched_commits.iteritems():
+            for commit, assigned_runner in server.dispatched_commits.items():
                 if assigned_runner == runner:
                     del server.dispatched_commits[commit]
                     server.pending_commits.append(commit)
