@@ -1,7 +1,7 @@
-from shape import Shape
-from poly import ConvexPoly
-from geometry import Vector, Transform, quadratic, scale, translate, AABox, HalfPlane
-from color import Color
+from .shape import Shape
+from .poly import ConvexPoly
+from .geometry import Vector, Transform, quadratic, scale, translate, AABox, HalfPlane
+from .color import Color
 import sys
 
 class Ellipse(Shape):

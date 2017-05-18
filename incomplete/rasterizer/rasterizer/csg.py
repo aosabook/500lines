@@ -1,5 +1,5 @@
-from shape import Shape
-from geometry import *
+from .shape import Shape
+from .geometry import *
 
 class CSG(Shape):
     def __init__(self, v1, v2, color=None):

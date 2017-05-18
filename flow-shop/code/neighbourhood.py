@@ -20,7 +20,7 @@ def neighbours_random(data, perm, num = 1):
 def neighbours_swap(data, perm):
     # Returns the permutations corresponding to swapping every pair of jobs
     candidates = [perm]
-    for (i,j) in combinations(range(len(perm)), 2):
+    for (i,j) in combinations(list(range(len(perm))), 2):
         candidate = perm[:]
         candidate[i], candidate[j] = candidate[j], candidate[i]
         candidates.append(candidate)
@@ -31,7 +31,7 @@ def neighbours_LNS(data, perm, size = 2):
     candidates = [perm]
 
     # Bound the number of neighbourhoods in case there are too many jobs
-    neighbourhoods = list(combinations(range(len(perm)), size))
+    neighbourhoods = list(combinations(list(range(len(perm))), size))
     random.shuffle(neighbourhoods)
 
     for subset in neighbourhoods[:flow.MAX_LNS_NEIGHBOURHOODS]:

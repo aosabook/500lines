@@ -19,7 +19,7 @@ def main():
     elif sys.argv[1] == 'skiplist':
         emit(sys.stdout, "Skip list", Skiplist())
     else:
-        emit(sys.stdout, u"Skip ﬁles", Btree())
+        emit(sys.stdout, "Skip ﬁles", Btree())
 
 def emit(output, title_string, structure):
     "Write an SVG file to output representing structure."
@@ -130,19 +130,24 @@ def title(s):
     builder.data(s)
     builder.end("text")
 
-def arrow((x0, y0), (x1, y1)):
+def arrow(xxx_todo_changeme, xxx_todo_changeme1):
     "Draw a drafting-style arrow from (x0, y0) to (x1, y1)."
+    (x0, y0) = xxx_todo_changeme
+    (x1, y1) = xxx_todo_changeme1
     direction = normalize(displacement((x0, y0), (x1, y1)))
     dx2, dy2 = rotate(direction, (-3.5, -2))
     dx3, dy3 = rotate(direction, (-3.5, 2))
     path(['M', x0, y0, 'L', x1, y1, 'm', dx2, dy2, 'l', -dx2, -dy2, 'l', dx3, dy3])
 
-def displacement((x0, y0), (x1, y1)):
+def displacement(xxx_todo_changeme2, xxx_todo_changeme3):
     "Compute displacement 2-vector from first to second argument."
+    (x0, y0) = xxx_todo_changeme2
+    (x1, y1) = xxx_todo_changeme3
     return x1 - x0, y1 - y0
 
-def normalize((x, y)):
+def normalize(xxx_todo_changeme4):
     "Normalize a 2-vector to L₂-norm of unity, yielding direction cosines."
+    (x, y) = xxx_todo_changeme4
     mag = (x**2 + y**2)**0.5
     return x/mag, y/mag
 
@@ -150,14 +155,18 @@ assert normalize((0, 1)) == (0, 1)
 assert normalize((1, 0)) == (1, 0)
 assert normalize((-1, 0)) == (-1, 0)
 
-def rotate((cos, sin), (x, y)):
+def rotate(xxx_todo_changeme5, xxx_todo_changeme6):
     "Rotate a 2-vector to the angle specified by given direction cosines."
+    (cos, sin) = xxx_todo_changeme5
+    (x, y) = xxx_todo_changeme6
     return (cos * x - sin * y), (sin * x + cos * y)
 
 assert rotate((1, 0), (.2, .3)) == (.2, .3)
 
-def box((x0, y0), (x1, y1), attrs={}):
+def box(xxx_todo_changeme7, xxx_todo_changeme8, attrs={}):
     "Draw a paraxial box."
+    (x0, y0) = xxx_todo_changeme7
+    (x1, y1) = xxx_todo_changeme8
     path(['M', x0, y0, 'L', x1, y0, 'L', x1, y1, 'L', x0, y1, 'Z'], attrs)
 
 def path(d, attrs=dict(fill="none", stroke="#000")):

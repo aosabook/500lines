@@ -78,18 +78,18 @@ class Function(object):
 
     def __init__(self, name, code, globs, defaults, closure, vm):
         self._vm = vm
-        self.func_code = code
-        self.func_name = self.__name__ = name or code.co_name
-        self.func_defaults = tuple(defaults)
-        self.func_globals = globs
+        self.__code__ = code
+        self.__name__ = self.__name__ = name or code.co_name
+        self.__defaults__ = tuple(defaults)
+        self.__globals__ = globs
         self.func_locals = self._vm.frame.local_names
         self.__dict__ = {}
-        self.func_closure = closure
+        self.__closure__ = closure
         self.__doc__ = code.co_consts[0] if code.co_consts else None
 
         # Sometimes, we need a real Python function.  This is for that.
         kw = {
-            'argdefs': self.func_defaults,
+            'argdefs': self.__defaults__,
         }
         if closure:
             kw['closure'] = tuple(make_cell(0) for _ in closure)
@@ -98,7 +98,7 @@ class Function(object):
     def __call__(self, *args, **kwargs):
         callargs = inspect.getcallargs(self._func, *args, **kwargs)
         frame = self._vm.make_frame(
-            self.func_code, callargs, self.func_globals, {}
+            self.__code__, callargs, self.__globals__, {}
         )
         return self._vm.run_frame(frame)
 

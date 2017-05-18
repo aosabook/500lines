@@ -3,6 +3,7 @@
 # Coincidentally named the same as http://code.activestate.com/recipes/496702/
 
 import re
+import collections
 
 
 class TempliteSyntaxError(ValueError):
@@ -247,6 +248,6 @@ class Templite(object):
                 value = getattr(value, dot)
             except AttributeError:
                 value = value[dot]
-            if callable(value):
+            if isinstance(value, collections.Callable):
                 value = value()
         return value

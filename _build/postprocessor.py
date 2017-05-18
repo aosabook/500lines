@@ -54,8 +54,8 @@ section this is a section or a subsection{
 burble burble burble
 '''
     result = fix_latex_macros(test)
-    print result
-    print expect
+    print(result)
+    print(expect)
     assert (result == expect)
 
 if __name__ == '__main__':

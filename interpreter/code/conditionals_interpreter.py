@@ -28,7 +28,7 @@ class SimpleInterpreter(object):
 
     def STORE_NAME(self, name):
         val = self.stack.pop()
-        print("storing name %s: %s" % (name, val))
+        print(("storing name %s: %s" % (name, val)))
         self.environment[name] = val
 
     def LOAD_NAME(self, name):
@@ -67,10 +67,10 @@ class SimpleInterpreter(object):
         while True:
             if self.next_i >= len(instructions) or self.should_stop:
                 break
-            print(self.next_i)
-            print(self.environment)
+            print((self.next_i))
+            print((self.environment))
             instruction, argument = instructions[self.next_i]
-            print(instructions[self.next_i])
+            print((instructions[self.next_i]))
             argument = self.parse_argument(instruction, argument, what_to_execute)
 
             if instruction == "LOAD_VALUE":

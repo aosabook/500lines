@@ -1,3 +1,4 @@
+import collections
 MISSING = object()
 
 class Base(object):
@@ -42,7 +43,7 @@ class Base(object):
         self._fields[fieldname] = value
 
 def _is_bindable(meth):
-    return callable(meth)
+    return isinstance(meth, collections.Callable)
 
 def _make_boundmethod(meth, self):
     def bound(*args):

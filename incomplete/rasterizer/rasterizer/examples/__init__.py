@@ -1,4 +1,4 @@
-import e1
-import e2
-import e3
-import destijl
+from . import e1
+from . import e2
+from . import e3
+from . import destijl

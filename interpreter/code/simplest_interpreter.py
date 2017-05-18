@@ -21,7 +21,7 @@ class SimpleInterpreter(object):
 
     def STORE_NAME(self, name):
         val = self.stack.pop()
-        print("storing name %s: %s" % (name, val))
+        print(("storing name %s: %s" % (name, val)))
         self.environment[name] = val
 
     def LOAD_NAME(self, name):

@@ -57,7 +57,7 @@ class Fetcher:
             urls_todo.remove(self.url)
             if not urls_todo:
                 stopped = True
-            print(self.url)
+            print((self.url))
 
     def body(self):
         body = self.response.split(b'\r\n\r\n', 1)[1]
@@ -65,7 +65,7 @@ class Fetcher:
 
     def parse_links(self):
         if not self.response:
-            print('error: {}'.format(self.url))
+            print(('error: {}'.format(self.url)))
             return set()
         if not self._is_html():
             return set()
@@ -102,5 +102,5 @@ while not stopped:
         callback = event_key.data
         callback(event_key, event_mask)
 
-print('{} URLs fetched in {:.1f} seconds, achieved concurrency = {}'.format(
-    len(seen_urls), time.time() - start, concurrency_achieved))
+print(('{} URLs fetched in {:.1f} seconds, achieved concurrency = {}'.format(
+    len(seen_urls), time.time() - start, concurrency_achieved)))

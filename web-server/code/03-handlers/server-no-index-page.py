@@ -1,4 +1,4 @@
-import sys, os, BaseHTTPServer
+import sys, os, http.server
 
 #-------------------------------------------------------------------------------
 
@@ -71,7 +71,7 @@ class case_always_fail(object):
 
 #-------------------------------------------------------------------------------
 
-class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+class RequestHandler(http.server.BaseHTTPRequestHandler):
     '''
     If the requested path maps to a file, that file is served.
     If anything goes wrong, an error page is constructed.
@@ -157,5 +157,5 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
 if __name__ == '__main__':
     serverAddress = ('', 8080)
-    server = BaseHTTPServer.HTTPServer(serverAddress, RequestHandler)
+    server = http.server.HTTPServer(serverAddress, RequestHandler)
     server.serve_forever()

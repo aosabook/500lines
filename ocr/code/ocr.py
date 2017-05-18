@@ -56,8 +56,8 @@ class OCRNeuralNetwork:
         return self.sigmoid(z) * (1 - self.sigmoid(z))
 
     def _draw(self, sample):
-        pixelArray = [sample[j:j+self.WIDTH_IN_PIXELS] for j in xrange(0, len(sample), self.WIDTH_IN_PIXELS)]
-        plt.imshow(zip(*pixelArray), cmap = cm.Greys_r, interpolation="nearest")
+        pixelArray = [sample[j:j+self.WIDTH_IN_PIXELS] for j in range(0, len(sample), self.WIDTH_IN_PIXELS)]
+        plt.imshow(list(zip(*pixelArray)), cmap = cm.Greys_r, interpolation="nearest")
         plt.show()
 
     def train(self, training_data_array):

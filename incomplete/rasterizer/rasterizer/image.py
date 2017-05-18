@@ -1,13 +1,13 @@
-from color import Color
-from geometry import AABox, Vector
+from .color import Color
+from .geometry import AABox, Vector
 
 class PPMImage:
     def __init__(self, resolution, bg=Color()):
         self.resolution = resolution
         self.pixels = []
-        for i in xrange(self.resolution):
+        for i in range(self.resolution):
             lst = []
-            for j in xrange(self.resolution):
+            for j in range(self.resolution):
                 lst.append(Color(rgb=bg.rgb, a=bg.a))
             self.pixels.append(lst)
     def bounds(self):
@@ -19,6 +19,6 @@ class PPMImage:
     def write_ppm(self, out):
         n = self.resolution
         out.write("P6\n%s\n%s\n255\n" % (n,n))
-        for y in xrange(n-1, -1, -1):
-            for x in xrange(n):
+        for y in range(n-1, -1, -1):
+            for x in range(n):
                 out.write(self.pixels[y][x].as_ppm())

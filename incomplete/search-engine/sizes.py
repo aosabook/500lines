@@ -7,12 +7,12 @@ def xcumsum(xs):
         total += xx
 
 def describe(sizes):
-    print ' ' * 4 + ' '.join("%4d" % size for size in sizes)
-    print ' ' * 4 + ' '.join("%4d" % tots for tots in xcumsum(sizes))
+    print((' ' * 4 + ' '.join("%4d" % size for size in sizes)))
+    print((' ' * 4 + ' '.join("%4d" % tots for tots in xcumsum(sizes))))
 
 sizes = []
 while True:
-    line = raw_input("+ ")
+    line = eval(input("+ "))
 
     if line == '':
         sizes = []

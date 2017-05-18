@@ -9,14 +9,14 @@ import re                       # used to extract words from input
 import sys
 import shutil                   # to remove directory trees
 import traceback
-import urllib                   # for quote and unquote
+import urllib.request, urllib.parse, urllib.error                   # for quote and unquote
 def write_tuples(outfile, tuples):
     for item in tuples:
-        line = ' '.join(urllib.quote(str(field)) for field in item)
+        line = ' '.join(urllib.parse.quote(str(field)) for field in item)
         outfile.write(line + "\n")
 def read_tuples(infile):
     for line in infile:
-        yield tuple(urllib.unquote(field) for field in line.split())
+        yield tuple(urllib.parse.unquote(field) for field in line.split())
 # XXX maybe these functions don't need to exist?
 def read_metadata(index_path):
     with path['documents'].open() as metadata_file:
@@ -84,7 +84,7 @@ def search_ui(index_path, terms):
         # Use the crudest possible ranking: newest (largest mtime) first.
         for path in sorted(paths(index_path, terms),
                            key=get_metadata, reverse=True):
-            print(path.name)
+            print((path.name))
 # At the moment, our doc_ids are just pathnames; this converts them to Path objects.
 def paths(index_path, terms):
     parent = index_path.parent()

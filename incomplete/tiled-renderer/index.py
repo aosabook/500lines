@@ -1,5 +1,5 @@
 import os
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
 import jinja2
 import webapp2

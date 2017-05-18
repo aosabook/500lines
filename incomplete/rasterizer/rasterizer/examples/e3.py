@@ -8,7 +8,7 @@ def run(image):
     distance = 0.02
     colors = [Color.hex("#1f77b4"), Color.hex("#ff7f0e"), Color.hex("#2ca02c"),
               Color.hex("#d62728"), Color.hex("#9467bd"), Color.hex("#8c564b")]
-    for i in xrange(500):
+    for i in range(500):
         obj = Circle(Vector(0.5, 0.5), radius, colors[i % len(colors)])
         obj = obj.transform(translate(distance, 0))
         obj = obj.transform(around(Vector(0.5, 0.5), rotate(angle)))

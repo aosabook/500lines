@@ -1,5 +1,5 @@
-from shape import Shape
-from geometry import HalfPlane, Vector, AABox
+from .shape import Shape
+from .geometry import HalfPlane, Vector, AABox
 
 class ConvexPoly(Shape): # a *convex* poly, in ccw order, with no repeating vertices
     def __init__(self, ps, color=None):
@@ -7,7 +7,7 @@ class ConvexPoly(Shape): # a *convex* poly, in ccw order, with no repeating vert
         self.vs = ps
         self.bound = AABox.from_vectors(*self.vs)
         self.half_planes = []
-        for i in xrange(len(self.vs)):
+        for i in range(len(self.vs)):
             h = HalfPlane(self.vs[i], self.vs[(i+1) % len(self.vs)])
             self.half_planes.append(h)
     def signed_distance_bound(self, p):
@@ -20,7 +20,7 @@ class ConvexPoly(Shape): # a *convex* poly, in ccw order, with no repeating vert
                 max_outside = d
             if d >= 0 and d < min_inside:
                 min_inside = d
-        return max_outside if max_outside <> -1e30 else min_inside
+        return max_outside if max_outside != -1e30 else min_inside
     def contains(self, p):
         for plane in self.half_planes:
             if plane.signed_distance(p) < 0:

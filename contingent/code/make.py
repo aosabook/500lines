@@ -107,22 +107,22 @@ def main():
     project.start_tracing()
     for path in get_paths():
         render(path)
-    print(project.stop_tracing(True))
+    print((project.stop_tracing(True)))
 
     open('chapter.dot', 'w').write(as_graphviz(project._graph))
 
     while True:
-        print('=' * 72)
+        print(('=' * 72))
         print('Watching for files to change')
         changed_paths = looping_wait_on(get_paths())
-        print('=' * 72)
-        print('Reloading:', ' '.join(changed_paths))
+        print(('=' * 72))
+        print(('Reloading:', ' '.join(changed_paths)))
         with project.cache_off():
             for path in changed_paths:
                 read_text_file(path)
         project.start_tracing()
         project.rebuild()
-        print(project.stop_tracing(True))
+        print((project.stop_tracing(True)))
 
 
 if __name__ == '__main__':

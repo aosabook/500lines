@@ -1,7 +1,7 @@
 from datetime import datetime
-print '''\
+print(('''\
 <html>
 <body>
 <p>Generated {0}</p>
 </body>
-</html>'''.format(datetime.now())
+</html>'''.format(datetime.now())))
