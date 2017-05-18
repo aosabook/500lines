@@ -1,7 +1,7 @@
 """A main program for Byterun."""
 
 import sys, imp
-from pyvm2 import VirtualMachine
+from .pyvm2 import VirtualMachine
 
 def run_python_file(filename):
     """Run a python file as if it were the main program on the command line.

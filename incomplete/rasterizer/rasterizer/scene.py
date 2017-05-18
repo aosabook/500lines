@@ -1,5 +1,5 @@
-from geometry import identity
-from shape import Shape, SceneObject
+from .geometry import identity
+from .shape import Shape, SceneObject
 
 class Scene(SceneObject):
     def __init__(self, nodes=None, transform=None):

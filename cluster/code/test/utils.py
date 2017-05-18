@@ -31,7 +31,7 @@ class ComponentTestCase(unittest.TestCase):
         """Verify that the ``accepted_proposals`` field of a promise is formatted
         as a dictionary mapping slots to (ballot, proposal) tuples."""
         self.assertIsInstance(accepted_proposals, dict)
-        for k, v in accepted_proposals.iteritems():
+        for k, v in list(accepted_proposals.items()):
             self.assertIsInstance(k, int)
             self.assertIsInstance(v, tuple)
             self.assertEqual(len(v), 2)

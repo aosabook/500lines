@@ -15,7 +15,7 @@ class AnyOldObject(object):
 
     """
     def __init__(self, **attrs):
-        for n, v in attrs.items():
+        for n, v in list(attrs.items()):
             setattr(self, n, v)
 
 

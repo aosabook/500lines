@@ -45,7 +45,7 @@ class MagicItemDistribution(object):
 
         """
         stats = self._sample_stats()
-        item_stats = dict(zip(self.stats_names, stats))
+        item_stats = dict(list(zip(self.stats_names, stats)))
         return item_stats
 
     def log_pmf(self, item):
@@ -228,7 +228,7 @@ class DamageDistribution(object):
         """
         # First, we need to randomly generate items (the number of
         # which was passed into the constructor).
-        items = [self.item_dist.sample() for i in xrange(self.num_items)]
+        items = [self.item_dist.sample() for i in range(self.num_items)]
 
         # Based on the item stats (in particular, strength), compute
         # the number of dice we get to roll.

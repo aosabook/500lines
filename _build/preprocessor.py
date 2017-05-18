@@ -34,10 +34,10 @@ def test_parse_aosafigures():
 
     for input_text, expected in test:
         aosafigs = parse_aosafigures(input_text)
-        print aosafigs
-        print
-        print 'expected'
-        print expected
+        print(aosafigs)
+        print()
+        print('expected')
+        print(expected)
         assert aosafigs == expected
 
 def fix_figure_index(text, chapter):
@@ -85,7 +85,7 @@ def fix_table_references(text, chapter):
             
     table_count = 1
     for table in tables:
-        print '\\aosatblref{'+table+'}'
+        print(('\\aosatblref{'+table+'}'))
         table_id = "{}.{}".format(chapter, table_count)
         text = text.replace('\\label{'+table+'}', '<b>Table ' + table_id + '</b> - ')
         text = text.replace('\\aosatblref{'+table+'}', 'Table ' + table_id)
@@ -177,7 +177,7 @@ dsaf asd \\cite{bla-99} fas \\cite{o:o_f23} df \\cite{bla-99}.
     expected = '''
 dsaf asd [[@bla-99]] fas [[@o:o_f23]] df [[@bla-99]].
 '''
-    print htmlify_refs(test)
+    print((htmlify_refs(test)))
     assert htmlify_refs(test) == expected
 
 

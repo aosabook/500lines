@@ -17,8 +17,8 @@ class LineIterator(object):
     def __iter__(self):
         return self
 
-    def next(self):
-        self.linenum, rv = self.enum_iter.next()
+    def __next__(self):
+        self.linenum, rv = next(self.enum_iter)
         return rv
 
     def use_line(self):
@@ -48,7 +48,7 @@ def code_block(filename, args):
                 lines.use_line()
                 break
         else:
-            print >>sys.stderr, "no match found for %r" % arg
+            print("no match found for %r" % arg, file=sys.stderr)
             sys.exit(1)
 
     space = re.match('^ *', line).group(0)
@@ -72,7 +72,7 @@ def code_block(filename, args):
 extractors['code_block'] = code_block
 
 def from_to(filename, args):
-    from_re, to_re = map(re.compile, args)
+    from_re, to_re = list(map(re.compile, args))
     lines = LineIterator(filename)
 
     result = []
@@ -80,7 +80,7 @@ def from_to(filename, args):
         if from_re.match(line):
             break
     else:
-        print >>sys.stderr, "no match found for %r" % from_re
+        print("no match found for %r" % from_re, file=sys.stderr)
         sys.exit(1)
 
     for line in lines:

@@ -1,6 +1,7 @@
 import random
 import math
 from itertools import product
+from functools import reduce
 
 # Solves the quadratic equation ax^2 + bx + c = 0
 # using a variant of the standard quadratic formula
@@ -76,8 +77,8 @@ class Transform:
             # if the other element is also a transform,
             # then return a transform corresponding to the
             # composition of the two transforms
-            t = [[0.0] * 3 for i in xrange(3)]
-            for i, j, k in product(xrange(3), repeat=3):
+            t = [[0.0] * 3 for i in range(3)]
+            for i, j, k in product(list(range(3)), repeat=3):
                 t[i][j] += self.m[i][k] * other.m[k][j]
             return Transform(t[0][0], t[0][1], t[0][2],
                              t[1][0], t[1][1], t[1][2])

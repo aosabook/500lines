@@ -26,11 +26,11 @@ for line in lines:
 
 parts = 'top.py assembler.py default'.split()
 with open('compiler.py', 'w') as f:
-    f.write('\n'.join(sum(map(outputs.get, parts), [])))
+    f.write('\n'.join(sum(list(map(outputs.get, parts)), [])))
 for label in parts:
     del outputs[label]
 
 with open('non-compiler', 'w') as f:
-    for label, lines in outputs.items():
+    for label, lines in list(outputs.items()):
         for line in lines:
             f.write(label+': '+line+'\n')

@@ -1,4 +1,4 @@
-import destijl
+from . import destijl
 from .. import *
 
 def run(image):

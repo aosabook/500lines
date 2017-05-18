@@ -12,12 +12,12 @@ if __name__ == '__main__':
 	for line in source:
 		if line and line not in chapter_set:
 			if zero_missing:
-				print "Missing lines of source!"
+				print("Missing lines of source!")
 				zero_missing = False
-			print line,
+			print(line, end=' ')
 
 	for line in chapter:
 		if line not in source_set and line not in ["```", "~~~~"]:
-			print line,
+			print(line, end=' ')
 
 

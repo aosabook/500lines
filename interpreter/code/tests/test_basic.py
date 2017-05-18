@@ -1,6 +1,6 @@
 """Basic tests for Byterun."""
 
-from __future__ import print_function
+
 from . import vmtest
 
 class TestIt(vmtest.VmTestCase):

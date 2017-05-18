@@ -89,7 +89,7 @@ def render(paths, path):
     text = '<h1>{}</h1>\n<p>Date: {}</p>\n<p>Previous post: {}</p>\n{}'.format(
         title_of(path), date_of(path),
         previous_title, body_of(path))
-    print('-' * 72)
+    print(('-' * 72))
     print(text)
     return text
 
@@ -108,11 +108,11 @@ def main():
 
     project.verbose = True
     while True:
-        print('=' * 72)
+        print(('=' * 72))
         print('Watching for files to change')
         changed_paths = looping_wait_on(paths)
-        print('=' * 72)
-        print('Reloading:', ' '.join(changed_paths))
+        print(('=' * 72))
+        print(('Reloading:', ' '.join(changed_paths)))
         with project.cache_off():
             for path in changed_paths:
                 read_text_file(path)

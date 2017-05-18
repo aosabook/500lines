@@ -139,4 +139,4 @@ class Tests(unittest.TestCase):
 
         self.network.set_timer(None, 15, self.network.stop)
         self.network.run()
-        self.assertEqual(set(results), set(xrange(1, N+1)))
+        self.assertEqual(set(results), set(range(1, N+1)))
