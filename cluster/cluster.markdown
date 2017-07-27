@@ -989,7 +989,7 @@ Testing and debugging can take place using the simulated network, with productio
 Debugging Support
 -----------------
 
-When developing a complex system such as this, the bugs quickly transition from trivial, like a simple ``NameError``, to obscure failures that only manifest after several minutes of (simulated) proocol operation.
+When developing a complex system such as this, the bugs quickly transition from trivial, like a simple ``NameError``, to obscure failures that only manifest after several minutes of (simulated) protocol operation.
 Chasing down bugs like this involves working backward from the point where the error became obvious.
 Interactive debuggers are useless here, as they can only step forward in time.
 
