@@ -147,7 +147,7 @@ class Crawler:
                     LOGGER.info('got %r distinct urls from %r',
                                 len(urls), response.url)
                 for url in urls:
-                    normalized = urllib.parse.urljoin(response.url, url)
+                    normalized = urllib.parse.urljoin(str(response.url), url)
                     defragmented, frag = urllib.parse.urldefrag(normalized)
                     if self.url_allowed(defragmented):
                         links.add(defragmented)
