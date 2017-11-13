@@ -152,7 +152,7 @@ class Fetcher:
 start = time.time()
 fetcher = Fetcher('/')
 Task(fetcher.fetch())
-
+2
 while not stopped:
     events = selector.select()
     for event_key, event_mask in events:
