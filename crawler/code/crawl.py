@@ -7,6 +7,7 @@
 
 import argparse
 import asyncio
+import uvloop
 import logging
 import sys
 
@@ -21,6 +22,9 @@ ARGS.add_argument(
 ARGS.add_argument(
     '--select', action='store_true', dest='select',
     default=False, help='Use Select event loop instead of default')
+ARGS.add_argument(
+    '--uvloop', action='store_true', dest='uvloop',
+    default=False, help='Use uvloop instead of default')
 ARGS.add_argument(
     'roots', nargs='*',
     default=[], help='Root URL (may be repeated)')
@@ -76,6 +80,9 @@ def main():
         asyncio.set_event_loop(loop)
     elif args.select:
         loop = asyncio.SelectorEventLoop()
+        asyncio.set_event_loop(loop)
+    elif args.uvloop:
+        loop = uvloop.new_event_loop()
         asyncio.set_event_loop(loop)
     else:
         loop = asyncio.get_event_loop()

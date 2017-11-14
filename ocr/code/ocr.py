@@ -56,14 +56,14 @@ class OCRNeuralNetwork:
         return self.sigmoid(z) * (1 - self.sigmoid(z))
 
     def _draw(self, sample):
-        pixelArray = [sample[j:j+self.WIDTH_IN_PIXELS] for j in xrange(0, len(sample), self.WIDTH_IN_PIXELS)]
+        pixelArray = [sample[j:j+self.WIDTH_IN_PIXELS] for j in range(0, len(sample), self.WIDTH_IN_PIXELS)]
         plt.imshow(zip(*pixelArray), cmap = cm.Greys_r, interpolation="nearest")
         plt.show()
 
     def train(self, training_data_array):
         for data in training_data_array:
             # Step 2: Forward propagation
-            y1 = np.dot(np.mat(self.theta1), np.mat(data['y0']).T)
+            y1 = np.dot(np.mat(self.theta1), np.mat(data.y0).T)
             sum1 =  y1 + np.mat(self.input_layer_bias) # Add the bias
             y1 = self.sigmoid(sum1)
 
@@ -73,12 +73,12 @@ class OCRNeuralNetwork:
 
             # Step 3: Back propagation
             actual_vals = [0] * 10 # actual_vals is a python list for easy initialization and is later turned into an np matrix (2 lines down).
-            actual_vals[data['label']] = 1
+            actual_vals[data.label] = 1
             output_errors = np.mat(actual_vals).T - np.mat(y2)
             hidden_errors = np.multiply(np.dot(np.mat(self.theta2).T, output_errors), self.sigmoid_prime(sum1))
 
             # Step 4: Update weights
-            self.theta1 += self.LEARNING_RATE * np.dot(np.mat(hidden_errors), np.mat(data['y0']))
+            self.theta1 += self.LEARNING_RATE * np.dot(np.mat(hidden_errors), np.mat(data.y0))
             self.theta2 += self.LEARNING_RATE * np.dot(np.mat(output_errors), np.mat(y1).T)
             self.hidden_layer_bias += self.LEARNING_RATE * output_errors
             self.input_layer_bias += self.LEARNING_RATE * hidden_errors

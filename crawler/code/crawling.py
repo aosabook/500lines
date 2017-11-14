@@ -121,13 +121,12 @@ class Crawler:
         """Record the FetchStatistic for completed / failed URL."""
         self.done.append(fetch_statistic)
 
-    @asyncio.coroutine
-    def parse_links(self, response):
+    async def parse_links(self, response):
         """Return a FetchStatistic and list of links."""
         links = set()
         content_type = None
         encoding = None
-        body = yield from response.read()
+        body = await response.read()
 
         if response.status == 200:
             content_type = response.headers.get('content-type')
@@ -138,7 +137,7 @@ class Crawler:
 
             encoding = pdict.get('charset', 'utf-8')
             if content_type in ('text/html', 'application/xml'):
-                text = yield from response.text()
+                text = await response.text()
 
                 # Replace href with (?:href|src) to follow image links.
                 urls = set(re.findall(r'''(?i)href=["']([^\s"'<>]+)''',
@@ -165,14 +164,13 @@ class Crawler:
 
         return stat, links
 
-    @asyncio.coroutine
-    def fetch(self, url, max_redirect):
+    async def fetch(self, url, max_redirect):
         """Fetch one URL."""
         tries = 0
         exception = None
         while tries < self.max_tries:
             try:
-                response = yield from self.session.get(
+                response = await self.session.get(
                     url, allow_redirects=False)
 
                 if tries > 1:
@@ -222,22 +220,21 @@ class Crawler:
                     LOGGER.error('redirect limit reached for %r from %r',
                                  next_url, url)
             else:
-                stat, links = yield from self.parse_links(response)
+                stat, links = await self.parse_links(response)
                 self.record_statistic(stat)
                 for link in links.difference(self.seen_urls):
                     self.q.put_nowait((link, self.max_redirect))
                 self.seen_urls.update(links)
         finally:
-            yield from response.release()
+            await response.release()
 
-    @asyncio.coroutine
-    def work(self):
+    async def work(self):
         """Process queue items forever."""
         try:
             while True:
-                url, max_redirect = yield from self.q.get()
+                url, max_redirect = await self.q.get()
                 assert url in self.seen_urls
-                yield from self.fetch(url, max_redirect)
+                await self.fetch(url, max_redirect)
                 self.q.task_done()
         except asyncio.CancelledError:
             pass
@@ -263,13 +260,12 @@ class Crawler:
         self.seen_urls.add(url)
         self.q.put_nowait((url, max_redirect))
 
-    @asyncio.coroutine
-    def crawl(self):
+    async def crawl(self):
         """Run the crawler until all finished."""
         workers = [asyncio.Task(self.work(), loop=self.loop)
                    for _ in range(self.max_tasks)]
         self.t0 = time.time()
-        yield from self.q.join()
+        await self.q.join()
         self.t1 = time.time()
         for w in workers:
             w.cancel()
