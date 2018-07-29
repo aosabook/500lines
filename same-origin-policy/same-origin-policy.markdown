@@ -622,7 +622,7 @@ that _subsumes_ others:
 
 ```alloy 
 one sig ExampleDomain extends Domain {}{
-  subsumes = EmailDomain + EvilDomain + CalendarDomain + this
+  subsumes = EmailDomain + CalendarDomain + BlogDomain + this
 }   
 ```
 
