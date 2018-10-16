@@ -46,7 +46,7 @@ function Spreadsheet($scope) { init();
 
     $scope.Cols.forEach(function(col){
       var td = document.createElement( 'td' ); tr.appendChild(td);
-      var input = document.createElement( 'input' ); input.setAttribute('id', col + row);
+      var input = document.createElement( 'input' ); input.setAttribute('id', col + row); input.setAttribute('spellcheck', 'false');
       if (!((col+row) in $scope.sheet)) { $scope.sheet[col+row] = ''; }
 
       for (var event of ['change', 'input', 'paste']) { input.addEventListener(event,
