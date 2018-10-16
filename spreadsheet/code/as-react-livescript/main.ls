@@ -55,7 +55,7 @@ Row = React.createFactory React.createClass do
 Cell = React.createFactory React.createClass displayName: \Cell render: ->
   {id, txt, err, val, onChange, onKeyDown} = @props
   td { className: if txt?0 is \= then \formula else '' },
-    input { id, type: \text, value: txt, onChange, onKeyDown }
+    input { id, spellcheck: \false, type: \text, value: txt, onChange, onKeyDown }
     div { className: if err then \error else if val?0 then \text else '' } (err || val)
 
 window.init = ->
