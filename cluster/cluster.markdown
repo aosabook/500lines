@@ -1102,7 +1102,7 @@ For example, unit tests for the acceptor role verify the format of the ``accepte
 Neither test checks that those formats match.
 
 One approach to fixing this issue is to make the interfaces self-enforcing.
-In Cluster, the use of named tuples and keyword arguments avoids any disagreement over messages' attributes.
+In Cluster, the use of named tuples and keyword arguments avoids any disagreement over message's attributes.
 Because the only interaction between role classes is via messages, this covers a large part of the interface.
 
 For specific issues such as the format of ``accepted_proposals``, both the real and test data can be verified using the same function, in this case ``verifyPromiseAccepted``.
