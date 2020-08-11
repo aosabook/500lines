@@ -1,4 +1,4 @@
-import BaseHTTPServer
+import http.server
 import json
 from ocr import OCRNeuralNetwork
 import numpy as np
@@ -20,7 +20,7 @@ data_labels = data_labels.tolist()
 # for hidden nodes
 nn = OCRNeuralNetwork(HIDDEN_NODE_COUNT, data_matrix, data_labels, list(range(5000)));
 
-class JSONHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+class JSONHandler(http.server.BaseHTTPRequestHandler):
     def do_POST(s):
         response_code = 200
         response = ""
@@ -44,11 +44,11 @@ class JSONHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         s.send_header("Access-Control-Allow-Origin", "*")
         s.end_headers()
         if response:
-            s.wfile.write(json.dumps(response))
+            s.wfile.write(bytes(json.dumps(response), "utf-8"))
         return
 
 if __name__ == '__main__':
-    server_class = BaseHTTPServer.HTTPServer;
+    server_class = http.server.HTTPServer;
     httpd = server_class((HOST_NAME, PORT_NUMBER), JSONHandler)
 
     try:
@@ -56,6 +56,6 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         pass
     else:
-        print "Unexpected server exception occurred."
+        print("Unexpected server exception occurred.")
     finally:
         httpd.server_close()
