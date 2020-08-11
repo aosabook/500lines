@@ -14,7 +14,7 @@ var ocrDemo = {
     CANVAS_WIDTH: 200,
     TRANSLATED_WIDTH: 20,
     PIXEL_WIDTH: 10, // TRANSLATED_WIDTH = CANVAS_WIDTH / PIXEL_WIDTH
-    BATCH_SIZE: 10,
+    BATCH_SIZE: 1,
 
     // Server Variables
     PORT: "8000",
