@@ -112,7 +112,7 @@ Photographic film is covered in silver halide crystals. (Extra layers are used
 to create color photographs — for simplicity let’s just stick to
 black-and-white photography here.) 
 
-When talking an old-fashioned photograph — with film — the light hits the
+When taking an old-fashioned photograph — with film — the light hits the
 film according to what you’re pointing at, and the crystals at those points are
 changed in varying degrees, according to the amount of light. Then, the
 [development
