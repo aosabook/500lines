@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "mocha": "*",
-    "react": "^0.12.1",
+    "react": "^16.13.1",
     "static-here": "*",
     "traceur": "0.0.66"
   },
