@@ -734,7 +734,7 @@ By default, values are stored by `ValueRef`
 which expects bytes as values
 (to be passed directly to `Storage`).
 The binary tree nodes themselves
-are just a sublcass of `ValueRef`.
+are just a subclass of `ValueRef`.
 Storing richer data
 via <a href="http://json.org">json</a> or <a href="http://msgpack.org">msgpack</a> is a matter of writing your own
 and setting it as the `value_ref_class`.
