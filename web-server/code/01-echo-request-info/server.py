@@ -13,7 +13,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 <tr>  <td>Header</td>         <td>Value</td>          </tr>
 <tr>  <td>Date and time</td>  <td>{date_time}</td>    </tr>
 <tr>  <td>Client host</td>    <td>{client_host}</td>  </tr>
-<tr>  <td>Client port</td>    <td>{client_port}s</td> </tr>
+<tr>  <td>Client port</td>    <td>{client_port}</td> </tr>
 <tr>  <td>Command</td>        <td>{command}</td>      </tr>
 <tr>  <td>Path</td>           <td>{path}</td>         </tr>
 </table>
