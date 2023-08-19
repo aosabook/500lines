@@ -149,7 +149,7 @@ We have some utilities for handling blocks as DOM elements:
 
 The purpose of `drag.js` is to turn static blocks of HTML into a dynamic programming language by implementing interactions between the menu section of the view and the script section. The user builds their program by dragging blocks from the menu into the script, and the system runs the blocks in the script area.
 
-We're using HTML5 drag-and-drop; the specific JavaScript event handlers it requires are defined here. (For more information on using HTML5 drag-and-drop, see [Eric Bidleman's article](http://www.html5rocks.com/en/tutorials/dnd/basics/).) While it is nice to have built-in support for drag-and-drop, it does have some oddities and some pretty major limitations, like not being implemented in any mobile browser at the time of this writing.
+We're using HTML5 drag-and-drop; the specific JavaScript event handlers it requires are defined here. (For more information on using HTML5 drag-and-drop, see [Eric Bidleman's article](https://web.dev/drag-and-drop/).) While it is nice to have built-in support for drag-and-drop, it does have some oddities and some pretty major limitations, like not being implemented in any mobile browser at the time of this writing.
 
 We define some variables at the top of the file. When we're dragging, we'll need to reference these from different stages of the dragging callback dance.
 
