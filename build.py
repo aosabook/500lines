@@ -158,7 +158,7 @@ def build_epub(chapter_markdowns, pandoc_epub):
         basename = os.path.splitext(os.path.split(markdown)[1])[0]
         run(temp.format(md=markdown, basename=basename, chapnum=i+1))
     pandoc_path = 'pandoc'
-    cmd = '{pandoc} --chapters -S -f markdown+mmd_title_block --highlight-style=kate -o 500L.epub epubtitle.txt introduction.markdown {markdowns}'
+    cmd = '{pandoc} --top-level-division=chapter -f markdown+smart+mmd_title_block --highlight-style=kate -o 500L.epub epubtitle.txt introduction.markdown {markdowns}'
     if pandoc_epub:
         run(cmd.format(pandoc=pandoc_path, markdowns=' '.join(basenames)))
         print cmd.format(pandoc=pandoc_path, markdowns=' '.join(basenames))
@@ -214,7 +214,7 @@ def getbasename(chapter_markdown):
 def _pandoc_cmd(chapter_markdown):
     pandoc_path = 'pandoc'
     # tex/md because that's where the preprocessed markdowns end up
-    temp = '{pandoc} -V chaptertoken={chaptertoken} -t latex --chapters -S -f markdown+mmd_title_block+tex_math_dollars --template=tex/chaptertemplate.tex --no-highlight -o tex/{basename}.tex.1 tex/{md}'
+    temp = '{pandoc} -V chaptertoken={chaptertoken} -t latex --top-level-division=chapter -f markdown+smart+mmd_title_block+tex_math_dollars --template=tex/chaptertemplate.tex --no-highlight -o tex/{basename}.tex.1 tex/{md}'
     basename = getbasename(chapter_markdown)
     result = temp.format(pandoc=pandoc_path, basename=basename, md=chapter_markdown, chaptertoken='s:' + basename)
     return result

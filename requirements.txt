@@ -1,4 +1,4 @@
-pelican
+pelican<4.5
 typogrify
 envoy
 markdown
